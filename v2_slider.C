@@ -118,7 +118,7 @@ TTripleSliderDemo::TTripleSliderDemo() : TGMainFrame(gClient->GetRoot(), 100, 10
 
     TString vec_label[5] = {"T (GeV)","#rho_{0}","#rho_{a}","R_{x}","f_{boost}"};
 
-    inputfile = TFile::Open("./merge_v2_boost.root");
+    inputfile = TFile::Open("./Data/merge_v2_boost.root");
     tp_v2_vs_pT_mesons.resize(5);
     h_dN_dpT_mesons.resize(5);
 
