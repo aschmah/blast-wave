@@ -48,6 +48,7 @@
 #include "TArrow.h"
 
 static TFile *inputfile_id;
+static TFile *inputfile_JPsi;
 static TFile *inputfile_spectra_id;
 static vector<TString> arr_labels;
 static vector<Int_t>   arr_pid;
@@ -78,7 +79,7 @@ static TH2D* h2D_density_Glauber;
 
 static vector<TGraph*> vec_tg_v2_vs_pT_Mathematica;
 static TGraphErrors* tg_Upsilon_v2_vs_pT;
-static TGraphErrors* tg_JPsi_v2_vs_pT;
+static TGraphAsymmErrors* tg_JPsi_v2_vs_pT;
 static vector<TH1D*> h_dN_dpT_mesons;
 static vector< vector<TGraphErrors*> > tge_JPsi_spectra;
 static TGraphErrors* tge_JPsi_forward_spectrum_stat;
@@ -500,7 +501,8 @@ void init_data()
 {
     printf("Initialize data \n");
     // https://arxiv.org/pdf/1405.4632.pdf
-    inputfile_id = TFile::Open("./Data/HEPData-ins1297103-v1-root.root");
+    inputfile_id   = TFile::Open("./Data/HEPData-ins1297103-v1-root.root");
+    inputfile_JPsi = TFile::Open("./Data/HEPData-ins1225273-v1-Table_1.root");
 
     // pi, K+/-, K0s, <K>, p, phi, Lambda, Xi, Omega
 
@@ -590,7 +592,13 @@ void init_data()
     tg_Upsilon_v2_vs_pT ->SetMarkerSize(0.8);
     tg_Upsilon_v2_vs_pT ->SetMarkerColor(kBlack);
 
+    tg_JPsi_v2_vs_pT = (TGraphAsymmErrors*)inputfile_JPsi->Get("Table 1/Graph1D_y1");
+    tg_JPsi_v2_vs_pT ->SetMarkerStyle(20);
+    tg_JPsi_v2_vs_pT ->SetMarkerSize(0.8);
+    tg_JPsi_v2_vs_pT ->SetMarkerColor(kRed);
 
+    /*
+     // scanned data
     tg_JPsi_v2_vs_pT = new TGraphErrors();
     tg_JPsi_v2_vs_pT ->SetPoint(0,1.52,	0.0334471);
     tg_JPsi_v2_vs_pT ->SetPoint(1,4.10286,	0.0798635);
@@ -601,6 +609,7 @@ void init_data()
     tg_JPsi_v2_vs_pT ->SetMarkerStyle(20);
     tg_JPsi_v2_vs_pT ->SetMarkerSize(0.8);
     tg_JPsi_v2_vs_pT ->SetMarkerColor(kRed);
+    */
 
 }
 //------------------------------------------------------------------------------------------------------------

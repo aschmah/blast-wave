@@ -89,7 +89,7 @@ TTripleSliderDemo::TTripleSliderDemo() : TGMainFrame(gClient->GetRoot(), 100, 10
     h_dummy ->GetYaxis()->CenterTitle();
     h_dummy ->SetTitle("");
     h_dummy ->GetXaxis()->SetTitleOffset(1.2);
-    h_dummy ->GetYaxis()->SetTitleOffset(1.3);
+    h_dummy ->GetYaxis()->SetTitleOffset(1.1);
     h_dummy ->GetXaxis()->SetLabelSize(0.06);
     h_dummy ->GetYaxis()->SetLabelSize(0.06);
     h_dummy ->GetXaxis()->SetTitleSize(0.06);
@@ -116,7 +116,7 @@ TTripleSliderDemo::TTripleSliderDemo() : TGMainFrame(gClient->GetRoot(), 100, 10
     h_dummy_dNdpT ->GetXaxis()->SetTitle("p_{T} (GeV/c)");
     h_dummy_dNdpT ->GetYaxis()->SetTitle("1/p_{T} dN/dp_{T} (GeV/c)^{-2}");
 
-    TString vec_label[5] = {"T (GeV)","#rho_{0}","#rho_{a}","R_{x}","f_{boost}"};
+    TString vec_label[5] = {"T (GeV)","rho0","rhoa","Rx","fboost"};
 
     inputfile = TFile::Open("./Data/merge_v2_boost.root");
     tp_v2_vs_pT_mesons.resize(5);
@@ -148,8 +148,12 @@ TTripleSliderDemo::TTripleSliderDemo() : TGMainFrame(gClient->GetRoot(), 100, 10
     fCanvas->GetCanvas()->SetGrid(0,0);
 
     //----------------------------------------------------
+    // Slider start XA
     //Int_t start_pos_slider[5] = {5,7,3,5,0};
-    Int_t start_pos_slider[5] = {5,4,3,5,0};
+    //Int_t start_pos_slider[5] = {5,4,3,5,0};
+    //Int_t start_pos_slider[5] = {4,4,2,6,0}; // overall OK
+    //Int_t start_pos_slider[5] = {4,7,3,6,0}; // very good for v2 only
+    Int_t start_pos_slider[5] = {3,5,3,7,0}; // overall quite good
 
     // Add a slider
     for(Int_t i_param = 0; i_param < 5; i_param++)
@@ -183,14 +187,15 @@ TTripleSliderDemo::TTripleSliderDemo() : TGMainFrame(gClient->GetRoot(), 100, 10
     //----------------------------------------------------
 
 
-    SetWindowName("Triple Slider Demo");
+    SetWindowName("Elliptic flow data");
     MapSubwindows();
     Resize(GetDefaultSize());
     MapWindow();
+    this ->Resize(1100,1100);
 
 
     FrameB = new TGMainFrame(gClient->GetRoot(), 400, 100);
-    FrameB ->SetWindowName("Triple Slider Demo B");
+    FrameB ->SetWindowName("Transverse momentum spectra");
     FrameB ->MapSubwindows();
     FrameB ->Resize(GetDefaultSize());
     FrameB ->MapWindow();
@@ -221,7 +226,7 @@ TTripleSliderDemo::TTripleSliderDemo() : TGMainFrame(gClient->GetRoot(), 100, 10
     }
 
    // Set a name to the main frame
-    FrameB->SetWindowName("Simple Example");
+    FrameB->SetWindowName("Transverse momentum spectra");
 
     // Map all subwindows of main frame
     FrameB->MapSubwindows();
@@ -383,6 +388,14 @@ void TTripleSliderDemo::DoSlider()
         tg_Upsilon_v2_vs_pT ->SetMarkerColor(arr_color_mass[4]);
         tg_Upsilon_v2_vs_pT ->Draw("same P");
 
+        tp_v2_vs_pT_mesons[0] ->GetXaxis()->SetRangeUser(0.0,4.0);
+        tp_v2_vs_pT_mesons[1] ->GetXaxis()->SetRangeUser(0.0,4.0);
+        tp_v2_vs_pT_mesons[2] ->GetXaxis()->SetRangeUser(0.0,4.0);
+        tp_v2_vs_pT_mesons[0] ->SetLineWidth(4);
+        tp_v2_vs_pT_mesons[1] ->SetLineWidth(4);
+        tp_v2_vs_pT_mesons[2] ->SetLineWidth(4);
+        tp_v2_vs_pT_mesons[3] ->SetLineWidth(4);
+        tp_v2_vs_pT_mesons[4] ->SetLineWidth(4);
         tp_v2_vs_pT_mesons[0] ->Draw("same L hist");
         tp_v2_vs_pT_mesons[1] ->Draw("same L hist");
         tp_v2_vs_pT_mesons[2] ->Draw("same L hist");
@@ -390,17 +403,20 @@ void TTripleSliderDemo::DoSlider()
         tp_v2_vs_pT_mesons[4] ->Draw("same L hist");
 
         if(leg_v2_vs_pT_A) delete leg_v2_vs_pT_A;
-        leg_v2_vs_pT_A = new TLegend(0.76,0.71,0.86,0.89); // x1,y1,x2,y2
+        leg_v2_vs_pT_A = new TLegend(0.76,0.63,0.86,0.82); // x1,y1,x2,y2
         leg_v2_vs_pT_A->SetBorderSize(0);
         leg_v2_vs_pT_A->SetFillColor(0);
         leg_v2_vs_pT_A->SetTextSize(0.045);
-        leg_v2_vs_pT_A->AddEntry((TH1D*)vec_tge_v2_vs_pT_560_pid[0]->Clone(),"#pi","p");
-        leg_v2_vs_pT_A->AddEntry((TH1D*)vec_tge_v2_vs_pT_560_pid[1]->Clone(),"K_{s}^{0}","p");
-        leg_v2_vs_pT_A->AddEntry((TH1D*)vec_tge_v2_vs_pT_560_pid[2]->Clone(),"p","p");
+        //leg_v2_vs_pT_A->AddEntry((TH1D*)vec_tge_v2_vs_pT_560_pid[0]->Clone(),"#pi","p");
+        //leg_v2_vs_pT_A->AddEntry((TH1D*)vec_tge_v2_vs_pT_560_pid[1]->Clone(),"K_{s}^{0}","p");
+        //leg_v2_vs_pT_A->AddEntry((TH1D*)vec_tge_v2_vs_pT_560_pid[2]->Clone(),"p","p");
+        leg_v2_vs_pT_A->AddEntry((TH1D*)vec_graphs[plot_centrality]->Clone(),"#pi","p");
+        leg_v2_vs_pT_A->AddEntry((TH1D*)vec_graphs[plot_centrality+14]->Clone(),"K_{s}^{0}","p");
+        leg_v2_vs_pT_A->AddEntry((TH1D*)vec_graphs[plot_centrality+28]->Clone(),"p","p");
         leg_v2_vs_pT_A->Draw();
 
         if(leg_v2_vs_pT_B) delete leg_v2_vs_pT_B;
-        leg_v2_vs_pT_B = new TLegend(0.87,0.76,0.97,0.89); // x1,y1,x2,y2
+        leg_v2_vs_pT_B = new TLegend(0.87,0.68,0.97,0.81); // x1,y1,x2,y2
         leg_v2_vs_pT_B->SetBorderSize(0);
         leg_v2_vs_pT_B->SetFillColor(0);
         leg_v2_vs_pT_B->SetTextSize(0.045);
@@ -408,7 +424,8 @@ void TTripleSliderDemo::DoSlider()
         leg_v2_vs_pT_B->AddEntry((TGraphErrors*)tg_JPsi_v2_vs_pT->Clone(),"J/#Psi","p");
         leg_v2_vs_pT_B->Draw();
 
-        plotTopLegend((char*)"5-60%",0.19,0.89,0.045,kBlack,0.0,42,1,1); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
+        plotTopLegend((char*)"30-40%",0.73,0.83,0.045,kBlack,0.0,42,1,1); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
+        plotTopLegend((char*)"5-60%",0.85,0.83,0.045,kBlack,0.0,42,1,1); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
         plotTopLegend((char*)"|y|<0.5",0.73,0.89,0.045,kBlack,0.0,42,1,1); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
         plotTopLegend((char*)"2.5<y<4",0.85,0.89,0.045,kBlack,0.0,42,1,1); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
 
@@ -447,8 +464,8 @@ void TTripleSliderDemo::DoSlider()
         h_dummy_dNdpT ->DrawCopy("");
         if(iPid < 3)
         {
-            vec_tgae_pT_spectra[iPid][10] ->Draw("same P"); // data, 5-60%
-            vec_tgae_pT_spectra[iPid][7] ->Draw("same P"); // data, 20-40%
+            //vec_tgae_pT_spectra[iPid][10] ->Draw("same P"); // data, 5-60%
+            vec_tgae_pT_spectra[iPid][7] ->Draw("same P"); // data, 30-40%
         }
         if(iPid == 3)
         {
@@ -465,14 +482,21 @@ void TTripleSliderDemo::DoSlider()
         }
 
         h_dN_dpT_mesons[iPid] ->SetLineColor(kRed); // blast wave MC
-        h_dN_dpT_mesons[iPid] ->DrawCopy("same"); // blast wave MC
+        h_dN_dpT_mesons[iPid] ->SetLineWidth(5); // blast wave MC
+        h_dN_dpT_mesons[iPid] ->DrawCopy("same hist L"); // blast wave MC
     }
 
-    for(Int_t iPad = 1; iPad <= 5; iPad++)
+    for(Int_t iPad = 1; iPad <= 3; iPad++)
     {
         fCanvasB ->GetCanvas()->cd(iPad);
         plotTopLegend((char*)label_pid_spectra[iPad-1].Data(),0.75,0.83,0.06,kBlack,0.0,42,1,1); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
         plotTopLegend((char*)"|y|<0.5",0.75,0.77,0.06,kBlack,0.0,42,1,1); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
+    }
+    for(Int_t iPad = 4; iPad <= 5; iPad++)
+    {
+        fCanvasB ->GetCanvas()->cd(iPad);
+        plotTopLegend((char*)label_pid_spectra[iPad-1].Data(),0.75,0.83,0.06,kBlack,0.0,42,1,1); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
+        plotTopLegend((char*)"2.5<y<4",0.75,0.77,0.06,kBlack,0.0,42,1,1); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
     }
 
     fCanvasB->GetCanvas()->Modified();
