@@ -8,6 +8,7 @@ Int_t v2_boost(Double_t Temp_set = 0.1, Double_t rho_0_set = 0.95, Double_t rho_
 {
 
     // .x v2_boost.cc++(0.15,0.95,0.08,0.8,0.1,0,0,0,0)
+    // .x v2_boost.cc++(0.14,0.925,0.15,0.9,1.0,0,0,0,0)
 
     //--------------------------------------------------------------------
     cout << "v2_boost started" << endl;
@@ -227,7 +228,7 @@ Int_t v2_boost(Double_t Temp_set = 0.1, Double_t rho_0_set = 0.95, Double_t rho_
     {
         tp_v2_vs_pT_mesons[i_mass]  = new TProfile(Form("tp_v2_vs_pT_mesons_%d",i_mass),Form("tp_v2_vs_pT_mesons_%d",i_mass),35,0,15.0);
         tp_v2_vs_pT_baryons[i_mass] = new TProfile(Form("tp_v2_vs_pT_baryons_%d",i_mass),Form("tp_v2_vs_pT_baryons_%d",i_mass),30,0,12.0);
-        h_dN_dpT_mesons[i_mass]     = new TH1D(Form("h_dN_dpT_mesons_%d",i_mass),Form("h_dN_dpT_mesons_%d",i_mass),75,0,12.0);
+        h_dN_dpT_mesons[i_mass]     = new TH1D(Form("h_dN_dpT_mesons_%d",i_mass),Form("h_dN_dpT_mesons_%d",i_mass),200,0,12.0); // 75.0
         h_dN_dpT_jets[i_mass]       = new TH1D(Form("h_dN_dpT_jets_%d",i_mass),Form("h_dN_dpT_jets_%d",i_mass),75,0,12.0);
     }
     TProfile* tp_v2_vs_pT_thermic = new TProfile("tp_v2_vs_pT_thermic","tp_v2_vs_pT_thermic",150,0,3.0);
@@ -483,13 +484,135 @@ Int_t v2_boost(Double_t Temp_set = 0.1, Double_t rho_0_set = 0.95, Double_t rho_
 
                         // boost order is important! -> work in progress
 
-#if 0
-                        tlv_quark.Boost(tv3_boost);
-                        tlv_quark.Boost(tv3_boost_long);
-                        //tlv_quark.Boost(tv3_boost);
-#endif
+
+                        TMatrixD TL_Matrix(4,4);
+                        TMatrixD TL_MatrixInv(4,4);
+                        TMatrixD TL_MatrixBInv(4,4);
+                        TMatrixD TL_MatrixMult(4,4);
+
+                        Double_t Yb    = TMath::ATanH(beta_z);
+                        Double_t rhob  = TMath::ATanH(tv3_boost.Mag());
+                        Double_t phi_s = TMath::ATan2(y_pos_point,x_pos_point);;
+                        Double_t phi_b = TMath::ATan(TMath::Tan(phi_s)/TMath::Power(1.0/R_x_best,2.0));
+
+                        //----------------------------
+                        // transformation from lab to cell as used by Klaus
+                        TL_Matrix[0][0] = TMath::CosH(Yb)*TMath::CosH(rhob);
+                        TL_Matrix[0][1] = -TMath::Cos(phi_b)*TMath::SinH(rhob);
+                        TL_Matrix[0][2] = -TMath::Sin(phi_b)*TMath::SinH(rhob);
+                        TL_Matrix[0][3] = -TMath::CosH(rhob)*TMath::SinH(Yb);
+
+                        TL_Matrix[1][0] = -TMath::CosH(Yb)*TMath::SinH(rhob);
+                        TL_Matrix[1][1] = TMath::Cos(phi_b)*TMath::CosH(rhob);
+                        TL_Matrix[1][2] = TMath::CosH(rhob)*TMath::Sin(phi_b);
+                        TL_Matrix[1][3] = TMath::SinH(Yb)*TMath::SinH(rhob);
+
+                        TL_Matrix[2][0] = 0.0;
+                        TL_Matrix[2][1] = -TMath::Sin(phi_b);
+                        TL_Matrix[2][2] = TMath::Cos(phi_b);
+                        TL_Matrix[2][3] = 0.0;
+
+                        TL_Matrix[3][0] = -TMath::SinH(Yb);
+                        TL_Matrix[3][1] = 0.0;
+                        TL_Matrix[3][2] = 0.0;
+                        TL_Matrix[3][3] = TMath::CosH(Yb);
+                        //----------------------------
+
+
+                        //----------------------------
+                        // Inverse transformation is identical to my trans. first then long. transformation
+                        TL_MatrixInv[0][0] = TMath::CosH(Yb)*TMath::CosH(rhob);
+                        TL_MatrixInv[0][1] = TMath::CosH(Yb)*TMath::SinH(rhob);
+                        TL_MatrixInv[0][2] = 0.0;
+                        TL_MatrixInv[0][3] = TMath::SinH(Yb);
+
+                        TL_MatrixInv[1][0] = TMath::Cos(phi_b)*TMath::SinH(rhob);
+                        TL_MatrixInv[1][1] = TMath::Cos(phi_b)*TMath::CosH(rhob);
+                        TL_MatrixInv[1][2] = -TMath::Sin(phi_b);
+                        TL_MatrixInv[1][3] = 0.0;
+
+                        TL_MatrixInv[2][0] = TMath::Sin(phi_b)*TMath::SinH(rhob);
+                        TL_MatrixInv[2][1] = TMath::CosH(rhob)*TMath::Sin(phi_b);
+                        TL_MatrixInv[2][2] = TMath::Cos(phi_b);
+                        TL_MatrixInv[2][3] = 0.0;
+
+                        TL_MatrixInv[3][0] = TMath::CosH(rhob)*TMath::SinH(Yb);
+                        TL_MatrixInv[3][1] = TMath::SinH(Yb)*TMath::SinH(rhob);
+                        TL_MatrixInv[3][2] = 0.0;
+                        TL_MatrixInv[3][3] = TMath::CosH(Yb);
+                        //----------------------------
+
+
+                        //----------------------------
+                        /*
+                        // Inverse transformation for radial and then long in Klaus's case,
+                        TL_MatrixBInv[0][0] = TMath::CosH(Yb)*TMath::CosH(rhob);
+                        TL_MatrixBInv[0][1] = -TMath::Cos(phi_b)*TMath::CosH(Yb)*TMath::SinH(rhob);
+                        TL_MatrixBInv[0][2] = -TMath::CosH(Yb)*TMath::Sin(phi_b)*TMath::SinH(rhob);
+                        TL_MatrixBInv[0][3] = -TMath::SinH(Yb);
+
+                        TL_MatrixBInv[1][0] = -TMath::SinH(rhob);
+                        TL_MatrixBInv[1][1] = TMath::Cos(phi_b)*TMath::CosH(rhob);
+                        TL_MatrixBInv[1][2] = TMath::CosH(rhob)*TMath::Sin(phi_b);
+                        TL_MatrixBInv[1][3] = 0.0;
+
+                        TL_MatrixBInv[2][0] = 0.0;
+                        TL_MatrixBInv[2][1] = -TMath::Sin(phi_b);
+                        TL_MatrixBInv[2][2] = TMath::Cos(phi_b);
+                        TL_MatrixBInv[2][3] = 0.0;
+
+                        TL_MatrixBInv[3][0] = -TMath::CosH(rhob)*TMath::SinH(Yb);
+                        TL_MatrixBInv[3][1] = TMath::Cos(phi_b)*TMath::SinH(Yb)*TMath::SinH(rhob);
+                        TL_MatrixBInv[3][2] = TMath::Sin(phi_b)*TMath::SinH(Yb)*TMath::SinH(rhob);
+                        TL_MatrixBInv[3][3] = TMath::CosH(Yb);
+                        */
+
+                        // Inverse transformation for radial and then long in Klaus's case,
+                        TL_MatrixBInv[0][0] = TMath::CosH(Yb)*TMath::CosH(rhob);
+                        TL_MatrixBInv[0][1] = TMath::SinH(rhob);
+                        TL_MatrixBInv[0][2] = 0.0;
+                        TL_MatrixBInv[0][3] = TMath::CosH(rhob)*TMath::SinH(Yb);
+
+                        TL_MatrixBInv[1][0] = TMath::Cos(phi_b)*TMath::CosH(Yb)*TMath::SinH(rhob);
+                        TL_MatrixBInv[1][1] = TMath::Cos(phi_b)*TMath::CosH(rhob);
+                        TL_MatrixBInv[1][2] = -TMath::Sin(phi_b);
+                        TL_MatrixBInv[1][3] = TMath::Cos(phi_b)*TMath::SinH(Yb)*TMath::SinH(rhob);
+
+                        TL_MatrixBInv[2][0] = TMath::CosH(Yb)*TMath::Sin(phi_b)*TMath::SinH(rhob);
+                        TL_MatrixBInv[2][1] = TMath::CosH(rhob)*TMath::Sin(phi_b);
+                        TL_MatrixBInv[2][2] = TMath::Cos(phi_b);
+                        TL_MatrixBInv[2][3] = TMath::Sin(phi_b)*TMath::SinH(Yb)*TMath::SinH(rhob);
+
+                        TL_MatrixBInv[3][0] = TMath::SinH(Yb);
+                        TL_MatrixBInv[3][1] = 0.0;
+                        TL_MatrixBInv[3][2] = 0.0;
+                        TL_MatrixBInv[3][3] = TMath::CosH(Yb);
+                        //----------------------------
+
+                        TL_MatrixMult = TL_MatrixInv*TL_Matrix;
+                        //TL_MatrixMult.Print();
+
+                        TVectorD vec_L(4);
+                        vec_L[0] = tlv_quark.E();
+                        vec_L[1] = tlv_quark.Px();
+                        vec_L[2] = tlv_quark.Py();
+                        vec_L[3] = tlv_quark.Pz();
+
+                        //TVectorD vec_Lprime = TL_Matrix*vec_L;
+                        //TVectorD vec_Lprime = TL_MatrixInv*vec_L;
+                        TVectorD vec_Lprime = TL_MatrixBInv*vec_L;
+
+                        //tlv_quark.SetPxPyPzE(vec_Lprime[1],vec_Lprime[2],vec_Lprime[3],vec_Lprime[0]);
+
+
 
 #if 1
+                        //tlv_quark.Boost(tv3_boost);
+                        tlv_quark.Boost(tv3_boost_long);
+                        tlv_quark.Boost(tv3_boost);
+#endif
+
+#if 0
                         if(ran.Rndm() > fboost_best)
                         {
                             //tlv_quark.Boost(tv3_boost);
@@ -511,9 +634,16 @@ Int_t v2_boost(Double_t Temp_set = 0.1, Double_t rho_0_set = 0.95, Double_t rho_
 
                         if(i_quark_mass == 0) h2D_rapidity_vs_eta ->Fill(eta,rapidity);
 
+                        /*
+                        // Standard acceptance cuts
                         if(i_quark_mass < 3  && fabs(eta) > 1.0) continue;
                         if(i_quark_mass < 3  && fabs(rapidity) > 0.5) continue;
                         if(i_quark_mass >= 3 && (rapidity < 2.5 || rapidity > 4.0)) continue;
+                        */
+
+                        //if(i_quark_mass < 5  && fabs(eta) > 0.1) continue;
+                        if(i_quark_mass < 5  && fabs(rapidity) > 0.1) continue;
+                        //if(i_quark_mass >= 3 && (rapidity < 2.5 || rapidity > 4.0)) continue;
 
                         h2D_cos_theta_vs_pT ->Fill(quark_pT,quark_thermal_cos_theta);
 
@@ -600,7 +730,7 @@ Int_t v2_boost(Double_t Temp_set = 0.1, Double_t rho_0_set = 0.95, Double_t rho_
     Int_t plot_centrality = 4;
     TH1D* h_dummy = new TH1D("h_dummy","h_dummy",200,0,15);
     h_dummy ->GetXaxis()->SetRangeUser(0.0,15.0);
-    h_dummy ->GetYaxis()->SetRangeUser(-0.07,0.45);
+    h_dummy ->GetYaxis()->SetRangeUser(-0.15,0.45);
     h_dummy ->SetLineColor(10);
     h_dummy->GetXaxis()->SetTitle("p_{T} (GeV/c)");
     h_dummy->GetYaxis()->SetTitle("v_{2}");
@@ -634,12 +764,12 @@ Int_t v2_boost(Double_t Temp_set = 0.1, Double_t rho_0_set = 0.95, Double_t rho_
     for(Int_t i_mass = 0; i_mass < 5; i_mass++)
     {
         //tp_v2_vs_pT_mesons[i_mass] ->Scale(1.6);
-        //tp_v2_vs_pT_mesons[i_mass] ->SetMarkerColor(arr_color_mass[i_mass]);
-        //tp_v2_vs_pT_mesons[i_mass] ->SetMarkerStyle(30); // 24
+        tp_v2_vs_pT_mesons[i_mass] ->SetMarkerColor(arr_color_mass[i_mass]);
+        tp_v2_vs_pT_mesons[i_mass] ->SetMarkerStyle(30); // 24
         tp_v2_vs_pT_mesons[i_mass] ->SetLineColor(arr_color_mass[i_mass]);
         tp_v2_vs_pT_mesons[i_mass] ->SetLineStyle(1);
         tp_v2_vs_pT_mesons[i_mass] ->SetLineWidth(2);
-        //tp_v2_vs_pT_mesons[i_mass] ->Draw("same Lh");
+        //tp_v2_vs_pT_mesons[i_mass] ->DrawCopy("same P");
 
         Draw_hist_line((TH1D*)tp_v2_vs_pT_mesons[i_mass],0.0,15.0,-0.07,0.45,
                        arr_color_mass[i_mass],4,1,1.0,"ogl");
@@ -675,8 +805,8 @@ Int_t v2_boost(Double_t Temp_set = 0.1, Double_t rho_0_set = 0.95, Double_t rho_
 
 
 
-#if 0
-    for(Int_t i_mass = 0; i_mass < 3; i_mass++)
+#if 1
+    for(Int_t i_mass = 0; i_mass < 5; i_mass++)
     {
         vec_tg_v2_vs_pT_Mathematica[i_mass] ->SetMarkerColor(arr_color_mass[i_mass]);
         vec_tg_v2_vs_pT_Mathematica[i_mass] ->SetMarkerStyle(28); // 24

@@ -48,6 +48,15 @@ private:
     TGMainFrame* FrameB;
     TGLayoutHints* fLcanC;
 
+    TGMainFrame* FrameD;
+    TGLayoutHints* fLcanD;
+    TGHorizontalFrame *hframeD1;
+    TGVerticalFrame *vframeD1;
+    TGCompositeFrame *cframe2;
+    TGTextButton *ButtonD1a;
+    TGTextButton *Button_exit;
+    TGTextButton *Button_save;
+
     TFile* inputfile;
     TH1D* h_dummy;
     TH1D* h_dummy_dNdpT;
@@ -126,6 +135,7 @@ TTripleSliderDemo::TTripleSliderDemo() : TGMainFrame(gClient->GetRoot(), 100, 10
     init_pT_spectra_data();
     init_JPsi_spectra_data();
     make_5_60_spectra();
+    Init_v2_Mathematica();
 
     char buf[32];
     SetCleanup(kDeepCleanup);
@@ -233,6 +243,7 @@ TTripleSliderDemo::TTripleSliderDemo() : TGMainFrame(gClient->GetRoot(), 100, 10
 
     // Map main frame
     FrameB->MapWindow();
+    FrameB ->Move(700,10);
 
     for(Int_t iPad = 1; iPad <= 6; iPad++)
     {
@@ -241,6 +252,47 @@ TTripleSliderDemo::TTripleSliderDemo() : TGMainFrame(gClient->GetRoot(), 100, 10
         fCanvasB ->GetCanvas()->cd(iPad)->Modified();
         fCanvasB ->GetCanvas()->cd(iPad)->Update();
     }
+
+
+    FrameD = new TGMainFrame(gClient->GetRoot(), 400, 100);
+    FrameD ->SetWindowName("Buttons");
+    FrameD ->MapSubwindows();
+    FrameD ->Resize(GetDefaultSize());
+    FrameD ->MapWindow();
+    FrameD ->Resize(400,400); // size of frame
+
+    //hframeD1  = new TGHorizontalFrame(FrameD,200,100);
+    vframeD1 = new TGVerticalFrame(FrameD, 150, 150);
+    cframe2 = new TGCompositeFrame(vframeD1, 170, 50,kHorizontalFrame | kFixedWidth);
+
+    // exit button
+    Button_exit = new TGTextButton(cframe2, "&Exit ","gApplication->Terminate(0)");
+    cframe2->AddFrame(Button_exit, new TGLayoutHints(kLHintsTop | kLHintsExpandX,3, 2, 2, 2));
+
+    // save button
+    Button_save = new TGTextButton(cframe2, "&Save ","gApplication->Terminate(0)");
+    cframe2->AddFrame(Button_save, new TGLayoutHints(kLHintsTop | kLHintsExpandX,2, 0, 2, 2));
+
+
+    vframeD1->AddFrame(cframe2, new TGLayoutHints(kLHintsExpandX, 2, 2, 5, 1));
+
+    // A button
+    //ButtonD1a = new TGTextButton(hframeD1,"&DrawD1a");
+    //hframeD1->AddFrame(ButtonD1a, new TGLayoutHints(kLHintsCenterX,5,5,3,4)); // left, right, top, bottom
+
+    FrameD->AddFrame(vframeD1, new TGLayoutHints(kLHintsExpandX, 2, 2, 5, 1));
+
+    // Set a name to the main frame
+    FrameD->SetWindowName("A frame with buttons");
+
+    // Map all subwindows of main frame
+    FrameD->MapSubwindows();
+
+    // Map main frame
+    FrameD->MapWindow();
+    FrameD ->Move(1250,750); // position of frame
+
+
 
     DoSlider();
 
@@ -374,6 +426,18 @@ void TTripleSliderDemo::DoSlider()
         vec_graphs[plot_centrality+28] ->Draw("same P"); // protons
 
 
+#if 0
+    for(Int_t i_mass = 0; i_mass < 5; i_mass++)
+    {
+        vec_tg_v2_vs_pT_Mathematica[i_mass] ->SetMarkerColor(arr_color_mass[i_mass]);
+        vec_tg_v2_vs_pT_Mathematica[i_mass] ->SetMarkerStyle(28); // 24
+        vec_tg_v2_vs_pT_Mathematica[i_mass] ->SetLineColor(arr_color_mass[i_mass]);
+        vec_tg_v2_vs_pT_Mathematica[i_mass] ->SetLineStyle(1);
+        vec_tg_v2_vs_pT_Mathematica[i_mass] ->SetLineWidth(2);
+        vec_tg_v2_vs_pT_Mathematica[i_mass] ->Draw("same P");
+    }
+#endif
+
         /*
         vec_tge_v2_vs_pT_560_pid[0] ->SetMarkerColor(arr_color_mass[0]);
         vec_tge_v2_vs_pT_560_pid[0] ->Draw("same P"); // pions
@@ -385,6 +449,8 @@ void TTripleSliderDemo::DoSlider()
 
         tg_JPsi_v2_vs_pT    ->SetMarkerColor(arr_color_mass[3]);
         tg_JPsi_v2_vs_pT    ->Draw("same P");
+        tg_D0_v2_vs_pT      ->SetMarkerColor(kGray+1);
+        tg_D0_v2_vs_pT      ->Draw("same P");
         tg_Upsilon_v2_vs_pT ->SetMarkerColor(arr_color_mass[4]);
         tg_Upsilon_v2_vs_pT ->Draw("same P");
 

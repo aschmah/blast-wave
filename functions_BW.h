@@ -46,10 +46,14 @@
 #include "TF1.h"
 #include "TProfile.h"
 #include "TArrow.h"
+#include "TMatrixD.h"
+#include "TVectorD.h"
 
 static TFile *inputfile_id;
 static TFile *inputfile_JPsi;
+static TFile *inputfile_D;
 static TFile *inputfile_spectra_id;
+static TFile *inputfle_D_dNdpT;
 static vector<TString> arr_labels;
 static vector<Int_t>   arr_pid;
 static vector<TGraph*> vec_graphs;
@@ -71,19 +75,23 @@ static Int_t arr_color[N_v2_vs_pt_BW+3] = {kBlack,kGreen+1,kRed,kMagenta+1,kCyan
 static const Int_t    N_masses         = 5;
 static TH2D* h2D_geometric_shape = NULL;
 static TF1 *f_LevyFitFunc        = NULL;
+static TF1 *f_FitBessel          = NULL;
 static TF1 *f_JetPtFunc          = NULL;
-static Double_t arr_quark_mass_meson[N_masses]         = {0.14,0.49,0.938,3.1,9.46};
+static Double_t arr_quark_mass_meson[N_masses]         = {0.13957,0.497648,0.938272,3.096916,9.46030};
 static Int_t    arr_color_mass[N_masses]               = {kBlack,kGreen+1,kRed,kMagenta+1,kCyan+1};
 static const Double_t R_Pb = 5.4946; // fm
 static TH2D* h2D_density_Glauber;
 
 static vector<TGraph*> vec_tg_v2_vs_pT_Mathematica;
+static vector<TGraph*> vec_tg_dNdpT_vs_pT_Mathematica;
 static TGraphErrors* tg_Upsilon_v2_vs_pT;
 static TGraphAsymmErrors* tg_JPsi_v2_vs_pT;
+static TGraphAsymmErrors* tg_D0_v2_vs_pT;
 static vector<TH1D*> h_dN_dpT_mesons;
 static vector< vector<TGraphErrors*> > tge_JPsi_spectra;
 static TGraphErrors* tge_JPsi_forward_spectrum_stat;
 static TGraphErrors* tge_JPsi_forward_spectrum_syst;
+static TGraphAsymmErrors* tge_D_dNdpT;
 static TH1D* h_dNdpT_best = NULL;
 static vector<TGraphErrors*> vec_tge_v2_vs_pT_560_pid;
 static TString label_pid_spectra[6] = {"#pi","K","p","J/#Psi","#Upsilon",""};
@@ -95,6 +103,21 @@ static TRandom ran;
 static TString HistName;
 static char NoP[50];
 //------------------------------------------------------------------------------------------------------------
+
+
+//----------------------------------------------------------------------------------------
+Double_t PtFitBessel(Double_t* x_val, Double_t* par)
+{
+    Double_t x, y, m0, Temp, Ampl, shift;
+    m0    = par[0];
+    Temp  = par[1];
+    Ampl  = par[2];
+    shift = par[3];
+    x = x_val[0];
+    y = Ampl*x*sqrt(x*x+m0*m0)*TMath::BesselK1(sqrt(x*x+m0*m0)/Temp);
+    return y;
+}
+//----------------------------------------------------------------------------------------
 
 
 
@@ -337,9 +360,16 @@ void init_JPsi_spectra_data()
 //------------------------------------------------------------------------------------------------------------
 void init_pT_spectra_data()
 {
+    f_FitBessel = new TF1("f_FitBessel",PtFitBessel,0.0,10.0,4);
+
     // https://www.hepdata.net/record/ins1377750
     printf("Initialize pT spectra data \n");
+
+    inputfle_D_dNdpT     = TFile::Open("./Data/HEPData-ins1394580-v1-root.root"); // https://www.hepdata.net/record/ins1394580;
     inputfile_spectra_id = TFile::Open("./Data/HEP_ALICE_PID_pT_spectra.root");
+
+
+    tge_D_dNdpT = (TGraphAsymmErrors*)inputfle_D_dNdpT ->Get(Form("Table %d/Graph1D_y%d",4,1));
 
     const Int_t arr_centrality_low[11]        = {0,5,10,20,40,60,20,30,40,50,5};
     const Int_t arr_centrality_high[11]       = {5,10,20,40,60,80,30,40,50,60,60};
@@ -503,6 +533,7 @@ void init_data()
     // https://arxiv.org/pdf/1405.4632.pdf
     inputfile_id   = TFile::Open("./Data/HEPData-ins1297103-v1-root.root");
     inputfile_JPsi = TFile::Open("./Data/HEPData-ins1225273-v1-Table_1.root");
+    inputfile_D    = TFile::Open("./Data/HEPData-ins1233087-v1-root.root");
 
     // pi, K+/-, K0s, <K>, p, phi, Lambda, Xi, Omega
 
@@ -596,6 +627,11 @@ void init_data()
     tg_JPsi_v2_vs_pT ->SetMarkerStyle(20);
     tg_JPsi_v2_vs_pT ->SetMarkerSize(0.8);
     tg_JPsi_v2_vs_pT ->SetMarkerColor(kRed);
+
+    tg_D0_v2_vs_pT = (TGraphAsymmErrors*)inputfile_D->Get("Table 1/Graph1D_y1");
+    tg_D0_v2_vs_pT ->SetMarkerStyle(20);
+    tg_D0_v2_vs_pT ->SetMarkerSize(0.8);
+    tg_D0_v2_vs_pT ->SetMarkerColor(kGray+1);
 
     /*
      // scanned data
@@ -874,7 +910,6 @@ Double_t PtFitFunc2_mod(Double_t* x_val, Double_t* par)
     return y;
 }
 //----------------------------------------------------------------------------------------
-
 
 
 //----------------------------------------------------------------------------------------
@@ -1225,7 +1260,8 @@ TVector3 get_boost_vector(Double_t R_scale, Double_t x_fac, Double_t y_fac,
     Double_t phi_b = TMath::ATan(TMath::Tan(phi_s)/TMath::Power(R_y/R_x,2.0));
     //Double_t phi_b = TMath::ATan(TMath::Tan(phi_s));
     Double_t phi_b_mod = phi_b;
-    if(fabs(phi_s) > TMath::Pi()/2.0) phi_b_mod += TMath::Pi();
+    //if(fabs(phi_s) > TMath::Pi()/2.0) phi_b_mod += TMath::Pi(); ???
+    if(fabs(phi_b_mod) > TMath::Pi()/2.0) phi_b_mod += TMath::Pi();
     if(phi_b_mod > TMath::Pi()) phi_b_mod -= 2.0*TMath::Pi();
     if(phi_b_mod < -TMath::Pi()) phi_b_mod += 2.0*TMath::Pi();
 
@@ -1687,24 +1723,39 @@ void Draw_Circle_2D_new(Float_t radius_in = 1.0, Float_t radius_out = 2.0,const 
 void Init_v2_Mathematica()
 {
     // From Klaus Reygers -> Mathematica
+    printf("Init_v2_Mathematica \n");
 
-    vec_tg_v2_vs_pT_Mathematica.resize(3); // pi, K, p
+    vec_tg_v2_vs_pT_Mathematica.resize(5); // pi, K, p, J/Psi, Upsilon
+    vec_tg_dNdpT_vs_pT_Mathematica.resize(5); // pi, K, p, J/Psi, Upsilon
 
-    vector<std::fstream> myfile;
-    myfile.resize(3); // pi, K, p
-    myfile[0].open((char*)"./Data/v2_pion_klaus.csv");
-    myfile[1].open((char*)"./Data/v2_kaon_klaus.csv");
-    myfile[2].open((char*)"./Data/v2_proton_klaus.csv");
+    vector<std::fstream> myfile_v2;
+    myfile_v2.resize(5); // pi, K, p, J/Psi, Upsilon
+    myfile_v2[0].open((char*)"./Data/v2_pion_klaus.csv");
+    myfile_v2[1].open((char*)"./Data/v2_kaon_klaus.csv");
+    myfile_v2[2].open((char*)"./Data/v2_proton_klaus.csv");
+    myfile_v2[3].open((char*)"./Data/v2_jpsi_klaus.csv");
+    myfile_v2[4].open((char*)"./Data/v2_upsilon_klaus.csv");
 
-    for(Int_t i_file = 0; i_file < 3; i_file++)
+    vector<std::fstream> myfile_dNdpT;
+    myfile_dNdpT.resize(5); // pi, K, p, J/Psi, Upsilon
+    myfile_dNdpT[0].open((char*)"./Data/inv_yield_pion_klaus.csv");
+    myfile_dNdpT[1].open((char*)"./Data/inv_yield_kaon_klaus.csv");
+    myfile_dNdpT[2].open((char*)"./Data/inv_yield_proton_klaus.csv");
+    myfile_dNdpT[3].open((char*)"./Data/inv_yield_jpsi_klaus.csv");
+    myfile_dNdpT[4].open((char*)"./Data/inv_yield_upsilon_klaus.csv");
+
+    for(Int_t i_file = 0; i_file < (Int_t)vec_tg_v2_vs_pT_Mathematica.size(); i_file++)
     {
-        vec_tg_v2_vs_pT_Mathematica[i_file] = new TGraph();
+        vec_tg_v2_vs_pT_Mathematica[i_file]    = new TGraph();
+        vec_tg_dNdpT_vs_pT_Mathematica[i_file] = new TGraph();
         Int_t N_points = 0;
-        while(!myfile[i_file].eof())
+        //printf("Open i_file: %d \n",i_file);
+        while(!myfile_v2[i_file].eof())
         {
+            //cout << "file: " << i_file << ", line: " << N_points << endl;
             //if(line_counter > 10) break;
             std::string str;
-            std::getline(myfile[i_file], str);
+            std::getline(myfile_v2[i_file], str);
             if(str == "") continue;
 
             std::size_t found = str.find(",");
@@ -1719,6 +1770,49 @@ void Init_v2_Mathematica()
 
             vec_tg_v2_vs_pT_Mathematica[i_file] ->SetPoint(N_points,pT,v2);
             N_points++;
+        }
+
+        Double_t integral = 0.0;
+        Double_t pT_A = 0.0;
+        Double_t pT_B = 0.0;
+        N_points = 0;
+        while(!myfile_dNdpT[i_file].eof())
+        {
+            //cout << "file: " << i_file << ", line: " << N_points << endl;
+            //if(line_counter > 10) break;
+            std::string str;
+            std::getline(myfile_dNdpT[i_file], str);
+            if(str == "") continue;
+
+            std::size_t found = str.find(",");
+            std::string sub_str;
+            sub_str = str.substr(0,found);
+            Double_t pT = std::stod(sub_str);
+            str.replace(0,found+1,"");
+
+            Double_t yield = std::stod(str);
+            yield *= pT;
+
+            //printf("i_file: %d, pT: %4.3f, yield: %4.3f \n",i_file,pT,yield);
+
+            integral += yield;
+            vec_tg_dNdpT_vs_pT_Mathematica[i_file] ->SetPoint(N_points,pT,yield);
+            N_points++;
+            if(N_points == 1) pT_A = pT;
+            if(N_points == 2) pT_B = pT;
+            //printf("N_points: %d, pT_A: %4.3f, pT_B: %4.3f \n",N_points,pT_A,pT_B);
+        }
+        Double_t bin_width = fabs(pT_B - pT_A);
+        printf("integral: %4.5f, bin_width: %4.3f \n",integral,bin_width);
+        integral *= bin_width;
+        if(integral > 0.0)
+        {
+            for(Int_t i_point = 0; i_point < vec_tg_dNdpT_vs_pT_Mathematica[i_file]->GetN(); i_point++)
+            {
+                Double_t x, y;
+                vec_tg_dNdpT_vs_pT_Mathematica[i_file] ->GetPoint(i_point,x,y);
+                vec_tg_dNdpT_vs_pT_Mathematica[i_file] ->SetPoint(i_point,x,y/integral);
+            }
         }
     }
 }
@@ -1834,20 +1928,87 @@ void plot_spectra()
         h_dN_dpT_mesons[iPid] ->Scale(1.0/integral);
     }
 
+
+    for(Int_t i_mass = 0; i_mass < 5; i_mass++)
+    {
+        vec_tg_dNdpT_vs_pT_Mathematica[i_mass] ->SetMarkerColor(arr_color_mass[i_mass]);
+        vec_tg_dNdpT_vs_pT_Mathematica[i_mass] ->SetMarkerStyle(28); // 24
+        vec_tg_dNdpT_vs_pT_Mathematica[i_mass] ->SetLineColor(arr_color_mass[i_mass]);
+        vec_tg_dNdpT_vs_pT_Mathematica[i_mass] ->SetLineStyle(1);
+        vec_tg_dNdpT_vs_pT_Mathematica[i_mass] ->SetLineWidth(2);
+    }
+
+
     // Pions
     can_dNdpT_vs_pT ->cd(1);
     vec_tgae_pT_spectra[0][10] ->Draw("AP");
     h_dN_dpT_mesons[0] ->DrawCopy("same");
+    vec_tg_dNdpT_vs_pT_Mathematica[0] ->Draw("same P");
+
+
+    for(Int_t i_par = 0; i_par < 4; i_par++)
+    {
+        f_FitBessel->ReleaseParameter(i_par);
+        f_FitBessel->SetParError(i_par,0.0);
+        f_FitBessel->SetParameter(i_par,0.0);
+    }
+    f_FitBessel ->FixParameter(0,arr_quark_mass_meson[0]);
+    f_FitBessel ->FixParameter(1,0.14);
+    f_FitBessel ->FixParameter(3,0.0);
+    f_FitBessel ->SetRange(0.0,5.0);
+    vec_tg_dNdpT_vs_pT_Mathematica[0] ->Fit("f_FitBessel","WMN","",0.0,5.0);
+
+    f_FitBessel ->SetLineColor(kRed);
+    f_FitBessel ->SetLineStyle(1);
+    f_FitBessel ->SetLineWidth(3);
+    f_FitBessel ->DrawCopy("same");
+
 
     // Kaons
     can_dNdpT_vs_pT ->cd(2);
     vec_tgae_pT_spectra[1][10] ->Draw("AP");
     h_dN_dpT_mesons[1] ->DrawCopy("same");
+    vec_tg_dNdpT_vs_pT_Mathematica[1] ->Draw("same P");
+
+    for(Int_t i_par = 0; i_par < 4; i_par++)
+    {
+        f_FitBessel->ReleaseParameter(i_par);
+        f_FitBessel->SetParError(i_par,0.0);
+        f_FitBessel->SetParameter(i_par,0.0);
+    }
+    f_FitBessel ->FixParameter(0,arr_quark_mass_meson[1]);
+    f_FitBessel ->FixParameter(1,0.14);
+    f_FitBessel ->FixParameter(3,0.0);
+    f_FitBessel ->SetRange(0.0,5.0);
+    vec_tg_dNdpT_vs_pT_Mathematica[1] ->Fit("f_FitBessel","WMN","",0.0,5.0);
+
+    f_FitBessel ->SetLineColor(kRed);
+    f_FitBessel ->SetLineStyle(1);
+    f_FitBessel ->SetLineWidth(3);
+    f_FitBessel ->DrawCopy("same");
 
     // Protons
     can_dNdpT_vs_pT ->cd(3);
     vec_tgae_pT_spectra[2][10] ->Draw("AP");
     h_dN_dpT_mesons[2] ->DrawCopy("same");
+    vec_tg_dNdpT_vs_pT_Mathematica[2] ->Draw("same P");
+
+    for(Int_t i_par = 0; i_par < 4; i_par++)
+    {
+        f_FitBessel->ReleaseParameter(i_par);
+        f_FitBessel->SetParError(i_par,0.0);
+        f_FitBessel->SetParameter(i_par,0.0);
+    }
+    f_FitBessel ->FixParameter(0,arr_quark_mass_meson[2]);
+    f_FitBessel ->FixParameter(1,0.14);
+    f_FitBessel ->FixParameter(3,0.0);
+    f_FitBessel ->SetRange(0.0,5.0);
+    vec_tg_dNdpT_vs_pT_Mathematica[2] ->Fit("f_FitBessel","WMN","",0.0,5.0);
+
+    f_FitBessel ->SetLineColor(kRed);
+    f_FitBessel ->SetLineStyle(1);
+    f_FitBessel ->SetLineWidth(3);
+    f_FitBessel ->DrawCopy("same");
 
     // J/Psi
     can_dNdpT_vs_pT ->cd(4);
@@ -1855,6 +2016,7 @@ void plot_spectra()
     h_dN_dpT_mesons[3] ->DrawCopy("same");
     tge_JPsi_forward_spectrum_stat ->SetLineColor(kRed);
     tge_JPsi_forward_spectrum_stat ->Draw("same");
+    vec_tg_dNdpT_vs_pT_Mathematica[3] ->Draw("same P");
     if(h_dNdpT_best)
     {
         h_dNdpT_best ->SetLineColor(kGreen);
@@ -1865,6 +2027,12 @@ void plot_spectra()
     can_dNdpT_vs_pT ->cd(5);
     vec_tgae_pT_spectra[2][3] ->Draw("AP");
     h_dN_dpT_mesons[4] ->DrawCopy("same");
+    vec_tg_dNdpT_vs_pT_Mathematica[4] ->Draw("same P");
+
+    // D0
+    can_dNdpT_vs_pT ->cd(6);
+    tge_D_dNdpT ->Draw("AP");
+
 
     for(Int_t iPad = 1; iPad <= 5; iPad++)
     {
