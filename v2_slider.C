@@ -51,11 +51,24 @@ private:
     TGMainFrame* FrameD;
     TGLayoutHints* fLcanD;
     TGHorizontalFrame *hframeD1;
+    TGHorizontalFrame *hframeD2;
+    TGHorizontalFrame *hframeD3;
+    TGVerticalFrame *hVframeD3;
     TGVerticalFrame *vframeD1;
     TGCompositeFrame *cframe2;
     TGTextButton *ButtonD1a;
     TGTextButton *Button_exit;
     TGTextButton *Button_save;
+    TGHProgressBar* fHProg1 = NULL;
+    TGVProgressBar* fVProg1;
+    TGLayoutHints* fHint2;
+    TGTextButton      *fGO;
+    TGLayoutHints* fHint3;
+
+    Double_t var_test = 5.2;
+
+    TGTextButton *Button_minimize;
+    TGTextButton *Button_stop_minimize;
 
     TFile* inputfile;
     TH1D* h_dummy;
@@ -69,6 +82,7 @@ public:
     void CloseWindow();
     void DoText(const char *text);
     void DoSlider();
+    void DoMinimize();
     void HandleButtons();
     ClassDef(TTripleSliderDemo, 0)
 };
@@ -82,6 +96,8 @@ TTripleSliderDemo::TTripleSliderDemo() : TGMainFrame(gClient->GetRoot(), 100, 10
     TGaxis::SetMaxDigits(3);
     gStyle->SetOptTitle(0);
     gStyle->SetOptStat(0);
+
+    var_test = 2.6;
     //--------------------------------------------------------------------
 
 
@@ -271,6 +287,8 @@ TTripleSliderDemo::TTripleSliderDemo() : TGMainFrame(gClient->GetRoot(), 100, 10
     FrameD = new TGMainFrame(gClient->GetRoot(), 400, 100);
     FrameD ->SetWindowName("Buttons");
 
+    //--------------
+    // A horizontal frame
     hframeD1  = new TGHorizontalFrame(FrameD,200,100);
 
     // exit button
@@ -282,14 +300,47 @@ TTripleSliderDemo::TTripleSliderDemo() : TGMainFrame(gClient->GetRoot(), 100, 10
     hframeD1->AddFrame(Button_save, new TGLayoutHints(kLHintsCenterX,5,5,3,4));
 
     FrameD ->AddFrame(hframeD1, new TGLayoutHints(kLHintsCenterX,2,2,2,2));
+    //--------------
+
+
+    //--------------
+    // A horizontal frame
+    hVframeD3  = new TGVerticalFrame(FrameD,200,100);
+    fHint2 = new TGLayoutHints(kLHintsTop | kLHintsLeft | kLHintsExpandX, 5, 5,  5, 10);
+    fHProg1 = new TGHProgressBar(hVframeD3, 300);
+    fHProg1->ShowPosition();
+    hVframeD3->AddFrame(fHProg1, fHint2);
+    FrameD ->AddFrame(hVframeD3, new TGLayoutHints(kLHintsCenterX,2,2,2,2));
+    //fHProg1->Reset();
+    cout << "A fHProg1: "<< fHProg1 << endl;
+    //--------------
+
+
+
+    //--------------
+    // A horizontal frame
+    hframeD2  = new TGHorizontalFrame(FrameD,200,100);
+
+    // exit button
+    Button_minimize = new TGTextButton(hframeD2, "Minimize ",10);
+    Button_minimize->Connect("Clicked()", "TTripleSliderDemo", this, "DoMinimize()");
+    hframeD2->AddFrame(Button_minimize, new TGLayoutHints(kLHintsCenterX,5,5,3,4));
+
+    // save button
+    Button_stop_minimize = new TGTextButton(hframeD2, "&Stop minimize ","gApplication->Terminate(0)");
+    hframeD2->AddFrame(Button_stop_minimize, new TGLayoutHints(kLHintsCenterX,5,5,3,4));
+
+    FrameD ->AddFrame(hframeD2, new TGLayoutHints(kLHintsCenterX,2,2,2,2));
+    //--------------
+
+
+    
 
 
     FrameD ->MapSubwindows();
     FrameD ->MapWindow();
     FrameD ->Resize(400,400); // size of frame
     FrameD ->Move(1250,750); // position of frame
-
-
     //------------------------------------------------------------
 
 
@@ -336,14 +387,13 @@ void TTripleSliderDemo::DoText(const char * /*text*/)
         break;
     }
 }
+
+
+
 //______________________________________________________________________________
 void TTripleSliderDemo::DoSlider()
 {
-
-    //0.18, 1.175, 0.15, 0.7, 0.05
-    // 0.18, 0.8, 0.15, 0.7, 0.05
-
-    //cout << "DoSlider()" << endl;
+    cout << "DoSlider started" << endl;
 
     Int_t i_Temp   = vec_slider[0]->GetPosition();
     Int_t i_rho_0  = vec_slider[1]->GetPosition();
@@ -606,7 +656,30 @@ void TTripleSliderDemo::DoSlider()
     }
 
 
+    //if(fHProg1) cout << "OK" << endl;
+    //else cout << "Not OK" << endl;
+
 }
+
+
+//______________________________________________________________________________
+void TTripleSliderDemo::DoMinimize()
+{
+    cout << "DoMinimize started, var_test: " << var_test << endl;
+    cout << "C fHProg1: "<< fHProg1 << endl;
+
+    if(fHProg1)
+    {
+        cout << "OK in DoMinimize" << endl;
+        //fHProg1->Reset();
+        fHProg1->Increment(3);
+    }
+    else  cout << "Not OK in DoMinimize" << endl;
+
+}
+
+
+
 //______________________________________________________________________________
 void TTripleSliderDemo::HandleButtons()
 {
