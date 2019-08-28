@@ -84,6 +84,9 @@ TTripleSliderDemo::TTripleSliderDemo() : TGMainFrame(gClient->GetRoot(), 100, 10
     gStyle->SetOptStat(0);
     //--------------------------------------------------------------------
 
+
+
+    //------------------------------------------------------------
     vec_Hframe.resize(5);
     vec_slider.resize(5);
     vec_LayoutHints.resize(5);
@@ -139,7 +142,11 @@ TTripleSliderDemo::TTripleSliderDemo() : TGMainFrame(gClient->GetRoot(), 100, 10
 
     char buf[32];
     SetCleanup(kDeepCleanup);
+    //------------------------------------------------------------
 
+
+
+    //------------------------------------------------------------
     // Create an embedded canvas and add to the main frame, centered in x and y
     // and with 30 pixel margins all around
     fCanvas = new TRootEmbeddedCanvas("Canvas", this, 800, 700);
@@ -202,8 +209,11 @@ TTripleSliderDemo::TTripleSliderDemo() : TGMainFrame(gClient->GetRoot(), 100, 10
     Resize(GetDefaultSize());
     MapWindow();
     this ->Resize(1100,1100);
+    //------------------------------------------------------------
 
 
+
+    //------------------------------------------------------------
     FrameB = new TGMainFrame(gClient->GetRoot(), 400, 100);
     FrameB ->SetWindowName("Transverse momentum spectra");
     FrameB ->MapSubwindows();
@@ -252,49 +262,41 @@ TTripleSliderDemo::TTripleSliderDemo() : TGMainFrame(gClient->GetRoot(), 100, 10
         fCanvasB ->GetCanvas()->cd(iPad)->Modified();
         fCanvasB ->GetCanvas()->cd(iPad)->Update();
     }
+    //------------------------------------------------------------
 
 
+
+    //------------------------------------------------------------
+    // Create horizontal splitter
     FrameD = new TGMainFrame(gClient->GetRoot(), 400, 100);
     FrameD ->SetWindowName("Buttons");
-    FrameD ->MapSubwindows();
-    FrameD ->Resize(GetDefaultSize());
-    FrameD ->MapWindow();
-    FrameD ->Resize(400,400); // size of frame
 
-    //hframeD1  = new TGHorizontalFrame(FrameD,200,100);
-    vframeD1 = new TGVerticalFrame(FrameD, 150, 150);
-    cframe2 = new TGCompositeFrame(vframeD1, 170, 50,kHorizontalFrame | kFixedWidth);
+    hframeD1  = new TGHorizontalFrame(FrameD,200,100);
 
     // exit button
-    Button_exit = new TGTextButton(cframe2, "&Exit ","gApplication->Terminate(0)");
-    cframe2->AddFrame(Button_exit, new TGLayoutHints(kLHintsTop | kLHintsExpandX,3, 2, 2, 2));
+    Button_exit = new TGTextButton(hframeD1, "&Exit ","gApplication->Terminate(0)");
+    hframeD1->AddFrame(Button_exit, new TGLayoutHints(kLHintsCenterX,5,5,3,4));
 
     // save button
-    Button_save = new TGTextButton(cframe2, "&Save ","gApplication->Terminate(0)");
-    cframe2->AddFrame(Button_save, new TGLayoutHints(kLHintsTop | kLHintsExpandX,2, 0, 2, 2));
+    Button_save = new TGTextButton(hframeD1, "&Save ","gApplication->Terminate(0)");
+    hframeD1->AddFrame(Button_save, new TGLayoutHints(kLHintsCenterX,5,5,3,4));
+
+    FrameD ->AddFrame(hframeD1, new TGLayoutHints(kLHintsCenterX,2,2,2,2));
 
 
-    vframeD1->AddFrame(cframe2, new TGLayoutHints(kLHintsExpandX, 2, 2, 5, 1));
-
-    // A button
-    //ButtonD1a = new TGTextButton(hframeD1,"&DrawD1a");
-    //hframeD1->AddFrame(ButtonD1a, new TGLayoutHints(kLHintsCenterX,5,5,3,4)); // left, right, top, bottom
-
-    FrameD->AddFrame(vframeD1, new TGLayoutHints(kLHintsExpandX, 2, 2, 5, 1));
-
-    // Set a name to the main frame
-    FrameD->SetWindowName("A frame with buttons");
-
-    // Map all subwindows of main frame
-    FrameD->MapSubwindows();
-
-    // Map main frame
-    FrameD->MapWindow();
+    FrameD ->MapSubwindows();
+    FrameD ->MapWindow();
+    FrameD ->Resize(400,400); // size of frame
     FrameD ->Move(1250,750); // position of frame
 
 
+    //------------------------------------------------------------
 
+
+
+    //------------------------------------------------------------
     DoSlider();
+    //------------------------------------------------------------
 
 }
 //______________________________________________________________________________
@@ -569,21 +571,41 @@ void TTripleSliderDemo::DoSlider()
     fCanvasB->GetCanvas()->Update();
     //-------------------------------------
 
-
     // Do chi2 calculation here:
-    /*
-    Double_t chi2 = 0.0;
-    for(Int_t i_mass = 0; i_mass < 5; i_mass++)
+    
+    Double_t chi2[3]; 
+    
+    for(Int_t i_mass = 0; i_mass < 3; i_mass++)
     {
+        chi2[i_mass] = 0.0;
+
         if(tp_v2_vs_pT_mesons[i_mass])
         {
-            // Loop over pT points
-            //tp_v2_vs_pT_mesons[i_mass] ->GetPoint...
-            // Compare to data vec_graphs[plot_centrality]...
-            chi2 += ...
+            Int_t plot_centrality   = 4;
+            Int_t n_arr             = vec_graphs[plot_centrality+14*i_mass]->GetN();
+            Double_t x_pid;
+            Double_t v2_pid;
+            Double_t v2_bw_pid;
+
+            for(Int_t i_pT = 0; i_pT < n_arr; i_pT++) // pT loop
+            {
+                // Loop over pT points
+                //tp_v2_vs_pT_mesons[i_mass] ->GetPoint...
+                // Compare to data vec_graphs[plot_centrality]...
+
+                vec_graphs[plot_centrality+14*i_mass]            ->GetPoint(i_pT,x_pid,v2_pid);
+                v2_bw_pid           = tp_v2_vs_pT_mesons[i_mass] ->GetBinContent(tp_v2_vs_pT_mesons[i_mass]->FindBin(x_pid));
+                chi2[i_mass]        += (v2_pid-v2_bw_pid)*(v2_pid-v2_bw_pid);
+
+                //if(i_pid == 0) printf("i_pid: %d, i_cent: %d, i_pT: %d, pT: %4.2f, v2: %4.3f, dNdpT: %4.6f, v2_unnorm_pid: %4.3f \n",i_pid,i_cent,i_pT,x_arr_pid[i_pT],y_arr_pid,y_pt_arr_pid,v2_unnorm_pid[i_pT]);
+            }
+
+            cout << "i_mass: " << i_mass << endl;
+            cout << "chi2[i_mass]: " << chi2[i_mass] << endl;
         }
     }
-    */
+
+
 }
 //______________________________________________________________________________
 void TTripleSliderDemo::HandleButtons()

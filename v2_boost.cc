@@ -226,8 +226,8 @@ Int_t v2_boost(Double_t Temp_set = 0.1, Double_t rho_0_set = 0.95, Double_t rho_
     h_dN_dpT_jets.resize(N_masses);
     for(Int_t i_mass = 0; i_mass < N_masses; i_mass++)
     {
-        tp_v2_vs_pT_mesons[i_mass]  = new TProfile(Form("tp_v2_vs_pT_mesons_%d",i_mass),Form("tp_v2_vs_pT_mesons_%d",i_mass),35,0,15.0);
-        tp_v2_vs_pT_baryons[i_mass] = new TProfile(Form("tp_v2_vs_pT_baryons_%d",i_mass),Form("tp_v2_vs_pT_baryons_%d",i_mass),30,0,12.0);
+        tp_v2_vs_pT_mesons[i_mass]  = new TProfile(Form("tp_v2_vs_pT_mesons_%d",i_mass),Form("tp_v2_vs_pT_mesons_%d",i_mass),85,0,15.0);
+        tp_v2_vs_pT_baryons[i_mass] = new TProfile(Form("tp_v2_vs_pT_baryons_%d",i_mass),Form("tp_v2_vs_pT_baryons_%d",i_mass),85,0,12.0);
         h_dN_dpT_mesons[i_mass]     = new TH1D(Form("h_dN_dpT_mesons_%d",i_mass),Form("h_dN_dpT_mesons_%d",i_mass),200,0,12.0); // 75.0
         h_dN_dpT_jets[i_mass]       = new TH1D(Form("h_dN_dpT_jets_%d",i_mass),Form("h_dN_dpT_jets_%d",i_mass),75,0,12.0);
     }
@@ -479,6 +479,13 @@ Int_t v2_boost(Double_t Temp_set = 0.1, Double_t rho_0_set = 0.95, Double_t rho_
                         TVector3  tv3_boost  = get_boost_vector(R_scale,R_x_best,1.0,x_pos_point,y_pos_point,z_rapidity,rho_0_best,rho_a_best); // get transverse boost vector
                         //tv3_boost.SetZ(beta_z);
                         //tv3_boost.SetZ(0.0);
+
+#if 0
+                        tv3_boost.SetX(-tv3_boost.X());
+                        tv3_boost.SetY(-tv3_boost.Y());
+                        tv3_boost.SetZ(-tv3_boost.Z());
+                        TVector3  tv3_boost_long(0.0,0.0,-beta_z); // longitudinal boost vector
+#endif
 
                         TVector3  tv3_boost_long(0.0,0.0,beta_z); // longitudinal boost vector
 
@@ -769,7 +776,7 @@ Int_t v2_boost(Double_t Temp_set = 0.1, Double_t rho_0_set = 0.95, Double_t rho_
         tp_v2_vs_pT_mesons[i_mass] ->SetLineColor(arr_color_mass[i_mass]);
         tp_v2_vs_pT_mesons[i_mass] ->SetLineStyle(1);
         tp_v2_vs_pT_mesons[i_mass] ->SetLineWidth(2);
-        //tp_v2_vs_pT_mesons[i_mass] ->DrawCopy("same P");
+        tp_v2_vs_pT_mesons[i_mass] ->DrawCopy("same P");
 
         Draw_hist_line((TH1D*)tp_v2_vs_pT_mesons[i_mass],0.0,15.0,-0.07,0.45,
                        arr_color_mass[i_mass],4,1,1.0,"ogl");
