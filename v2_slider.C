@@ -52,6 +52,7 @@ private:
     TGLayoutHints* fLcanD;
     TGHorizontalFrame *hframeD1;
     TGHorizontalFrame *hframeD2;
+    //TGVerticalFrame *hframeD3;
     TGHorizontalFrame *hframeD3;
     TGVerticalFrame *hVframeD3;
     TGVerticalFrame *vframeD1;
@@ -64,6 +65,15 @@ private:
     TGLayoutHints* fHint2;
     TGTextButton      *fGO;
     TGLayoutHints* fHint3;
+    TGLayoutHints* LHintsD4a;
+    TGNumberEntry* NEntryD3a;
+    TGLabel*       LabelD4a;
+    TGNumberEntry* NEntryD3b;
+    TGLabel*       LabelD4b;
+
+    TGHorizontalFrame* arr_HFrame_NEntry_limits[8];
+    TGLabel*           arr_Label_NEntry_limits[2][8];
+    TGNumberEntry*     arr_NEntry_limits[2][8];
 
     Double_t var_test = 5.2;
 
@@ -334,7 +344,29 @@ TTripleSliderDemo::TTripleSliderDemo() : TGMainFrame(gClient->GetRoot(), 100, 10
     //--------------
 
 
-    
+    //--------------
+    //TGHorizontalFrame* arr_HFrame_NEntry_limits[8];
+    //TGLabel*       arr_Label_NEntry_limits[2][8];
+    //TGNumberEntry* arr_NEntry_limits[2][8];
+
+    LHintsD4a = new TGLayoutHints(kLHintsCenterX,5,5,3,4);
+    TGGC myGC = *gClient->GetResourcePool()->GetFrameGC();
+    TGFont *myfont = gClient->GetFont("-adobe-helvetica-bold-r-*-*-12-*-*-*-*-*-iso8859-1");
+    for(Int_t i_pid = 0; i_pid < 4; i_pid++)
+    {
+        arr_HFrame_NEntry_limits[i_pid] = new TGHorizontalFrame(FrameD, 200, 100);
+        FrameD->AddFrame(arr_HFrame_NEntry_limits[i_pid], LHintsD4a);
+
+        for(Int_t i_min_max = 0; i_min_max < 2; i_min_max++)
+        {
+            arr_NEntry_limits[i_min_max][i_pid] = new TGNumberEntry(arr_HFrame_NEntry_limits[i_pid], 0.5, 12,(TGNumberFormat::EStyle) 1);
+            arr_NEntry_limits[i_min_max][i_pid]->SetNumStyle( TGNumberFormat::kNESRealOne); // https://root.cern.ch/doc/master/classTGNumberFormat.html#a8a0f81aac8ac12d0461aef554c6271ad
+            arr_HFrame_NEntry_limits[i_pid]->AddFrame(arr_NEntry_limits[i_min_max][i_pid], LHintsD4a);
+            arr_Label_NEntry_limits[i_min_max][i_pid] = new TGLabel(arr_HFrame_NEntry_limits[i_pid], "pmin pi", myGC(), myfont->GetFontStruct());
+            arr_HFrame_NEntry_limits[i_pid]->AddFrame(arr_Label_NEntry_limits[i_min_max][i_pid], LHintsD4a);
+        }
+    }
+    //--------------
 
 
     FrameD ->MapSubwindows();
@@ -394,6 +426,9 @@ void TTripleSliderDemo::DoText(const char * /*text*/)
 void TTripleSliderDemo::DoSlider()
 {
     cout << "DoSlider started" << endl;
+
+    Double_t number_entry = arr_NEntry_limits[0][0]->GetNumberEntry()->GetNumber();
+    printf("number_entry: %4.1f \n",number_entry);
 
     Int_t i_Temp   = vec_slider[0]->GetPosition();
     Int_t i_rho_0  = vec_slider[1]->GetPosition();
