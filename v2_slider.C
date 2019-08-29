@@ -70,10 +70,14 @@ private:
     TGLabel*       LabelD4a;
     TGNumberEntry* NEntryD3b;
     TGLabel*       LabelD4b;
+    TGTransientFrame* frame_TGTransient;
 
     TGHorizontalFrame* arr_HFrame_NEntry_limits[8];
+    TGVerticalFrame* arr_VFrame_NEntry_limits[2];
     TGLabel*           arr_Label_NEntry_limits[2][8];
     TGNumberEntry*     arr_NEntry_limits[2][8];
+    TGLayoutHints* arr_fL1[2];
+    Double_t min_max_pT_range_pid[2][8];
 
     Double_t var_test = 5.2;
 
@@ -85,6 +89,11 @@ private:
     TH1D* h_dummy_dNdpT;
     TLegend* leg_v2_vs_pT_A = NULL;
     TLegend* leg_v2_vs_pT_B = NULL;
+    Int_t flag_stop_minimize = 0;
+
+    Double_t chi2_min;
+    TString HistName;
+    char NoP[50];
 
 public:
     TTripleSliderDemo();
@@ -93,6 +102,7 @@ public:
     void DoText(const char *text);
     void DoSlider();
     void DoMinimize();
+    void StopMinimize();
     void HandleButtons();
     ClassDef(TTripleSliderDemo, 0)
 };
@@ -110,6 +120,25 @@ TTripleSliderDemo::TTripleSliderDemo() : TGMainFrame(gClient->GetRoot(), 100, 10
     var_test = 2.6;
     //--------------------------------------------------------------------
 
+
+    //--------------------------------------------------------------------
+    min_max_pT_range_pid[0][0] = 0.1; // pi
+    min_max_pT_range_pid[1][0] = 1.8;
+    min_max_pT_range_pid[0][1] = 0.1; // K
+    min_max_pT_range_pid[1][1] = 2.0;
+    min_max_pT_range_pid[0][2] = 0.1; // p
+    min_max_pT_range_pid[1][2] = 2.5;
+    min_max_pT_range_pid[0][3] = 0.1; // phi
+    min_max_pT_range_pid[1][3] = 2.5;
+    min_max_pT_range_pid[0][4] = 0.1; // Omega
+    min_max_pT_range_pid[1][4] = 2.8;
+    min_max_pT_range_pid[0][5] = 0.1; // D0
+    min_max_pT_range_pid[1][5] = 3.5;
+    min_max_pT_range_pid[0][6] = 0.1; // J/Psi
+    min_max_pT_range_pid[1][6] = 15.0;
+    min_max_pT_range_pid[0][7] = 0.1; // Upsilon
+    min_max_pT_range_pid[1][7] = 15.0;
+    //--------------------------------------------------------------------
 
 
     //------------------------------------------------------------
@@ -245,7 +274,7 @@ TTripleSliderDemo::TTripleSliderDemo() : TGMainFrame(gClient->GetRoot(), 100, 10
     FrameB ->MapSubwindows();
     FrameB ->Resize(GetDefaultSize());
     FrameB ->MapWindow();
-    FrameB->Resize(1200,700);
+    FrameB->Resize(1300,700);
 
 
     // Create an embedded canvas and add to the main frame, centered in x and y
@@ -317,7 +346,7 @@ TTripleSliderDemo::TTripleSliderDemo() : TGMainFrame(gClient->GetRoot(), 100, 10
     // A horizontal frame
     hVframeD3  = new TGVerticalFrame(FrameD,200,100);
     fHint2 = new TGLayoutHints(kLHintsTop | kLHintsLeft | kLHintsExpandX, 5, 5,  5, 10);
-    fHProg1 = new TGHProgressBar(hVframeD3, 300);
+    fHProg1 = new TGHProgressBar(hVframeD3, 400);
     fHProg1->ShowPosition();
     hVframeD3->AddFrame(fHProg1, fHint2);
     FrameD ->AddFrame(hVframeD3, new TGLayoutHints(kLHintsCenterX,2,2,2,2));
@@ -337,42 +366,65 @@ TTripleSliderDemo::TTripleSliderDemo() : TGMainFrame(gClient->GetRoot(), 100, 10
     hframeD2->AddFrame(Button_minimize, new TGLayoutHints(kLHintsCenterX,5,5,3,4));
 
     // save button
-    Button_stop_minimize = new TGTextButton(hframeD2, "&Stop minimize ","gApplication->Terminate(0)");
+    Button_stop_minimize = new TGTextButton(hframeD2, "Stop minimize ",10);
+    Button_stop_minimize->Connect("Clicked()", "TTripleSliderDemo", this, "StopMinimize()");
     hframeD2->AddFrame(Button_stop_minimize, new TGLayoutHints(kLHintsCenterX,5,5,3,4));
+
 
     FrameD ->AddFrame(hframeD2, new TGLayoutHints(kLHintsCenterX,2,2,2,2));
     //--------------
 
 
-    //--------------
-    //TGHorizontalFrame* arr_HFrame_NEntry_limits[8];
-    //TGLabel*       arr_Label_NEntry_limits[2][8];
-    //TGNumberEntry* arr_NEntry_limits[2][8];
+    FrameD ->MapSubwindows();
+    FrameD ->MapWindow();
+    FrameD ->Resize(450,400); // size of frame
+    FrameD ->Move(1250,750); // position of frame
 
+
+
+    //--------------
     LHintsD4a = new TGLayoutHints(kLHintsCenterX,5,5,3,4);
     TGGC myGC = *gClient->GetResourcePool()->GetFrameGC();
     TGFont *myfont = gClient->GetFont("-adobe-helvetica-bold-r-*-*-12-*-*-*-*-*-iso8859-1");
-    for(Int_t i_pid = 0; i_pid < 4; i_pid++)
-    {
-        arr_HFrame_NEntry_limits[i_pid] = new TGHorizontalFrame(FrameD, 200, 100);
-        FrameD->AddFrame(arr_HFrame_NEntry_limits[i_pid], LHintsD4a);
 
-        for(Int_t i_min_max = 0; i_min_max < 2; i_min_max++)
+    TString arr_label_pid[8]     = {"pi","K","p","phi","Omega","D0","J/Psi","Y"};
+    TString arr_label_min_max[2] = {"min","max"};
+
+    arr_fL1[0] = new TGLayoutHints(kLHintsTop | kLHintsLeft, 2, 2, 2, 2);
+    arr_fL1[1] = new TGLayoutHints(kLHintsTop | kLHintsLeft, 2, 2, 2, 2);
+
+    Double_t max_val_VF[2] = {300,500};
+
+    frame_TGTransient = new TGTransientFrame(gClient->GetRoot(), FrameD, 10, 10, kHorizontalFrame);
+    FrameD ->AddFrame(frame_TGTransient,LHintsD4a);
+    for(Int_t i_min_max = 0; i_min_max < 2; i_min_max++)
+    {
+        //arr_VFrame_NEntry_limits[i_min_max] = new TGVerticalFrame(FrameD, 200, max_val_VF[i_min_max]);
+        //FrameD->AddFrame(arr_VFrame_NEntry_limits[i_min_max], arr_fL1[i_min_max]);
+
+        arr_VFrame_NEntry_limits[i_min_max] = new TGVerticalFrame(frame_TGTransient, 200, max_val_VF[i_min_max]);
+        frame_TGTransient->AddFrame(arr_VFrame_NEntry_limits[i_min_max], arr_fL1[i_min_max]);
+
+        for(Int_t i_pid = 0; i_pid < 8; i_pid++)
         {
-            arr_NEntry_limits[i_min_max][i_pid] = new TGNumberEntry(arr_HFrame_NEntry_limits[i_pid], 0.5, 12,(TGNumberFormat::EStyle) 1);
+            arr_NEntry_limits[i_min_max][i_pid] = new TGNumberEntry(arr_VFrame_NEntry_limits[i_min_max], min_max_pT_range_pid[i_min_max][i_pid], 12,(TGNumberFormat::EStyle) 1);
             arr_NEntry_limits[i_min_max][i_pid]->SetNumStyle( TGNumberFormat::kNESRealOne); // https://root.cern.ch/doc/master/classTGNumberFormat.html#a8a0f81aac8ac12d0461aef554c6271ad
-            arr_HFrame_NEntry_limits[i_pid]->AddFrame(arr_NEntry_limits[i_min_max][i_pid], LHintsD4a);
-            arr_Label_NEntry_limits[i_min_max][i_pid] = new TGLabel(arr_HFrame_NEntry_limits[i_pid], "pmin pi", myGC(), myfont->GetFontStruct());
-            arr_HFrame_NEntry_limits[i_pid]->AddFrame(arr_Label_NEntry_limits[i_min_max][i_pid], LHintsD4a);
+            arr_VFrame_NEntry_limits[i_min_max]->AddFrame(arr_NEntry_limits[i_min_max][i_pid], LHintsD4a);
+            TString label_entry = "pT " + arr_label_min_max[i_min_max] + " " + arr_label_pid[i_pid];
+            arr_Label_NEntry_limits[i_min_max][i_pid] = new TGLabel(arr_VFrame_NEntry_limits[i_min_max], label_entry.Data(), myGC(), myfont->GetFontStruct());
+            arr_VFrame_NEntry_limits[i_min_max]->AddFrame(arr_Label_NEntry_limits[i_min_max][i_pid], LHintsD4a);
         }
     }
+
+    frame_TGTransient->MapSubwindows();
+    frame_TGTransient->Resize();
+    frame_TGTransient->CenterOnParent();
+    frame_TGTransient->SetWindowName("pT limits");
+    frame_TGTransient->MapWindow();
+    frame_TGTransient ->Move(1250,250); // position of frame
     //--------------
 
 
-    FrameD ->MapSubwindows();
-    FrameD ->MapWindow();
-    FrameD ->Resize(400,400); // size of frame
-    FrameD ->Move(1250,750); // position of frame
     //------------------------------------------------------------
 
 
@@ -582,6 +634,11 @@ void TTripleSliderDemo::DoSlider()
         plotTopLegend((char*)"|y|<0.5",0.73,0.89,0.045,kBlack,0.0,42,1,1); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
         plotTopLegend((char*)"2.5<y<4",0.85,0.89,0.045,kBlack,0.0,42,1,1); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
 
+        HistName = "#chi^{2}/ndf = ";
+        sprintf(NoP,"%4.2f",chi2_min);
+        HistName += NoP;
+        plotTopLegend((char*)HistName.Data(),0.18,0.85,0.045,kBlack,0.0,42,1,1); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
+
         fCanvas->GetCanvas()->Modified();
         fCanvas->GetCanvas()->Update();
     }
@@ -696,20 +753,240 @@ void TTripleSliderDemo::DoSlider()
 
 }
 
+//______________________________________________________________________________
+void TTripleSliderDemo::StopMinimize()
+{
+    printf("Minimization stopped \n");
+    flag_stop_minimize = 1;
+
+}
 
 //______________________________________________________________________________
 void TTripleSliderDemo::DoMinimize()
 {
-    cout << "DoMinimize started, var_test: " << var_test << endl;
-    cout << "C fHProg1: "<< fHProg1 << endl;
+    cout << "DoMinimize started" << endl;
 
-    if(fHProg1)
+    flag_stop_minimize = 0;
+
+    // Set pT min max values to those entered
+    for(Int_t i_min_max = 0; i_min_max < 2; i_min_max++)
     {
-        cout << "OK in DoMinimize" << endl;
-        //fHProg1->Reset();
-        fHProg1->Increment(3);
+        for(Int_t i_pid = 0; i_pid < 8; i_pid++)
+        {
+            Double_t number_entry = arr_NEntry_limits[i_min_max][i_pid]->GetNumberEntry()->GetNumber();
+            min_max_pT_range_pid[i_min_max][i_pid] = number_entry;
+        }
     }
-    else  cout << "Not OK in DoMinimize" << endl;
+
+    Int_t i_Temp_min   = 0;
+    Int_t i_rho_0_min  = 0;
+    Int_t i_rho_a_min  = 0;
+    Int_t i_R_x_min    = 0;
+    Int_t i_fboost_min = 0;
+
+    chi2_min = 10000000.0;
+    Double_t chi2_tot = 0;
+
+    Double_t N_total_params = TMath::Power(8,5);
+
+    Double_t N_params_use = 0;
+    Int_t    N_params_total_use = 0;
+    Double_t fraction_progress_bar_update = 0.005;
+
+    Int_t n_arr;
+    Int_t arr_mass[8] = {0,1,2,6,7}; // mapping array, need to be changed later on
+
+    for (Int_t i_Temp = 0; i_Temp < 8; i_Temp++)
+    {
+        if(flag_stop_minimize) break;
+        //printf("i_Temp: %d \n",i_Temp);
+        for (Int_t i_rho_0 = 0; i_rho_0 < 8; i_rho_0++)
+        {
+            if(flag_stop_minimize) break;
+            //printf("i_rho_0: %d \n",i_rho_0);
+            for (Int_t i_rho_a = 0; i_rho_a < 8; i_rho_a++)
+            {
+                if(flag_stop_minimize) break;
+                //printf("i_rho_a: %d \n",i_rho_a);
+                for (Int_t i_R_x = 0; i_R_x < 8; i_R_x++)
+                {
+                    if(flag_stop_minimize) break;
+                    for (Int_t i_fboost = 0; i_fboost < 8; i_fboost++)
+                    {
+                        if(flag_stop_minimize) break;
+
+                        //chi2 - sum - the one we need
+                        //Double_t chi2[5]; //chi2 - individual - in case we want to look at it at some point
+                        Int_t    nop_tot = 0; // number of points - sum
+                        Double_t pT_lim[5] = {1.8,2,2.5,TMath::MaxElement(tg_JPsi_v2_vs_pT->GetN(),tg_JPsi_v2_vs_pT->GetX()),TMath::MaxElement(tg_Upsilon_v2_vs_pT->GetN(),tg_Upsilon_v2_vs_pT->GetX())};
+
+
+                        
+
+                        for(Int_t i_mass = 0; i_mass < 5; i_mass++)
+                        {
+                            Int_t i_mass_arr = arr_mass[i_mass];
+
+                            tp_v2_vs_pT_mesons[i_mass] = NULL;
+
+                            tp_v2_vs_pT_mesons[i_mass] = (TProfile*)inputfile->Get(Form("v2_vs_pT_BW_id%d_T%d_rho0%d_rhoa%d_Rx%d_fb%d",i_mass,i_Temp,i_rho_0,i_rho_a,i_R_x,i_fboost));
+
+
+                            //chi2[i_mass] = 0.0; // for everybody
+                            n_arr        = 0;
+
+                            if(tp_v2_vs_pT_mesons[i_mass])
+                            {
+                                Int_t plot_centrality   = 4;
+
+                                // get n_arr for different particles
+
+                                if(i_mass < 3)
+                                {
+                                    n_arr             = vec_graphs[plot_centrality+14*i_mass]->GetN();
+                                }
+
+                                if(i_mass == 3)
+                                {
+                                    n_arr             = tg_JPsi_v2_vs_pT                     ->GetN();
+                                }
+
+                                if (i_mass == 4)
+                                {
+                                    n_arr             = tg_Upsilon_v2_vs_pT                  ->GetN();
+                                }
+
+                                Double_t x_pid; //for everybody too
+                                Double_t v2_pid;
+                                Double_t v2_err_pid;
+                                Double_t v2_bw_pid;
+                                //Int_t nop = 0; // number of points - individual
+
+                                for(Int_t i_pT = 0; i_pT < n_arr; i_pT++) // pT loop
+                                {
+                                    //get v2_pid, v2_err_pid for different particles
+                                    if(i_mass < 3)
+                                    {
+                                        vec_graphs[plot_centrality+14*i_mass]                       ->GetPoint(i_pT,x_pid,v2_pid);
+                                        v2_err_pid          = vec_graphs[plot_centrality+14*i_mass] ->GetErrorY(i_pT);
+                                    }
+
+                                    if(i_mass == 3)
+                                    {
+                                        tg_JPsi_v2_vs_pT                       ->GetPoint(i_pT,x_pid,v2_pid);
+                                        v2_err_pid          = tg_JPsi_v2_vs_pT ->GetErrorY(i_pT);
+                                    }
+
+                                    if(i_mass == 4)
+                                    {
+                                        tg_Upsilon_v2_vs_pT                       ->GetPoint(i_pT,x_pid,v2_pid);
+                                        v2_err_pid          = tg_Upsilon_v2_vs_pT ->GetErrorY(i_pT);
+                                    }
+                                        
+                                    //if(x_pid <= pT_lim[i_mass] && v2_err_pid != 0) // calculate only within cetrain pT range; one loop for everybody
+                                    if(x_pid >= min_max_pT_range_pid[0][i_mass_arr]
+                                       && x_pid <= min_max_pT_range_pid[1][i_mass_arr]
+                                       && v2_err_pid != 0) // calculate only within cetrain pT range; one loop for everybody
+                                    {
+                                        v2_bw_pid           = tp_v2_vs_pT_mesons[i_mass]        ->GetBinContent(tp_v2_vs_pT_mesons[i_mass]->FindBin(x_pid));
+                                        //chi2[i_mass]        += ((v2_pid-v2_bw_pid)*(v2_pid-v2_bw_pid))/(v2_err_pid*v2_err_pid);
+                                        chi2_tot            += ((v2_pid-v2_bw_pid)*(v2_pid-v2_bw_pid))/(v2_err_pid*v2_err_pid);
+                                        //nop                 += 1;
+                                        nop_tot             += 1;
+                                     }
+
+                                     //cout << "i_pT: " << i_pT << endl;
+
+                                }
+
+                                
+                                // if (nop > 5) //individual chi2 
+                                // {
+                                //     chi2[i_mass] = chi2[i_mass]/(nop-5);
+                                // }
+
+                            }
+
+                        }
+
+
+                        if (nop_tot > 5) //sum of chi2
+                        {
+                            chi2_tot = chi2_tot/(nop_tot-5);
+                        }
+
+                        //chi2_min = chi_tot;
+                        //cout << "vec_graphs[i_cent]->GetN():" << vec_graphs[i_cent+i_pid*7+pid_helper]->GetN() << endl;
+                        //cout << "i_pid:" << i_pid << endl;
+                        if(chi2_tot < chi2_min)
+                        {
+                            chi2_min     = chi2_tot;
+                            i_Temp_min   = i_Temp;
+                            i_rho_0_min  = i_rho_0;
+                            i_rho_a_min  = i_rho_a;
+                            i_R_x_min    = i_R_x;
+                            i_fboost_min = i_fboost;
+
+                            printf("chi2_min: %4.3f \n",chi2_min);
+
+                            vec_slider[0]->SetPosition(i_Temp_min);
+                            vec_slider[1]->SetPosition(i_rho_0_min);
+                            vec_slider[2]->SetPosition(i_rho_a_min);
+                            vec_slider[3]->SetPosition(i_R_x_min);
+                            vec_slider[4]->SetPosition(i_fboost_min);
+                            DoSlider();
+                            gSystem->Sleep(100);
+                            gSystem->ProcessEvents();
+                        }
+
+                        //cout << "chi2_min: " << chi2_m << endl;
+                        //cout << "chi2_tot: " << chi2_tot << endl;
+
+
+
+                        N_params_use += 1.0;
+                        N_params_total_use++;
+                        Double_t fraction_use = (N_params_use/N_total_params);
+                        Double_t fraction_total = (Double_t)N_params_total_use/N_total_params;
+                        if(fraction_use >= fraction_progress_bar_update)
+                        {
+                            N_params_use = 0.0;
+                            fHProg1->Increment(fraction_use*100.0);
+                            printf("fraction total: %4.2f%%, fraction added: %4.2f%% \n",fraction_total*100.0,fraction_use*100.0);
+                            gSystem->Sleep(100);
+                            gSystem->ProcessEvents();
+                            //cout << "End of sleep" << endl;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if(flag_stop_minimize) cout << "Minimization was externally stopped" << endl;
+
+    Double_t Temp_loop_start  = 0.08;
+    Double_t rho_0_loop_start = 0.3;
+    Double_t arr_rho_a[8]   = {0.0,0.05,0.1,0.15,0.2,0.25,0.3,0.35};
+    Double_t arr_R_x[8]     = {0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9};
+    Double_t arr_f_boost[8] = {0.05,0.1,0.15,0.2,0.4,0.6,0.8,1.0};
+
+    Double_t Temp_val_min   = Temp_loop_start  + i_Temp_min*0.02;
+    Double_t rho_0_val_min  = rho_0_loop_start + i_rho_0_min*0.125;
+    Double_t rho_a_val_min  = arr_rho_a[i_rho_a_min];
+    Double_t R_x_val_min    = arr_R_x[i_R_x_min];
+    Double_t fboost_val_min = arr_f_boost[i_fboost_min];
+
+    Double_t arr_param_val_min[5] = {Temp_val_min,rho_0_val_min,rho_a_val_min,R_x_val_min,fboost_val_min};
+    
+
+    cout << "Hello Dave. Your minimum Chi2 = " << chi2_min << endl;
+    cout << "Corresponding parameters are:" << chi2_min << endl;
+    cout << "Temperature: " << arr_param_val_min[0] << endl;
+    cout << "rho_0: " << arr_param_val_min[1] << endl;
+    cout << "rho_a: " << arr_param_val_min[2] << endl;
+    cout << "R_x: " << arr_param_val_min[3] << endl;
+    cout << "fboost: " << arr_param_val_min[4] << endl;
 
 }
 
