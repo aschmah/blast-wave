@@ -758,7 +758,6 @@ void TTripleSliderDemo::StopMinimize()
 {
     printf("Minimization stopped \n");
     flag_stop_minimize = 1;
-
 }
 
 //______________________________________________________________________________
@@ -820,8 +819,6 @@ void TTripleSliderDemo::DoMinimize()
                         Int_t    nop_tot = 0; // number of points - sum
                         Double_t pT_lim[5] = {1.8,2,2.5,TMath::MaxElement(tg_JPsi_v2_vs_pT->GetN(),tg_JPsi_v2_vs_pT->GetX()),TMath::MaxElement(tg_Upsilon_v2_vs_pT->GetN(),tg_Upsilon_v2_vs_pT->GetX())};
 
-
-                        
 
                         for(Int_t i_mass = 0; i_mass < 5; i_mass++)
                         {
@@ -934,6 +931,7 @@ void TTripleSliderDemo::DoMinimize()
                             vec_slider[2]->SetPosition(i_rho_a_min);
                             vec_slider[3]->SetPosition(i_R_x_min);
                             vec_slider[4]->SetPosition(i_fboost_min);
+                            gSystem->ProcessEvents();
                             DoSlider();
                             gSystem->Sleep(100);
                             gSystem->ProcessEvents();
