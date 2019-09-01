@@ -71,6 +71,12 @@ private:
     TGNumberEntry* NEntryD3b;
     TGLabel*       LabelD4b;
     TGTransientFrame* frame_TGTransient;
+    TGTransientFrame* frame_TGTransientB;
+
+    TGCheckButton* fCheckBox[8];
+    TGLayoutHints* fLCheckBox;
+
+    Int_t arr_mass[8] = {0,1,2,6,7}; // mapping array, need to be changed later on
 
     TGHorizontalFrame* arr_HFrame_NEntry_limits[8];
     TGVerticalFrame* arr_VFrame_NEntry_limits[2];
@@ -375,6 +381,21 @@ TTripleSliderDemo::TTripleSliderDemo() : TGMainFrame(gClient->GetRoot(), 100, 10
     //--------------
 
 
+    //--------------
+    hframeD3  = new TGHorizontalFrame(FrameD,200,100);
+    fLCheckBox = new TGLayoutHints(kLHintsTop | kLHintsLeft,0, 0, 5, 0);
+    for(Int_t i_particle = 0; i_particle < 8; i_particle++)
+    {
+        fCheckBox[i_particle]  = new TGCheckButton(hframeD3, new TGHotString(label_full_pid_spectra[i_particle].Data()), -1);
+        fCheckBox[i_particle] ->SetState(kButtonDown);
+        fCheckBox[i_particle] ->Connect("Clicked()", "TTripleSliderDemo", this, "DoSlider()");
+        hframeD3->AddFrame(fCheckBox[i_particle], fLCheckBox);
+    }
+    FrameD ->AddFrame(hframeD3, new TGLayoutHints(kLHintsCenterX,2,2,2,2));
+    //--------------
+
+
+
     FrameD ->MapSubwindows();
     FrameD ->MapWindow();
     FrameD ->Resize(450,400); // size of frame
@@ -408,6 +429,7 @@ TTripleSliderDemo::TTripleSliderDemo() : TGMainFrame(gClient->GetRoot(), 100, 10
         for(Int_t i_pid = 0; i_pid < 8; i_pid++)
         {
             arr_NEntry_limits[i_min_max][i_pid] = new TGNumberEntry(arr_VFrame_NEntry_limits[i_min_max], min_max_pT_range_pid[i_min_max][i_pid], 12,(TGNumberFormat::EStyle) 1);
+            arr_NEntry_limits[i_min_max][i_pid] ->Connect("ValueSet(Long_t)", "TTripleSliderDemo", this, "DoSlider()");
             arr_NEntry_limits[i_min_max][i_pid]->SetNumStyle( TGNumberFormat::kNESRealOne); // https://root.cern.ch/doc/master/classTGNumberFormat.html#a8a0f81aac8ac12d0461aef554c6271ad
             arr_VFrame_NEntry_limits[i_min_max]->AddFrame(arr_NEntry_limits[i_min_max][i_pid], LHintsD4a);
             TString label_entry = "pT " + arr_label_min_max[i_min_max] + " " + arr_label_pid[i_pid];
@@ -423,6 +445,7 @@ TTripleSliderDemo::TTripleSliderDemo() : TGMainFrame(gClient->GetRoot(), 100, 10
     frame_TGTransient->MapWindow();
     frame_TGTransient ->Move(1250,250); // position of frame
     //--------------
+
 
 
     //------------------------------------------------------------
@@ -514,6 +537,10 @@ void TTripleSliderDemo::DoSlider()
             tp_v2_vs_pT_mesons[i_mass] ->SetLineWidth(3);
             tp_v2_vs_pT_mesons[i_mass] ->SetLineColor(arr_color_line[i_mass]);
             tp_v2_vs_pT_mesons[i_mass] ->SetLineStyle(1);
+
+            Double_t min_val_pT = arr_NEntry_limits[0][arr_mass[i_mass]]->GetNumberEntry()->GetNumber();
+            Double_t max_val_pT = arr_NEntry_limits[1][arr_mass[i_mass]]->GetNumberEntry()->GetNumber();
+            tp_v2_vs_pT_mesons[i_mass] ->GetXaxis()->SetRangeUser(min_val_pT,max_val_pT);
         }
 
         h_dN_dpT_mesons[i_mass] = NULL;
@@ -557,12 +584,12 @@ void TTripleSliderDemo::DoSlider()
 
         // 30-40%
         vec_graphs[plot_centrality] ->SetMarkerColor(arr_color_mass[0]);
-        vec_graphs[plot_centrality] ->Draw("same P"); // pions
+        if(fCheckBox[0]->GetState() == kButtonDown) vec_graphs[plot_centrality] ->Draw("same P"); // pions
         //vec_graphs[plot_centrality+7] ->Draw("same P"); // charged kaons
         vec_graphs[plot_centrality+14] ->SetMarkerColor(arr_color_mass[1]);
-        vec_graphs[plot_centrality+14] ->Draw("same P"); // K0s
+        if(fCheckBox[1]->GetState() == kButtonDown) vec_graphs[plot_centrality+14] ->Draw("same P"); // K0s
         vec_graphs[plot_centrality+28] ->SetMarkerColor(arr_color_mass[2]);
-        vec_graphs[plot_centrality+28] ->Draw("same P"); // protons
+        if(fCheckBox[2]->GetState() == kButtonDown) vec_graphs[plot_centrality+28] ->Draw("same P"); // protons
 
 
 #if 0
@@ -587,25 +614,25 @@ void TTripleSliderDemo::DoSlider()
         */
 
         tg_JPsi_v2_vs_pT    ->SetMarkerColor(arr_color_mass[3]);
-        tg_JPsi_v2_vs_pT    ->Draw("same P");
+        if(fCheckBox[6]->GetState() == kButtonDown) tg_JPsi_v2_vs_pT    ->Draw("same P");
         tg_D0_v2_vs_pT      ->SetMarkerColor(kGray+1);
-        tg_D0_v2_vs_pT      ->Draw("same P");
+        if(fCheckBox[5]->GetState() == kButtonDown) tg_D0_v2_vs_pT      ->Draw("same P");
         tg_Upsilon_v2_vs_pT ->SetMarkerColor(arr_color_mass[4]);
-        tg_Upsilon_v2_vs_pT ->Draw("same P");
+        if(fCheckBox[7]->GetState() == kButtonDown) tg_Upsilon_v2_vs_pT ->Draw("same P");
 
-        tp_v2_vs_pT_mesons[0] ->GetXaxis()->SetRangeUser(0.0,4.0);
-        tp_v2_vs_pT_mesons[1] ->GetXaxis()->SetRangeUser(0.0,4.0);
-        tp_v2_vs_pT_mesons[2] ->GetXaxis()->SetRangeUser(0.0,4.0);
+        //tp_v2_vs_pT_mesons[0] ->GetXaxis()->SetRangeUser(0.0,4.0);
+        //tp_v2_vs_pT_mesons[1] ->GetXaxis()->SetRangeUser(0.0,4.0);
+        //tp_v2_vs_pT_mesons[2] ->GetXaxis()->SetRangeUser(0.0,4.0);
         tp_v2_vs_pT_mesons[0] ->SetLineWidth(4);
         tp_v2_vs_pT_mesons[1] ->SetLineWidth(4);
         tp_v2_vs_pT_mesons[2] ->SetLineWidth(4);
         tp_v2_vs_pT_mesons[3] ->SetLineWidth(4);
         tp_v2_vs_pT_mesons[4] ->SetLineWidth(4);
-        tp_v2_vs_pT_mesons[0] ->Draw("same L hist");
-        tp_v2_vs_pT_mesons[1] ->Draw("same L hist");
-        tp_v2_vs_pT_mesons[2] ->Draw("same L hist");
-        tp_v2_vs_pT_mesons[3] ->Draw("same L hist");
-        tp_v2_vs_pT_mesons[4] ->Draw("same L hist");
+        if(fCheckBox[0]->GetState() == kButtonDown) tp_v2_vs_pT_mesons[0] ->Draw("same L hist");
+        if(fCheckBox[1]->GetState() == kButtonDown) tp_v2_vs_pT_mesons[1] ->Draw("same L hist");
+        if(fCheckBox[2]->GetState() == kButtonDown) tp_v2_vs_pT_mesons[2] ->Draw("same L hist");
+        if(fCheckBox[6]->GetState() == kButtonDown) tp_v2_vs_pT_mesons[3] ->Draw("same L hist");
+        if(fCheckBox[7]->GetState() == kButtonDown) tp_v2_vs_pT_mesons[4] ->Draw("same L hist");
 
         if(leg_v2_vs_pT_A) delete leg_v2_vs_pT_A;
         leg_v2_vs_pT_A = new TLegend(0.76,0.63,0.86,0.82); // x1,y1,x2,y2
@@ -793,7 +820,6 @@ void TTripleSliderDemo::DoMinimize()
     Double_t fraction_progress_bar_update = 0.005;
 
     Int_t n_arr;
-    Int_t arr_mass[8] = {0,1,2,6,7}; // mapping array, need to be changed later on
 
     for (Int_t i_Temp = 0; i_Temp < 8; i_Temp++)
     {

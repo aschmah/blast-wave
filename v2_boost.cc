@@ -4,7 +4,7 @@
 
 Int_t v2_boost(Double_t Temp_set = 0.1, Double_t rho_0_set = 0.95, Double_t rho_a_set = 0.08,
                Double_t R_x_set = 0.8, Double_t fboost_set = 0.1,
-               Int_t flag_loop = 0, Int_t i_rho_a = 0, Int_t i_R_x = 0, Int_t i_fboost = 0)
+               Int_t flag_loop = 0, Int_t i_rho_a_not_used = 0, Int_t i_R_x = 0, Int_t i_fboost = 0)
 {
 
     // .x v2_boost.cc++(0.15,0.95,0.08,0.8,0.1,0,0,0,0)
@@ -27,7 +27,7 @@ Int_t v2_boost(Double_t Temp_set = 0.1, Double_t rho_0_set = 0.95, Double_t rho_
 
 
     //--------------------------------------------------------------------
-    TFile* outputfile = new TFile(Form("out_v2_boost_rho_a%d_R_x%d_fb%d.root",i_rho_a,i_R_x,i_fboost),"RECREATE");
+    TFile* outputfile = new TFile(Form("out_v2_boost_R_x%d_fb%d.root",i_R_x,i_fboost),"RECREATE");
     //--------------------------------------------------------------------
 
 
@@ -218,26 +218,29 @@ Int_t v2_boost(Double_t Temp_set = 0.1, Double_t rho_0_set = 0.95, Double_t rho_
 
     //--------------------------------------------------------------------
     vector<TProfile*> tp_v2_vs_pT_mesons;
-    vector<TProfile*> tp_v2_vs_pT_baryons;
-    vector<TH1D*> h_dN_dpT_jets;
+    vector<TH1F*> h_dN_dpT_jets;
     tp_v2_vs_pT_mesons.resize(N_masses);
-    tp_v2_vs_pT_baryons.resize(N_masses);
     h_dN_dpT_mesons.resize(N_masses);
     h_dN_dpT_jets.resize(N_masses);
+
+    // pi, K, p, phi, Omega, D0, J/Psi, Upsilon
+    Double_t high_pt_range[8]         = {5.0,5.0,6.0,6.0,7.0,10.0,15.0,15.0};
+    Int_t    N_bins_v2_pt_range[8]    = {25,25,25,25,25,25,25,25};
+    Int_t    N_bins_dNdpT_pt_range[8] = {100,100,100,100,100,100,100,100};
+
     for(Int_t i_mass = 0; i_mass < N_masses; i_mass++)
     {
-        tp_v2_vs_pT_mesons[i_mass]  = new TProfile(Form("tp_v2_vs_pT_mesons_%d",i_mass),Form("tp_v2_vs_pT_mesons_%d",i_mass),85,0,15.0);
-        tp_v2_vs_pT_baryons[i_mass] = new TProfile(Form("tp_v2_vs_pT_baryons_%d",i_mass),Form("tp_v2_vs_pT_baryons_%d",i_mass),85,0,12.0);
-        h_dN_dpT_mesons[i_mass]     = new TH1D(Form("h_dN_dpT_mesons_%d",i_mass),Form("h_dN_dpT_mesons_%d",i_mass),200,0,12.0); // 75.0
-        h_dN_dpT_jets[i_mass]       = new TH1D(Form("h_dN_dpT_jets_%d",i_mass),Form("h_dN_dpT_jets_%d",i_mass),75,0,12.0);
+        tp_v2_vs_pT_mesons[i_mass]  = new TProfile(Form("tp_v2_vs_pT_mesons_%d",i_mass),Form("tp_v2_vs_pT_mesons_%d",i_mass),N_bins_v2_pt_range[i_mass],0,high_pt_range[i_mass]);
+        h_dN_dpT_mesons[i_mass]     = new TH1F(Form("h_dN_dpT_mesons_%d",i_mass),Form("h_dN_dpT_mesons_%d",i_mass),N_bins_dNdpT_pt_range[i_mass],0,high_pt_range[i_mass]);
+        h_dN_dpT_jets[i_mass]       = new TH1F(Form("h_dN_dpT_jets_%d",i_mass),Form("h_dN_dpT_jets_%d",i_mass),N_bins_dNdpT_pt_range[i_mass],0,high_pt_range[i_mass]);
     }
     TProfile* tp_v2_vs_pT_thermic = new TProfile("tp_v2_vs_pT_thermic","tp_v2_vs_pT_thermic",150,0,3.0);
 
-    TH1D* tp_dN_dphi_vs_phi   = new TH1D("tp_dN_dphi_vs_phi","tp_dN_dphi_vs_phi",100,-TMath::Pi(),TMath::Pi());
+    TH1F* tp_dN_dphi_vs_phi   = new TH1F("tp_dN_dphi_vs_phi","tp_dN_dphi_vs_phi",100,-TMath::Pi(),TMath::Pi());
     TH2D* h2D_pos_XY_neg_v2   = new TH2D("h2D_pos_XY_neg_v2","h2D_pos_XY_neg_v2",100,-3,3,100,-3,3);
-    TH1D* h_pos_XY_neg_v2_pT  = new TH1D("h_pos_XY_neg_v2_pT","h_pos_XY_neg_v2_pT",100,0,10.0);
+    TH1F* h_pos_XY_neg_v2_pT  = new TH1F("h_pos_XY_neg_v2_pT","h_pos_XY_neg_v2_pT",100,0,10.0);
     TH2D* h2D_pos_XY_pos_v2   = new TH2D("h2D_pos_XY_pos_v2","h2D_pos_XY_pos_v2",100,-3,3,100,-3,3);
-    TH1D* h_pos_XY_pos_v2_pT  = new TH1D("h_pos_XY_pos_v2_pT","h_pos_XY_pos_v2_pT",100,0,10.0);
+    TH1F* h_pos_XY_pos_v2_pT  = new TH1F("h_pos_XY_pos_v2_pT","h_pos_XY_pos_v2_pT",100,0,10.0);
     TH2D* h2D_rapidity_vs_eta = new TH2D("h2D_rapidity_vs_eta","h2D_rapidity_vs_eta",100,-2.0,2.0,100,-2.0,2.0);
     TH2D* h2D_cos_theta_vs_pT = new TH2D("h2D_cos_theta_vs_pT","h2D_cos_theta_vs_pT",100,0,5,100,-1,1);
     //--------------------------------------------------------------------
@@ -379,24 +382,32 @@ Int_t v2_boost(Double_t Temp_set = 0.1, Double_t rho_0_set = 0.95, Double_t rho_
 
     Double_t Temp_loop_start  = Temp_best;
     Double_t rho_0_loop_start = rho_0_best;
+    Double_t rho_a_loop_start = rho_a_best;
     Int_t N_Temp_loop  = 1;
     Int_t N_rho_0_loop = 1;
+    Int_t N_rho_a_loop = 1;
 
     if(flag_loop)
     {
         Temp_loop_start  = 0.08;
         rho_0_loop_start = 0.3;
-        N_Temp_loop  = 2;
-        N_rho_0_loop = 2;
+        rho_a_loop_start = 0.0;
+        N_Temp_loop  = 9; // 9
+        N_rho_0_loop = 9; // 9
+        N_rho_a_loop = 9; // 9
 
-        Double_t arr_rho_a[8]   = {0.0,0.05,0.1,0.15,0.2,0.25,0.3,0.35};
-        Double_t arr_R_x[8]     = {0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9};
-        Double_t arr_f_boost[8] = {0.05,0.1,0.15,0.2,0.4,0.6,0.8,1.0};
+        //Double_t arr_rho_a[9]   = {0.0,0.05,0.1,0.15,0.2,0.25,0.3,0.35,0.4};
+        Double_t arr_R_x[9]     = {0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0};
+        Double_t arr_f_boost[9] = {0.0,0.05,0.1,0.15,0.2,0.4,0.6,0.8,1.0};
 
-        rho_a_best  = arr_rho_a[i_rho_a];
+        //rho_a_best  = arr_rho_a[i_rho_a];
         R_x_best    = arr_R_x[i_R_x];
         fboost_best = arr_f_boost[i_fboost];
     }
+
+    TList* list_profiles = new TList();
+    list_profiles ->SetOwner(kTRUE);
+    list_profiles ->SetName(Form("list_BW_Rx%d_fb%d",i_R_x,i_fboost));
 
     for(Int_t i_Temp = 0; i_Temp < N_Temp_loop; i_Temp++)
     {
@@ -407,308 +418,320 @@ Int_t v2_boost(Double_t Temp_set = 0.1, Double_t rho_0_set = 0.95, Double_t rho_
             printf("i_rho_0: %d \n",i_rho_0);
             if(flag_loop) rho_0_best = rho_0_loop_start + i_rho_0*0.125;
 
-            get_geometric_shape(h2D_geometric_shape,R_x_best,1.0,R_scale);
-            f_LevyFitFunc ->SetParameter(1,Temp_best);
-
-            Double_t s2 = get_s2(R_x_best,1.0);
-            printf("R_x_best: %4.3f, s2: %4.3f \n",R_x_best,s2);
-            //--------------------------------------------------------------------
-
-            printf("Temp \n");
-            //--------------------------------------------------------------------
-            for(Int_t i_quark_mass = 0; i_quark_mass < N_masses; i_quark_mass++)
+            for(Int_t i_rho_a = 0; i_rho_a < N_rho_a_loop; i_rho_a++)
             {
-                Double_t quark_mass = arr_quark_mass_meson[i_quark_mass];
-                printf("--------------- i_quark_mass: %d, mass: %4.3f GeV --------------- \n",i_quark_mass,quark_mass);
-                f_LevyFitFunc ->SetParameter(0,quark_mass);
-                f_JetPtFunc   ->SetParameter(0,quark_mass); // mass
-                Long64_t N_events_use = N_events;
-                if(i_quark_mass > 2) N_events_use = 1*N_events;
-                for(Long64_t i_event = 0; i_event < N_events_use; i_event++)
+                printf("i_rho_a: %d \n",i_rho_a);
+                if(flag_loop) rho_a_best = rho_a_loop_start + i_rho_a*0.05;
+
+                get_geometric_shape(h2D_geometric_shape,R_x_best,1.0,R_scale);
+                f_LevyFitFunc ->SetParameter(1,Temp_best);
+
+                Double_t s2 = get_s2(R_x_best,1.0);
+                printf("R_x_best: %4.3f, s2: %4.3f \n",R_x_best,s2);
+                //--------------------------------------------------------------------
+
+                printf("Temp \n");
+                //--------------------------------------------------------------------
+                for(Int_t i_quark_mass = 0; i_quark_mass < N_masses; i_quark_mass++)
                 {
-                    //--------------------------------------------------------------------
-                    // Create single event quark distributions
-                    //printf("Create single event quark distributions \n");
-
-                    if (i_event != 0  &&  i_event % 1000 == 0)
-                        cout << "." << flush;
-                    if (i_event != 0  &&  i_event % 10000 == 0)
+                    Double_t quark_mass = arr_quark_mass_meson[i_quark_mass];
+                    printf("--------------- i_quark_mass: %d, mass: %4.3f GeV --------------- \n",i_quark_mass,quark_mass);
+                    f_LevyFitFunc ->SetParameter(0,quark_mass);
+                    f_JetPtFunc   ->SetParameter(0,quark_mass); // mass
+                    Long64_t N_events_use = N_events;
+                    if(i_quark_mass > 2) N_events_use = 1*N_events;
+                    for(Long64_t i_event = 0; i_event < N_events_use; i_event++)
                     {
-                        cout << 100.0*((Double_t)i_event)/N_events_use << "\% processed" << endl;
-                    }
+                        //--------------------------------------------------------------------
+                        // Create single event quark distributions
+                        //printf("Create single event quark distributions \n");
 
-                    for(Int_t i_quark = 0; i_quark < N_quarks; i_quark++)
-                    {
-                        //h2D_density_Glauber ->GetRandom2(x_pos_point,y_pos_point);
-                        h2D_geometric_shape ->GetRandom2(x_pos_point,y_pos_point);  // sample postion of particle
-                        Double_t weight = 1.0;
-                        //if(fabs(x_pos_point) > 2.4) weight = 0.0;
-                        //weight = TMath::Power(TMath::Gaus(x_pos_point,0.0,2.5),4.0);
+                        if (i_event != 0  &&  i_event % 1000 == 0)
+                            cout << "." << flush;
+                        if (i_event != 0  &&  i_event % 10000 == 0)
+                        {
+                            cout << 100.0*((Double_t)i_event)/N_events_use << "\% processed" << endl;
+                        }
 
-                        // Sample z-rapidity
-                        Double_t z_rapidity = (ran.Rndm()-0.5)*8.0; // get bjorken z-rapidity
-                        //Double_t z_rapidity = ran.Gaus(0.0,1.2);
+                        for(Int_t i_quark = 0; i_quark < N_quarks; i_quark++)
+                        {
+                            //h2D_density_Glauber ->GetRandom2(x_pos_point,y_pos_point);
+                            h2D_geometric_shape ->GetRandom2(x_pos_point,y_pos_point);  // sample postion of particle
+                            Double_t weight = 1.0;
+                            //if(fabs(x_pos_point) > 2.4) weight = 0.0;
+                            //weight = TMath::Power(TMath::Gaus(x_pos_point,0.0,2.5),4.0);
 
-                        Double_t beta_z = (TMath::Exp(2.0*z_rapidity) - 1.0)/(TMath::Exp(2.0*z_rapidity) + 1.0); // = TMath::TanH(z_rapidity), z-beta
-                        //printf("beta_z: %4.3f, TanH(y): %4.3f \n,",beta_z,TMath::TanH(z_rapidity));
+                            // Sample z-rapidity
+                            Double_t z_rapidity = (ran.Rndm()-0.5)*8.0; // get bjorken z-rapidity
+                            //Double_t z_rapidity = ran.Gaus(0.0,1.2);
 
-                        Double_t quark_thermal_phi       = ran.Rndm()*360.0; // sample phi
-                        Double_t quark_thermal_cos_theta = (ran.Rndm()-0.5)*2.0; // sample cos theta -> polar angle
-                        //Double_t quark_thermal_theta     = TMath::Sign(1.0,ran.Rndm()-0.5)*TMath::ACos(quark_thermal_cos_theta);
-                        Double_t quark_thermal_theta     = TMath::ACos(quark_thermal_cos_theta); // get theta
-                        Double_t quark_thermal_eta       = -TMath::Log(TMath::Tan(quark_thermal_theta/2.0)); // get eta
-                        //Double_t quark_pT  = ran.Rndm()*4.0;
-                        //Double_t quark_pT_weight = f_LevyFitFunc->Eval(quark_pT);
-                        Double_t quark_pT                = f_LevyFitFunc->GetRandom()*TMath::Sin(quark_thermal_theta); // sample p, transform to pT
-                        //Double_t quark_pT                = f_LevyFitFunc->GetRandom();
-                        //Double_t quark_pT                = f_PtFitFunc->GetRandom();
+                            Double_t beta_z = (TMath::Exp(2.0*z_rapidity) - 1.0)/(TMath::Exp(2.0*z_rapidity) + 1.0); // = TMath::TanH(z_rapidity), z-beta
+                            //printf("beta_z: %4.3f, TanH(y): %4.3f \n,",beta_z,TMath::TanH(z_rapidity));
 
-
-                        TLorentzVector tlv_quark;
-                        tlv_quark.SetPtEtaPhiM(quark_pT,quark_thermal_eta,quark_thermal_phi*TMath::DegToRad(),quark_mass); // thermal
-
-                        //if(quark_thermal_theta < 0.1)
-                        //{
-                        //    printf("phi: %4.3f, theta: %4.3f, eta: %4.3f, pT: %4.3f \n",quark_thermal_phi,quark_thermal_theta,quark_thermal_eta,quark_pT);
-                        //    tlv_quark.Print();
-                        //}
+                            Double_t quark_thermal_phi       = ran.Rndm()*360.0; // sample phi
+                            Double_t quark_thermal_cos_theta = (ran.Rndm()-0.5)*2.0; // sample cos theta -> polar angle
+                            //Double_t quark_thermal_theta     = TMath::Sign(1.0,ran.Rndm()-0.5)*TMath::ACos(quark_thermal_cos_theta);
+                            Double_t quark_thermal_theta     = TMath::ACos(quark_thermal_cos_theta); // get theta
+                            Double_t quark_thermal_eta       = -TMath::Log(TMath::Tan(quark_thermal_theta/2.0)); // get eta
+                            //Double_t quark_pT  = ran.Rndm()*4.0;
+                            //Double_t quark_pT_weight = f_LevyFitFunc->Eval(quark_pT);
+                            Double_t quark_pT                = f_LevyFitFunc->GetRandom()*TMath::Sin(quark_thermal_theta); // sample p, transform to pT
+                            //Double_t quark_pT                = f_LevyFitFunc->GetRandom();
+                            //Double_t quark_pT                = f_PtFitFunc->GetRandom();
 
 
-                        Double_t pT_thermic = tlv_quark.Pt();
+                            TLorentzVector tlv_quark;
+                            tlv_quark.SetPtEtaPhiM(quark_pT,quark_thermal_eta,quark_thermal_phi*TMath::DegToRad(),quark_mass); // thermal
 
-                        TVector3  tv3_boost  = get_boost_vector(R_scale,R_x_best,1.0,x_pos_point,y_pos_point,z_rapidity,rho_0_best,rho_a_best); // get transverse boost vector
-                        //tv3_boost.SetZ(beta_z);
-                        //tv3_boost.SetZ(0.0);
+                            //if(quark_thermal_theta < 0.1)
+                            //{
+                            //    printf("phi: %4.3f, theta: %4.3f, eta: %4.3f, pT: %4.3f \n",quark_thermal_phi,quark_thermal_theta,quark_thermal_eta,quark_pT);
+                            //    tlv_quark.Print();
+                            //}
+
+
+                            Double_t pT_thermic = tlv_quark.Pt();
+
+                            TVector3  tv3_boost  = get_boost_vector(R_scale,R_x_best,1.0,x_pos_point,y_pos_point,z_rapidity,rho_0_best,rho_a_best); // get transverse boost vector
+                            //tv3_boost.SetZ(beta_z);
+                            //tv3_boost.SetZ(0.0);
 
 #if 0
-                        tv3_boost.SetX(-tv3_boost.X());
-                        tv3_boost.SetY(-tv3_boost.Y());
-                        tv3_boost.SetZ(-tv3_boost.Z());
-                        TVector3  tv3_boost_long(0.0,0.0,-beta_z); // longitudinal boost vector
+                            tv3_boost.SetX(-tv3_boost.X());
+                            tv3_boost.SetY(-tv3_boost.Y());
+                            tv3_boost.SetZ(-tv3_boost.Z());
+                            TVector3  tv3_boost_long(0.0,0.0,-beta_z); // longitudinal boost vector
 #endif
 
-                        TVector3  tv3_boost_long(0.0,0.0,beta_z); // longitudinal boost vector
+                            TVector3  tv3_boost_long(0.0,0.0,beta_z); // longitudinal boost vector
 
-                        // boost order is important! -> work in progress
+                            // boost order is important! -> work in progress
 
+                            /*
+                             TMatrixD TL_Matrix(4,4);
+                             TMatrixD TL_MatrixInv(4,4);
+                             TMatrixD TL_MatrixBInv(4,4);
+                             TMatrixD TL_MatrixMult(4,4);
 
-                        TMatrixD TL_Matrix(4,4);
-                        TMatrixD TL_MatrixInv(4,4);
-                        TMatrixD TL_MatrixBInv(4,4);
-                        TMatrixD TL_MatrixMult(4,4);
+                             Double_t Yb    = TMath::ATanH(beta_z);
+                             Double_t rhob  = TMath::ATanH(tv3_boost.Mag());
+                             Double_t phi_s = TMath::ATan2(y_pos_point,x_pos_point);;
+                             Double_t phi_b = TMath::ATan(TMath::Tan(phi_s)/TMath::Power(1.0/R_x_best,2.0));
 
-                        Double_t Yb    = TMath::ATanH(beta_z);
-                        Double_t rhob  = TMath::ATanH(tv3_boost.Mag());
-                        Double_t phi_s = TMath::ATan2(y_pos_point,x_pos_point);;
-                        Double_t phi_b = TMath::ATan(TMath::Tan(phi_s)/TMath::Power(1.0/R_x_best,2.0));
+                             //----------------------------
+                             // transformation from lab to cell as used by Klaus
+                             TL_Matrix[0][0] = TMath::CosH(Yb)*TMath::CosH(rhob);
+                             TL_Matrix[0][1] = -TMath::Cos(phi_b)*TMath::SinH(rhob);
+                             TL_Matrix[0][2] = -TMath::Sin(phi_b)*TMath::SinH(rhob);
+                             TL_Matrix[0][3] = -TMath::CosH(rhob)*TMath::SinH(Yb);
 
-                        //----------------------------
-                        // transformation from lab to cell as used by Klaus
-                        TL_Matrix[0][0] = TMath::CosH(Yb)*TMath::CosH(rhob);
-                        TL_Matrix[0][1] = -TMath::Cos(phi_b)*TMath::SinH(rhob);
-                        TL_Matrix[0][2] = -TMath::Sin(phi_b)*TMath::SinH(rhob);
-                        TL_Matrix[0][3] = -TMath::CosH(rhob)*TMath::SinH(Yb);
+                             TL_Matrix[1][0] = -TMath::CosH(Yb)*TMath::SinH(rhob);
+                             TL_Matrix[1][1] = TMath::Cos(phi_b)*TMath::CosH(rhob);
+                             TL_Matrix[1][2] = TMath::CosH(rhob)*TMath::Sin(phi_b);
+                             TL_Matrix[1][3] = TMath::SinH(Yb)*TMath::SinH(rhob);
 
-                        TL_Matrix[1][0] = -TMath::CosH(Yb)*TMath::SinH(rhob);
-                        TL_Matrix[1][1] = TMath::Cos(phi_b)*TMath::CosH(rhob);
-                        TL_Matrix[1][2] = TMath::CosH(rhob)*TMath::Sin(phi_b);
-                        TL_Matrix[1][3] = TMath::SinH(Yb)*TMath::SinH(rhob);
+                             TL_Matrix[2][0] = 0.0;
+                             TL_Matrix[2][1] = -TMath::Sin(phi_b);
+                             TL_Matrix[2][2] = TMath::Cos(phi_b);
+                             TL_Matrix[2][3] = 0.0;
 
-                        TL_Matrix[2][0] = 0.0;
-                        TL_Matrix[2][1] = -TMath::Sin(phi_b);
-                        TL_Matrix[2][2] = TMath::Cos(phi_b);
-                        TL_Matrix[2][3] = 0.0;
-
-                        TL_Matrix[3][0] = -TMath::SinH(Yb);
-                        TL_Matrix[3][1] = 0.0;
-                        TL_Matrix[3][2] = 0.0;
-                        TL_Matrix[3][3] = TMath::CosH(Yb);
-                        //----------------------------
-
-
-                        //----------------------------
-                        // Inverse transformation is identical to my trans. first then long. transformation
-                        TL_MatrixInv[0][0] = TMath::CosH(Yb)*TMath::CosH(rhob);
-                        TL_MatrixInv[0][1] = TMath::CosH(Yb)*TMath::SinH(rhob);
-                        TL_MatrixInv[0][2] = 0.0;
-                        TL_MatrixInv[0][3] = TMath::SinH(Yb);
-
-                        TL_MatrixInv[1][0] = TMath::Cos(phi_b)*TMath::SinH(rhob);
-                        TL_MatrixInv[1][1] = TMath::Cos(phi_b)*TMath::CosH(rhob);
-                        TL_MatrixInv[1][2] = -TMath::Sin(phi_b);
-                        TL_MatrixInv[1][3] = 0.0;
-
-                        TL_MatrixInv[2][0] = TMath::Sin(phi_b)*TMath::SinH(rhob);
-                        TL_MatrixInv[2][1] = TMath::CosH(rhob)*TMath::Sin(phi_b);
-                        TL_MatrixInv[2][2] = TMath::Cos(phi_b);
-                        TL_MatrixInv[2][3] = 0.0;
-
-                        TL_MatrixInv[3][0] = TMath::CosH(rhob)*TMath::SinH(Yb);
-                        TL_MatrixInv[3][1] = TMath::SinH(Yb)*TMath::SinH(rhob);
-                        TL_MatrixInv[3][2] = 0.0;
-                        TL_MatrixInv[3][3] = TMath::CosH(Yb);
-                        //----------------------------
+                             TL_Matrix[3][0] = -TMath::SinH(Yb);
+                             TL_Matrix[3][1] = 0.0;
+                             TL_Matrix[3][2] = 0.0;
+                             TL_Matrix[3][3] = TMath::CosH(Yb);
+                             //----------------------------
 
 
-                        //----------------------------
-                        /*
-                        // Inverse transformation for radial and then long in Klaus's case,
-                        TL_MatrixBInv[0][0] = TMath::CosH(Yb)*TMath::CosH(rhob);
-                        TL_MatrixBInv[0][1] = -TMath::Cos(phi_b)*TMath::CosH(Yb)*TMath::SinH(rhob);
-                        TL_MatrixBInv[0][2] = -TMath::CosH(Yb)*TMath::Sin(phi_b)*TMath::SinH(rhob);
-                        TL_MatrixBInv[0][3] = -TMath::SinH(Yb);
+                             //----------------------------
+                             // Inverse transformation is identical to my trans. first then long. transformation
+                             TL_MatrixInv[0][0] = TMath::CosH(Yb)*TMath::CosH(rhob);
+                             TL_MatrixInv[0][1] = TMath::CosH(Yb)*TMath::SinH(rhob);
+                             TL_MatrixInv[0][2] = 0.0;
+                             TL_MatrixInv[0][3] = TMath::SinH(Yb);
 
-                        TL_MatrixBInv[1][0] = -TMath::SinH(rhob);
-                        TL_MatrixBInv[1][1] = TMath::Cos(phi_b)*TMath::CosH(rhob);
-                        TL_MatrixBInv[1][2] = TMath::CosH(rhob)*TMath::Sin(phi_b);
-                        TL_MatrixBInv[1][3] = 0.0;
+                             TL_MatrixInv[1][0] = TMath::Cos(phi_b)*TMath::SinH(rhob);
+                             TL_MatrixInv[1][1] = TMath::Cos(phi_b)*TMath::CosH(rhob);
+                             TL_MatrixInv[1][2] = -TMath::Sin(phi_b);
+                             TL_MatrixInv[1][3] = 0.0;
 
-                        TL_MatrixBInv[2][0] = 0.0;
-                        TL_MatrixBInv[2][1] = -TMath::Sin(phi_b);
-                        TL_MatrixBInv[2][2] = TMath::Cos(phi_b);
-                        TL_MatrixBInv[2][3] = 0.0;
+                             TL_MatrixInv[2][0] = TMath::Sin(phi_b)*TMath::SinH(rhob);
+                             TL_MatrixInv[2][1] = TMath::CosH(rhob)*TMath::Sin(phi_b);
+                             TL_MatrixInv[2][2] = TMath::Cos(phi_b);
+                             TL_MatrixInv[2][3] = 0.0;
 
-                        TL_MatrixBInv[3][0] = -TMath::CosH(rhob)*TMath::SinH(Yb);
-                        TL_MatrixBInv[3][1] = TMath::Cos(phi_b)*TMath::SinH(Yb)*TMath::SinH(rhob);
-                        TL_MatrixBInv[3][2] = TMath::Sin(phi_b)*TMath::SinH(Yb)*TMath::SinH(rhob);
-                        TL_MatrixBInv[3][3] = TMath::CosH(Yb);
-                        */
+                             TL_MatrixInv[3][0] = TMath::CosH(rhob)*TMath::SinH(Yb);
+                             TL_MatrixInv[3][1] = TMath::SinH(Yb)*TMath::SinH(rhob);
+                             TL_MatrixInv[3][2] = 0.0;
+                             TL_MatrixInv[3][3] = TMath::CosH(Yb);
+                             //----------------------------
+                             */
 
-                        // Inverse transformation for radial and then long in Klaus's case,
-                        TL_MatrixBInv[0][0] = TMath::CosH(Yb)*TMath::CosH(rhob);
-                        TL_MatrixBInv[0][1] = TMath::SinH(rhob);
-                        TL_MatrixBInv[0][2] = 0.0;
-                        TL_MatrixBInv[0][3] = TMath::CosH(rhob)*TMath::SinH(Yb);
+                            //----------------------------
+                            /*
+                             // Inverse transformation for radial and then long in Klaus's case,
+                             TL_MatrixBInv[0][0] = TMath::CosH(Yb)*TMath::CosH(rhob);
+                             TL_MatrixBInv[0][1] = -TMath::Cos(phi_b)*TMath::CosH(Yb)*TMath::SinH(rhob);
+                             TL_MatrixBInv[0][2] = -TMath::CosH(Yb)*TMath::Sin(phi_b)*TMath::SinH(rhob);
+                             TL_MatrixBInv[0][3] = -TMath::SinH(Yb);
 
-                        TL_MatrixBInv[1][0] = TMath::Cos(phi_b)*TMath::CosH(Yb)*TMath::SinH(rhob);
-                        TL_MatrixBInv[1][1] = TMath::Cos(phi_b)*TMath::CosH(rhob);
-                        TL_MatrixBInv[1][2] = -TMath::Sin(phi_b);
-                        TL_MatrixBInv[1][3] = TMath::Cos(phi_b)*TMath::SinH(Yb)*TMath::SinH(rhob);
+                             TL_MatrixBInv[1][0] = -TMath::SinH(rhob);
+                             TL_MatrixBInv[1][1] = TMath::Cos(phi_b)*TMath::CosH(rhob);
+                             TL_MatrixBInv[1][2] = TMath::CosH(rhob)*TMath::Sin(phi_b);
+                             TL_MatrixBInv[1][3] = 0.0;
 
-                        TL_MatrixBInv[2][0] = TMath::CosH(Yb)*TMath::Sin(phi_b)*TMath::SinH(rhob);
-                        TL_MatrixBInv[2][1] = TMath::CosH(rhob)*TMath::Sin(phi_b);
-                        TL_MatrixBInv[2][2] = TMath::Cos(phi_b);
-                        TL_MatrixBInv[2][3] = TMath::Sin(phi_b)*TMath::SinH(Yb)*TMath::SinH(rhob);
+                             TL_MatrixBInv[2][0] = 0.0;
+                             TL_MatrixBInv[2][1] = -TMath::Sin(phi_b);
+                             TL_MatrixBInv[2][2] = TMath::Cos(phi_b);
+                             TL_MatrixBInv[2][3] = 0.0;
 
-                        TL_MatrixBInv[3][0] = TMath::SinH(Yb);
-                        TL_MatrixBInv[3][1] = 0.0;
-                        TL_MatrixBInv[3][2] = 0.0;
-                        TL_MatrixBInv[3][3] = TMath::CosH(Yb);
-                        //----------------------------
+                             TL_MatrixBInv[3][0] = -TMath::CosH(rhob)*TMath::SinH(Yb);
+                             TL_MatrixBInv[3][1] = TMath::Cos(phi_b)*TMath::SinH(Yb)*TMath::SinH(rhob);
+                             TL_MatrixBInv[3][2] = TMath::Sin(phi_b)*TMath::SinH(Yb)*TMath::SinH(rhob);
+                             TL_MatrixBInv[3][3] = TMath::CosH(Yb);
+                             */
 
-                        TL_MatrixMult = TL_MatrixInv*TL_Matrix;
-                        //TL_MatrixMult.Print();
+                            /*
+                             // Inverse transformation for radial and then long in Klaus's case,
+                             TL_MatrixBInv[0][0] = TMath::CosH(Yb)*TMath::CosH(rhob);
+                             TL_MatrixBInv[0][1] = TMath::SinH(rhob);
+                             TL_MatrixBInv[0][2] = 0.0;
+                             TL_MatrixBInv[0][3] = TMath::CosH(rhob)*TMath::SinH(Yb);
 
-                        TVectorD vec_L(4);
-                        vec_L[0] = tlv_quark.E();
-                        vec_L[1] = tlv_quark.Px();
-                        vec_L[2] = tlv_quark.Py();
-                        vec_L[3] = tlv_quark.Pz();
+                             TL_MatrixBInv[1][0] = TMath::Cos(phi_b)*TMath::CosH(Yb)*TMath::SinH(rhob);
+                             TL_MatrixBInv[1][1] = TMath::Cos(phi_b)*TMath::CosH(rhob);
+                             TL_MatrixBInv[1][2] = -TMath::Sin(phi_b);
+                             TL_MatrixBInv[1][3] = TMath::Cos(phi_b)*TMath::SinH(Yb)*TMath::SinH(rhob);
 
-                        //TVectorD vec_Lprime = TL_Matrix*vec_L;
-                        //TVectorD vec_Lprime = TL_MatrixInv*vec_L;
-                        TVectorD vec_Lprime = TL_MatrixBInv*vec_L;
+                             TL_MatrixBInv[2][0] = TMath::CosH(Yb)*TMath::Sin(phi_b)*TMath::SinH(rhob);
+                             TL_MatrixBInv[2][1] = TMath::CosH(rhob)*TMath::Sin(phi_b);
+                             TL_MatrixBInv[2][2] = TMath::Cos(phi_b);
+                             TL_MatrixBInv[2][3] = TMath::Sin(phi_b)*TMath::SinH(Yb)*TMath::SinH(rhob);
 
-                        //tlv_quark.SetPxPyPzE(vec_Lprime[1],vec_Lprime[2],vec_Lprime[3],vec_Lprime[0]);
+                             TL_MatrixBInv[3][0] = TMath::SinH(Yb);
+                             TL_MatrixBInv[3][1] = 0.0;
+                             TL_MatrixBInv[3][2] = 0.0;
+                             TL_MatrixBInv[3][3] = TMath::CosH(Yb);
+                             //----------------------------
+
+                             TL_MatrixMult = TL_MatrixInv*TL_Matrix;
+                             //TL_MatrixMult.Print();
+
+                             TVectorD vec_L(4);
+                             vec_L[0] = tlv_quark.E();
+                             vec_L[1] = tlv_quark.Px();
+                             vec_L[2] = tlv_quark.Py();
+                             vec_L[3] = tlv_quark.Pz();
+
+                             //TVectorD vec_Lprime = TL_Matrix*vec_L;
+                             //TVectorD vec_Lprime = TL_MatrixInv*vec_L;
+                             TVectorD vec_Lprime = TL_MatrixBInv*vec_L;
+
+                             //tlv_quark.SetPxPyPzE(vec_Lprime[1],vec_Lprime[2],vec_Lprime[3],vec_Lprime[0]);
+                             */
 
 
+#if 0
+                            //tlv_quark.Boost(tv3_boost);
+                            tlv_quark.Boost(tv3_boost_long);
+                            tlv_quark.Boost(tv3_boost);
+#endif
 
 #if 1
-                        //tlv_quark.Boost(tv3_boost);
-                        tlv_quark.Boost(tv3_boost_long);
-                        tlv_quark.Boost(tv3_boost);
+                            if(ran.Rndm() > fboost_best)
+                            {
+                                //tlv_quark.Boost(tv3_boost);
+                                tlv_quark.Boost(tv3_boost_long);
+                                tlv_quark.Boost(tv3_boost);
+                            }
+                            else
+                            {
+                                tlv_quark.Boost(tv3_boost);
+                                tlv_quark.Boost(tv3_boost_long);
+                                //tlv_quark.Boost(tv3_boost);
+                            }
 #endif
 
-#if 0
-                        if(ran.Rndm() > fboost_best)
-                        {
-                            //tlv_quark.Boost(tv3_boost);
-                            tlv_quark.Boost(tv3_boost_long);
-                            tlv_quark.Boost(tv3_boost);
+                            Double_t pT_lab   = tlv_quark.Pt();
+                            Double_t cos_phin = TMath::Cos(2.0*tlv_quark.Phi());
+                            Double_t eta      = tlv_quark.Eta();
+                            Double_t rapidity = tlv_quark.Rapidity();
+
+                            if(i_quark_mass == 0) h2D_rapidity_vs_eta ->Fill(eta,rapidity);
+
+                            /*
+                             // Standard acceptance cuts
+                             if(i_quark_mass < 3  && fabs(eta) > 1.0) continue;
+                             if(i_quark_mass < 3  && fabs(rapidity) > 0.5) continue;
+                             if(i_quark_mass >= 3 && (rapidity < 2.5 || rapidity > 4.0)) continue;
+                             */
+
+                            //if(i_quark_mass < 5  && fabs(eta) > 0.1) continue;
+                            if(i_quark_mass < 5  && fabs(rapidity) > 0.5) continue;
+                            //if(i_quark_mass >= 3 && (rapidity < 2.5 || rapidity > 4.0)) continue;
+
+                            h2D_cos_theta_vs_pT ->Fill(quark_pT,quark_thermal_cos_theta);
+
+                            // Sample jet particles
+                            Double_t jet_pT                = f_JetPtFunc->GetRandom()*TMath::Sin(quark_thermal_theta); // sample p, transform to pT
+                            TLorentzVector tlv_jet;
+                            tlv_jet.SetPtEtaPhiM(jet_pT,quark_thermal_eta,quark_thermal_phi*TMath::DegToRad(),quark_mass); // jet particle
+                            Double_t cos_phin_jet = TMath::Cos(2.0*tlv_jet.Phi());
+                            Double_t weight_jet = 0.0;
+
+                            if(i_quark_mass == 2 && pT_lab > 3.5 && pT_lab < 4.5) tp_dN_dphi_vs_phi ->Fill(tlv_quark.Phi());
+                            //printf("phi: %4.3f \n",tlv_quark.Phi());
+
+                            tp_v2_vs_pT_mesons[i_quark_mass] ->Fill(pT_lab,cos_phin,weight);
+                            tp_v2_vs_pT_mesons[i_quark_mass] ->Fill(jet_pT,cos_phin_jet,weight_jet);
+
+                            h_dN_dpT_mesons[i_quark_mass]    ->Fill(pT_lab,weight);
+                            h_dN_dpT_jets[i_quark_mass]      ->Fill(jet_pT,weight_jet);
+                            if(i_quark_mass == 2 && cos_phin < -0.4)
+                            {
+                                h2D_pos_XY_neg_v2  ->Fill(x_pos_point,y_pos_point);
+                                h_pos_XY_neg_v2_pT ->Fill(quark_pT);
+                            }
+                            if(i_quark_mass == 2 && cos_phin > 0.1)
+                            {
+                                h2D_pos_XY_pos_v2  ->Fill(x_pos_point,y_pos_point);
+                                h_pos_XY_pos_v2_pT ->Fill(quark_pT);
+                            }
                         }
-                        else
-                        {
-                            tlv_quark.Boost(tv3_boost);
-                            tlv_quark.Boost(tv3_boost_long);
-                            //tlv_quark.Boost(tv3_boost);
-                        }
-#endif
-
-                        Double_t pT_lab   = tlv_quark.Pt();
-                        Double_t cos_phin = TMath::Cos(2.0*tlv_quark.Phi());
-                        Double_t eta      = tlv_quark.Eta();
-                        Double_t rapidity = tlv_quark.Rapidity();
-
-                        if(i_quark_mass == 0) h2D_rapidity_vs_eta ->Fill(eta,rapidity);
-
-                        /*
-                        // Standard acceptance cuts
-                        if(i_quark_mass < 3  && fabs(eta) > 1.0) continue;
-                        if(i_quark_mass < 3  && fabs(rapidity) > 0.5) continue;
-                        if(i_quark_mass >= 3 && (rapidity < 2.5 || rapidity > 4.0)) continue;
-                        */
-
-                        //if(i_quark_mass < 5  && fabs(eta) > 0.1) continue;
-                        if(i_quark_mass < 5  && fabs(rapidity) > 0.1) continue;
-                        //if(i_quark_mass >= 3 && (rapidity < 2.5 || rapidity > 4.0)) continue;
-
-                        h2D_cos_theta_vs_pT ->Fill(quark_pT,quark_thermal_cos_theta);
-
-                        // Sample jet particles
-                        Double_t jet_pT                = f_JetPtFunc->GetRandom()*TMath::Sin(quark_thermal_theta); // sample p, transform to pT
-                        TLorentzVector tlv_jet;
-                        tlv_jet.SetPtEtaPhiM(jet_pT,quark_thermal_eta,quark_thermal_phi*TMath::DegToRad(),quark_mass); // jet particle
-                        Double_t cos_phin_jet = TMath::Cos(2.0*tlv_jet.Phi());
-                        Double_t weight_jet = 0.0;
-
-                        if(i_quark_mass == 2 && pT_lab > 3.5 && pT_lab < 4.5) tp_dN_dphi_vs_phi ->Fill(tlv_quark.Phi());
-                        //printf("phi: %4.3f \n",tlv_quark.Phi());
-
-                        tp_v2_vs_pT_mesons[i_quark_mass] ->Fill(pT_lab,cos_phin,weight);
-                        tp_v2_vs_pT_mesons[i_quark_mass] ->Fill(jet_pT,cos_phin_jet,weight_jet);
-
-                        h_dN_dpT_mesons[i_quark_mass]    ->Fill(pT_lab,weight);
-                        h_dN_dpT_jets[i_quark_mass]      ->Fill(jet_pT,weight_jet);
-                        if(i_quark_mass == 2 && cos_phin < -0.4)
-                        {
-                            h2D_pos_XY_neg_v2  ->Fill(x_pos_point,y_pos_point);
-                            h_pos_XY_neg_v2_pT ->Fill(quark_pT);
-                        }
-                        if(i_quark_mass == 2 && cos_phin > 0.1)
-                        {
-                            h2D_pos_XY_pos_v2  ->Fill(x_pos_point,y_pos_point);
-                            h_pos_XY_pos_v2_pT ->Fill(quark_pT);
-                        }
-                    }
-                    //--------------------------------------------------------------------
+                        //--------------------------------------------------------------------
 
 
-                } // end of event loop
-            } // end of quark mass loop
-            printf("End of loop \n");
-            //--------------------------------------------------------------------
+                    } // end of event loop
+                } // end of quark mass loop
+                printf("End of loop \n");
+                //--------------------------------------------------------------------
 
-            if(flag_loop)
-            {
-                outputfile ->cd();
-                for(Int_t i_mass = 0; i_mass < 5; i_mass++)
+                if(flag_loop)
                 {
-                    tp_v2_vs_pT_mesons[i_mass] ->SetName(Form("v2_vs_pT_BW_id%d_T%d_rho0%d_rhoa%d_Rx%d_fb%d",i_mass,i_Temp,i_rho_0,i_rho_a,i_R_x,i_fboost));
-                    tp_v2_vs_pT_mesons[i_mass] ->Write();
-                    tp_v2_vs_pT_mesons[i_mass] ->Reset();
+                    outputfile ->cd();
+                    for(Int_t i_mass = 0; i_mass < 8; i_mass++)
+                    {
+                        cout << "Add profiles to list for i_mass: " << i_mass << endl;
+                        tp_v2_vs_pT_mesons[i_mass] ->SetName(Form("v2_vs_pT_BW_id%d_T%d_rho0%d_rhoa%d_Rx%d_fb%d",i_mass,i_Temp,i_rho_0,i_rho_a,i_R_x,i_fboost));
+                        list_profiles ->Add((TProfile*)tp_v2_vs_pT_mesons[i_mass]->Clone());
+                        //tp_v2_vs_pT_mesons[i_mass] ->Write();
+                        tp_v2_vs_pT_mesons[i_mass] ->Reset();
 
-                    h_dN_dpT_mesons[i_mass] ->SetName(Form("h_dN_dpT_vs_pT_BW_id%d_T%d_rho0%d_rhoa%d_Rx%d_fb%d",i_mass,i_Temp,i_rho_0,i_rho_a,i_R_x,i_fboost));
-                    h_dN_dpT_mesons[i_mass] ->Write();
-                    h_dN_dpT_mesons[i_mass] ->Reset();
+                        h_dN_dpT_mesons[i_mass] ->SetName(Form("h_dN_dpT_vs_pT_BW_id%d_T%d_rho0%d_rhoa%d_Rx%d_fb%d",i_mass,i_Temp,i_rho_0,i_rho_a,i_R_x,i_fboost));
+                        list_profiles ->Add((TH1F*)h_dN_dpT_mesons[i_mass]->Clone());
+                        //h_dN_dpT_mesons[i_mass] ->Write();
+                        h_dN_dpT_mesons[i_mass] ->Reset();
+                    }
                 }
+
             }
-
-
         }
     }
 
     if(flag_loop)
     {
+        cout << "Write list" << endl;
+        outputfile ->cd();
+        list_profiles ->Write(Form("list_BW_Rx%d_fb%d",i_R_x,i_fboost),TObject::kSingleKey);
         outputfile ->Close();
         return 1;
     }
@@ -727,7 +750,7 @@ Int_t v2_boost(Double_t Temp_set = 0.1, Double_t rho_0_set = 0.95, Double_t rho_
     Int_t plot_particle_dN_dpT = 0;
     h_dN_dpT_mesons[plot_particle_dN_dpT] ->GetXaxis()->SetTitle("p_{T} (GeV/c)");
     h_dN_dpT_mesons[plot_particle_dN_dpT] ->GetYaxis()->SetTitle("dN/dp_{T} (GeV/c)^{-1}");
-    TCanvas* can_dN_dpT_mesons = Draw_1D_histo_and_canvas(h_dN_dpT_mesons[plot_particle_dN_dpT],"can_dN_dpT_mesons",750,550,0,0.0,"h");
+    TCanvas* can_dN_dpT_mesons = Draw_1D_histo_and_canvas((TH1D*)h_dN_dpT_mesons[plot_particle_dN_dpT],"can_dN_dpT_mesons",750,550,0,0.0,"h");
     can_dN_dpT_mesons ->cd()->SetLogy(1);
     can_dN_dpT_mesons ->cd();
     h_dN_dpT_jets[plot_particle_dN_dpT] ->SetLineColor(kRed);
@@ -735,13 +758,13 @@ Int_t v2_boost(Double_t Temp_set = 0.1, Double_t rho_0_set = 0.95, Double_t rho_
 
     //--------------------------------------------------------------------
     Int_t plot_centrality = 4;
-    TH1D* h_dummy = new TH1D("h_dummy","h_dummy",200,0,15);
+    TH1F* h_dummy = new TH1F("h_dummy","h_dummy",200,0,15);
     h_dummy ->GetXaxis()->SetRangeUser(0.0,15.0);
     h_dummy ->GetYaxis()->SetRangeUser(-0.15,0.45);
     h_dummy ->SetLineColor(10);
     h_dummy->GetXaxis()->SetTitle("p_{T} (GeV/c)");
     h_dummy->GetYaxis()->SetTitle("v_{2}");
-    TCanvas* can_v2_vs_pT = Draw_1D_histo_and_canvas(h_dummy,"can_v2_vs_pT",850,650,0,0.0,"h");
+    TCanvas* can_v2_vs_pT = Draw_1D_histo_and_canvas((TH1D*)h_dummy,"can_v2_vs_pT",850,650,0,0.0,"h");
 
     PlotLine(0.0,15.0,0.0,0.0,kBlack,2,2); // (Double_t x1_val, Double_t x2_val, Double_t y1_val, Double_t y2_val, Int_t Line_Col, Int_t LineWidth, Int_t LineStyle)
 
@@ -768,7 +791,7 @@ Int_t v2_boost(Double_t Temp_set = 0.1, Double_t rho_0_set = 0.95, Double_t rho_
 
 
 
-    for(Int_t i_mass = 0; i_mass < 5; i_mass++)
+    for(Int_t i_mass = 0; i_mass < 8; i_mass++)
     {
         //tp_v2_vs_pT_mesons[i_mass] ->Scale(1.6);
         tp_v2_vs_pT_mesons[i_mass] ->SetMarkerColor(arr_color_mass[i_mass]);
@@ -792,9 +815,9 @@ Int_t v2_boost(Double_t Temp_set = 0.1, Double_t rho_0_set = 0.95, Double_t rho_
     leg_v2_vs_pT_A->SetBorderSize(0);
     leg_v2_vs_pT_A->SetFillColor(0);
     leg_v2_vs_pT_A->SetTextSize(0.045);
-    leg_v2_vs_pT_A->AddEntry((TH1D*)vec_tge_v2_vs_pT_560_pid[0]->Clone(),"#pi","p");
-    leg_v2_vs_pT_A->AddEntry((TH1D*)vec_tge_v2_vs_pT_560_pid[1]->Clone(),"K_{s}^{0}","p");
-    leg_v2_vs_pT_A->AddEntry((TH1D*)vec_tge_v2_vs_pT_560_pid[2]->Clone(),"p","p");
+    leg_v2_vs_pT_A->AddEntry((TH1F*)vec_tge_v2_vs_pT_560_pid[0]->Clone(),"#pi","p");
+    leg_v2_vs_pT_A->AddEntry((TH1F*)vec_tge_v2_vs_pT_560_pid[1]->Clone(),"K_{s}^{0}","p");
+    leg_v2_vs_pT_A->AddEntry((TH1F*)vec_tge_v2_vs_pT_560_pid[2]->Clone(),"p","p");
     leg_v2_vs_pT_A->Draw();
 
     TLegend* leg_v2_vs_pT_B = new TLegend(0.8,0.71,0.9,0.83); // x1,y1,x2,y2

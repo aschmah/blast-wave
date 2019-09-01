@@ -72,13 +72,13 @@ static Double_t arr_pt_low_cut[N_v2_vs_pt_BW+3];
 static Double_t arr_pt_high_cut[N_v2_vs_pt_BW+3];
 static Int_t arr_color[N_v2_vs_pt_BW+3] = {kBlack,kGreen+1,kRed,kMagenta+1,kCyan+1,kOrange,kRed,kGray,kYellow+2,kRed,kMagenta,kGreen+1};
 
-static const Int_t    N_masses         = 5;
+static const Int_t    N_masses         = 8;
 static TH2D* h2D_geometric_shape = NULL;
 static TF1 *f_LevyFitFunc        = NULL;
 static TF1 *f_FitBessel          = NULL;
 static TF1 *f_JetPtFunc          = NULL;
-static Double_t arr_quark_mass_meson[N_masses]         = {0.13957,0.497648,0.938272,3.096916,9.46030};
-static Int_t    arr_color_mass[N_masses]               = {kBlack,kGreen+1,kRed,kMagenta+1,kCyan+1};
+static Double_t arr_quark_mass_meson[N_masses]         = {0.13957,0.497648,0.938272,1.019460,1.67245,1.86962,3.096916,9.46030};
+static Int_t    arr_color_mass[N_masses]               = {kBlack,kGreen+1,kRed,kMagenta+1,kCyan+1,kOrange,kYellow+2,kAzure-2};
 static const Double_t R_Pb = 5.4946; // fm
 static TH2D* h2D_density_Glauber;
 
@@ -87,7 +87,7 @@ static vector<TGraph*> vec_tg_dNdpT_vs_pT_Mathematica;
 static TGraphErrors* tg_Upsilon_v2_vs_pT;
 static TGraphAsymmErrors* tg_JPsi_v2_vs_pT;
 static TGraphAsymmErrors* tg_D0_v2_vs_pT;
-static vector<TH1D*> h_dN_dpT_mesons;
+static vector<TH1F*> h_dN_dpT_mesons;
 static vector< vector<TGraphErrors*> > tge_JPsi_spectra;
 static TGraphErrors* tge_JPsi_forward_spectrum_stat;
 static TGraphErrors* tge_JPsi_forward_spectrum_syst;
@@ -95,6 +95,7 @@ static TGraphAsymmErrors* tge_D_dNdpT;
 static TH1D* h_dNdpT_best = NULL;
 static vector<TGraphErrors*> vec_tge_v2_vs_pT_560_pid;
 static TString label_pid_spectra[6] = {"#pi","K","p","J/#Psi","#Upsilon",""};
+static TString label_full_pid_spectra[8] = {"pi","K","p","phi","Omega","D0","J/Psi","Upsilon"};
 
 
 //------------------------------------------------------------------------------------------------------------
