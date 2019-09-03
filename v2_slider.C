@@ -36,8 +36,9 @@ private:
     TGTextBuffer        *fTbh1, *fTbh1a, *fTbh2, *fTbh3;
     TGCheckButton       *fCheck1, *fCheck2, *fCheck3;
 
-    vector<TProfile*> tp_v2_vs_pT_mesons;
-    vector<TH1D*>     h_dN_dpT_mesons;
+    TProfile* tp_v2_vs_pT_mesons[8][9][9][9][9][9]; // [i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a]
+    TH1F*     h_dN_dpT_mesons[8][9][9][9][9][9]; // [i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a]
+    TList* arr_list[9][9];
     vector<TGHorizontalFrame*>  vec_Hframe;
     vector<TGHSlider*>          vec_slider;
     vector<TGLayoutHints*>      vec_LayoutHints;
@@ -75,8 +76,6 @@ private:
 
     TGCheckButton* fCheckBox[8];
     TGLayoutHints* fLCheckBox;
-
-    Int_t arr_mass[8] = {0,1,2,6,7}; // mapping array, need to be changed later on
 
     TGHorizontalFrame* arr_HFrame_NEntry_limits[8];
     TGVerticalFrame* arr_VFrame_NEntry_limits[2];
@@ -191,9 +190,49 @@ TTripleSliderDemo::TTripleSliderDemo() : TGMainFrame(gClient->GetRoot(), 100, 10
 
     TString vec_label[5] = {"T (GeV)","rho0","rhoa","Rx","fboost"};
 
-    inputfile = TFile::Open("./Data/merge_v2_boost.root");
-    tp_v2_vs_pT_mesons.resize(5);
-    h_dN_dpT_mesons.resize(5);
+    inputfile = TFile::Open("./Data/merge_out_v2_boost.root");
+
+    for(Int_t i_R_x = 0; i_R_x < 9; i_R_x++)
+    {
+        for(Int_t i_fboost = 0; i_fboost < 9; i_fboost++)
+        {
+            printf("i_R_x: %d, i_fboost: %d \n",i_R_x,i_fboost);
+            arr_list[i_R_x][i_fboost] = (TList*)inputfile->Get(Form("list_BW_Rx%d_fb%d",i_R_x,i_fboost));
+        }
+    }
+
+
+    
+    for(Int_t i_R_x = 0; i_R_x < 9; i_R_x++)
+    {
+        printf("i_R_x: %d \n",i_R_x);
+        for(Int_t i_fboost = 0; i_fboost < 9; i_fboost++)
+        {
+            for(Int_t i_Temp = 0; i_Temp < 9; i_Temp++)
+            {
+                //printf("i_Temp: %d \n",i_Temp);
+                for(Int_t i_rho_0 = 0; i_rho_0 < 9; i_rho_0++)
+                {
+                    //printf("i_rho_0: %d \n",i_rho_0);
+                    for(Int_t i_rho_a = 0; i_rho_a < 9; i_rho_a++)
+                    {
+                        for(Int_t i_mass = 0; i_mass < 8; i_mass++)
+                        {
+                            Int_t i_N = i_mass + 8*i_rho_a + 8*9*i_rho_0 + 8*9*9*i_Temp;
+                            Int_t i_pos_v2    = i_N*2;
+                            Int_t i_pos_dNdpT = i_N*2 + 1;
+                            tp_v2_vs_pT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] = (TProfile*)arr_list[i_R_x][i_fboost] ->At(i_pos_v2);
+                            h_dN_dpT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a]    = (TH1F*)arr_list[i_R_x][i_fboost]     ->At(i_pos_dNdpT);
+
+                            Double_t integral = h_dN_dpT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->Integral("width");
+                            if(integral <= 0.0) continue;
+                            h_dN_dpT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->Scale(1.0/integral);
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     init_data();
     init_pT_spectra_data();
@@ -239,7 +278,7 @@ TTripleSliderDemo::TTripleSliderDemo() : TGMainFrame(gClient->GetRoot(), 100, 10
         vec_Hframe[i_param] = new TGHorizontalFrame(this, 0, 0);
         vec_slider[i_param] = new TGHSlider(vec_Hframe[i_param],250,kSlider1|kScaleDownRight,1);
         vec_slider[i_param]->Connect("PositionChanged(Int_t)", "TTripleSliderDemo",this, "DoSlider()");
-        vec_slider[i_param]->SetRange(0,7);
+        vec_slider[i_param]->SetRange(0,8);
         vec_slider[i_param]->SetPosition(start_pos_slider[i_param]);
         vec_LayoutHints[i_param] = new TGLayoutHints(kLHintsTop | kLHintsExpandX, 1, 1, 1, 1); // handles size of slider and number box
         vec_Hframe[i_param]->AddFrame(vec_slider[i_param], vec_LayoutHints[i_param]);
@@ -511,47 +550,27 @@ void TTripleSliderDemo::DoSlider()
     Int_t i_R_x    = vec_slider[3]->GetPosition();
     Int_t i_fboost = vec_slider[4]->GetPosition();
 
-    Double_t Temp_loop_start  = 0.08;
-    Double_t rho_0_loop_start = 0.3;
-    Double_t arr_rho_a[8]   = {0.0,0.05,0.1,0.15,0.2,0.25,0.3,0.35};
-    Double_t arr_R_x[8]     = {0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9};
-    Double_t arr_f_boost[8] = {0.05,0.1,0.15,0.2,0.4,0.6,0.8,1.0};
-
-    Double_t Temp_val   = Temp_loop_start  + i_Temp*0.02;
-    Double_t rho_0_val  = rho_0_loop_start + i_rho_0*0.125;
-    Double_t rho_a_val  = arr_rho_a[i_rho_a];
+    Double_t Temp_val   = Temp_loop_start  + i_Temp*Delta_Temp;
+    Double_t rho_0_val  = rho_0_loop_start + i_rho_0*Delta_rho_0;
+    Double_t rho_a_val  = rho_a_loop_start + i_rho_a*Delta_rho_a;
     Double_t R_x_val    = arr_R_x[i_R_x];
     Double_t fboost_val = arr_f_boost[i_fboost];
 
     Double_t arr_param_val[5] = {Temp_val,rho_0_val,rho_a_val,R_x_val,fboost_val};
 
-    Int_t arr_color_line[5] = {kBlack,kGreen,kRed,kMagenta,kCyan};
-
-    for(Int_t i_mass = 0; i_mass < 5; i_mass++)
+    for(Int_t i_mass = 0; i_mass < 8; i_mass++)
     {
-        tp_v2_vs_pT_mesons[i_mass] = NULL;
-        tp_v2_vs_pT_mesons[i_mass] = (TProfile*)inputfile->Get(Form("v2_vs_pT_BW_id%d_T%d_rho0%d_rhoa%d_Rx%d_fb%d",i_mass,i_Temp,i_rho_0,i_rho_a,i_R_x,i_fboost));
+        tp_v2_vs_pT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->SetLineWidth(3);
+        tp_v2_vs_pT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->SetLineColor(arr_color_line_mass[i_mass]);
+        tp_v2_vs_pT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->SetLineStyle(1);
 
-        if(tp_v2_vs_pT_mesons[i_mass])
-        {
-            tp_v2_vs_pT_mesons[i_mass] ->SetLineWidth(3);
-            tp_v2_vs_pT_mesons[i_mass] ->SetLineColor(arr_color_line[i_mass]);
-            tp_v2_vs_pT_mesons[i_mass] ->SetLineStyle(1);
+        Double_t min_val_pT = arr_NEntry_limits[0][i_mass]->GetNumberEntry()->GetNumber();
+        Double_t max_val_pT = arr_NEntry_limits[1][i_mass]->GetNumberEntry()->GetNumber();
+        tp_v2_vs_pT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->GetXaxis()->SetRangeUser(min_val_pT,max_val_pT);
 
-            Double_t min_val_pT = arr_NEntry_limits[0][arr_mass[i_mass]]->GetNumberEntry()->GetNumber();
-            Double_t max_val_pT = arr_NEntry_limits[1][arr_mass[i_mass]]->GetNumberEntry()->GetNumber();
-            tp_v2_vs_pT_mesons[i_mass] ->GetXaxis()->SetRangeUser(min_val_pT,max_val_pT);
-        }
-
-        h_dN_dpT_mesons[i_mass] = NULL;
-        h_dN_dpT_mesons[i_mass] = (TH1D*)inputfile->Get(Form("h_dN_dpT_vs_pT_BW_id%d_T%d_rho0%d_rhoa%d_Rx%d_fb%d",i_mass,i_Temp,i_rho_0,i_rho_a,i_R_x,i_fboost));
-
-        if(h_dN_dpT_mesons[i_mass])
-        {
-            h_dN_dpT_mesons[i_mass] ->SetLineWidth(3);
-            h_dN_dpT_mesons[i_mass] ->SetLineColor(arr_color_line[i_mass]);
-            h_dN_dpT_mesons[i_mass] ->SetLineStyle(1);
-        }
+        h_dN_dpT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->SetLineWidth(3);
+        h_dN_dpT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->SetLineColor(arr_color_line_mass[i_mass]);
+        h_dN_dpT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->SetLineStyle(1);
     }
 
     // Handle slider widgets.
@@ -573,23 +592,21 @@ void TTripleSliderDemo::DoSlider()
 
     //-------------------------------------
     fCanvas ->GetCanvas() ->cd();
-    if(tp_v2_vs_pT_mesons[0])
-    {
-        h_dummy ->Draw();
+    h_dummy ->Draw();
 
-        PlotLine(0.0,15.0,0.0,0.0,kBlack,2,2); // (Double_t x1_val, Double_t x2_val, Double_t y1_val, Double_t y2_val, Int_t Line_Col, Int_t LineWidth, Int_t LineStyle)
+    PlotLine(0.0,15.0,0.0,0.0,kBlack,2,2); // (Double_t x1_val, Double_t x2_val, Double_t y1_val, Double_t y2_val, Int_t Line_Col, Int_t LineWidth, Int_t LineStyle)
 
-        Int_t plot_centrality = 4;
+    Int_t plot_centrality = 4;
 
 
-        // 30-40%
-        vec_graphs[plot_centrality] ->SetMarkerColor(arr_color_mass[0]);
-        if(fCheckBox[0]->GetState() == kButtonDown) vec_graphs[plot_centrality] ->Draw("same P"); // pions
-        //vec_graphs[plot_centrality+7] ->Draw("same P"); // charged kaons
-        vec_graphs[plot_centrality+14] ->SetMarkerColor(arr_color_mass[1]);
-        if(fCheckBox[1]->GetState() == kButtonDown) vec_graphs[plot_centrality+14] ->Draw("same P"); // K0s
-        vec_graphs[plot_centrality+28] ->SetMarkerColor(arr_color_mass[2]);
-        if(fCheckBox[2]->GetState() == kButtonDown) vec_graphs[plot_centrality+28] ->Draw("same P"); // protons
+    // 30-40%
+    vec_graphs[plot_centrality] ->SetMarkerColor(arr_color_mass[0]);
+    if(fCheckBox[0]->GetState() == kButtonDown) vec_graphs[plot_centrality] ->Draw("same P"); // pions
+    //vec_graphs[plot_centrality+7] ->Draw("same P"); // charged kaons
+    vec_graphs[plot_centrality+14] ->SetMarkerColor(arr_color_mass[1]);
+    if(fCheckBox[1]->GetState() == kButtonDown) vec_graphs[plot_centrality+14] ->Draw("same P"); // K0s
+    vec_graphs[plot_centrality+28] ->SetMarkerColor(arr_color_mass[2]);
+    if(fCheckBox[2]->GetState() == kButtonDown) vec_graphs[plot_centrality+28] ->Draw("same P"); // protons
 
 
 #if 0
@@ -604,86 +621,67 @@ void TTripleSliderDemo::DoSlider()
     }
 #endif
 
-        /*
-        vec_tge_v2_vs_pT_560_pid[0] ->SetMarkerColor(arr_color_mass[0]);
-        vec_tge_v2_vs_pT_560_pid[0] ->Draw("same P"); // pions
-        vec_tge_v2_vs_pT_560_pid[1] ->SetMarkerColor(arr_color_mass[1]);
-        vec_tge_v2_vs_pT_560_pid[1] ->Draw("same P"); // K0s
-        vec_tge_v2_vs_pT_560_pid[2] ->SetMarkerColor(arr_color_mass[2]);
-        vec_tge_v2_vs_pT_560_pid[2] ->Draw("same P"); // protons
-        */
+    /*
+     vec_tge_v2_vs_pT_560_pid[0] ->SetMarkerColor(arr_color_mass[0]);
+     vec_tge_v2_vs_pT_560_pid[0] ->Draw("same P"); // pions
+     vec_tge_v2_vs_pT_560_pid[1] ->SetMarkerColor(arr_color_mass[1]);
+     vec_tge_v2_vs_pT_560_pid[1] ->Draw("same P"); // K0s
+     vec_tge_v2_vs_pT_560_pid[2] ->SetMarkerColor(arr_color_mass[2]);
+     vec_tge_v2_vs_pT_560_pid[2] ->Draw("same P"); // protons
+     */
 
-        tg_JPsi_v2_vs_pT    ->SetMarkerColor(arr_color_mass[3]);
-        if(fCheckBox[6]->GetState() == kButtonDown) tg_JPsi_v2_vs_pT    ->Draw("same P");
-        tg_D0_v2_vs_pT      ->SetMarkerColor(kGray+1);
-        if(fCheckBox[5]->GetState() == kButtonDown) tg_D0_v2_vs_pT      ->Draw("same P");
-        tg_Upsilon_v2_vs_pT ->SetMarkerColor(arr_color_mass[4]);
-        if(fCheckBox[7]->GetState() == kButtonDown) tg_Upsilon_v2_vs_pT ->Draw("same P");
+    tg_JPsi_v2_vs_pT    ->SetMarkerColor(arr_color_mass[3]);
+    if(fCheckBox[6]->GetState() == kButtonDown) tg_JPsi_v2_vs_pT    ->Draw("same P");
+    tg_D0_v2_vs_pT      ->SetMarkerColor(kGray+1);
+    if(fCheckBox[5]->GetState() == kButtonDown) tg_D0_v2_vs_pT      ->Draw("same P");
+    tg_Upsilon_v2_vs_pT ->SetMarkerColor(arr_color_mass[4]);
+    if(fCheckBox[7]->GetState() == kButtonDown) tg_Upsilon_v2_vs_pT ->Draw("same P");
 
-        //tp_v2_vs_pT_mesons[0] ->GetXaxis()->SetRangeUser(0.0,4.0);
-        //tp_v2_vs_pT_mesons[1] ->GetXaxis()->SetRangeUser(0.0,4.0);
-        //tp_v2_vs_pT_mesons[2] ->GetXaxis()->SetRangeUser(0.0,4.0);
-        tp_v2_vs_pT_mesons[0] ->SetLineWidth(4);
-        tp_v2_vs_pT_mesons[1] ->SetLineWidth(4);
-        tp_v2_vs_pT_mesons[2] ->SetLineWidth(4);
-        tp_v2_vs_pT_mesons[3] ->SetLineWidth(4);
-        tp_v2_vs_pT_mesons[4] ->SetLineWidth(4);
-        if(fCheckBox[0]->GetState() == kButtonDown) tp_v2_vs_pT_mesons[0] ->Draw("same L hist");
-        if(fCheckBox[1]->GetState() == kButtonDown) tp_v2_vs_pT_mesons[1] ->Draw("same L hist");
-        if(fCheckBox[2]->GetState() == kButtonDown) tp_v2_vs_pT_mesons[2] ->Draw("same L hist");
-        if(fCheckBox[6]->GetState() == kButtonDown) tp_v2_vs_pT_mesons[3] ->Draw("same L hist");
-        if(fCheckBox[7]->GetState() == kButtonDown) tp_v2_vs_pT_mesons[4] ->Draw("same L hist");
-
-        if(leg_v2_vs_pT_A) delete leg_v2_vs_pT_A;
-        leg_v2_vs_pT_A = new TLegend(0.76,0.63,0.86,0.82); // x1,y1,x2,y2
-        leg_v2_vs_pT_A->SetBorderSize(0);
-        leg_v2_vs_pT_A->SetFillColor(0);
-        leg_v2_vs_pT_A->SetTextSize(0.045);
-        //leg_v2_vs_pT_A->AddEntry((TH1D*)vec_tge_v2_vs_pT_560_pid[0]->Clone(),"#pi","p");
-        //leg_v2_vs_pT_A->AddEntry((TH1D*)vec_tge_v2_vs_pT_560_pid[1]->Clone(),"K_{s}^{0}","p");
-        //leg_v2_vs_pT_A->AddEntry((TH1D*)vec_tge_v2_vs_pT_560_pid[2]->Clone(),"p","p");
-        leg_v2_vs_pT_A->AddEntry((TH1D*)vec_graphs[plot_centrality]->Clone(),"#pi","p");
-        leg_v2_vs_pT_A->AddEntry((TH1D*)vec_graphs[plot_centrality+14]->Clone(),"K_{s}^{0}","p");
-        leg_v2_vs_pT_A->AddEntry((TH1D*)vec_graphs[plot_centrality+28]->Clone(),"p","p");
-        leg_v2_vs_pT_A->Draw();
-
-        if(leg_v2_vs_pT_B) delete leg_v2_vs_pT_B;
-        leg_v2_vs_pT_B = new TLegend(0.87,0.68,0.97,0.81); // x1,y1,x2,y2
-        leg_v2_vs_pT_B->SetBorderSize(0);
-        leg_v2_vs_pT_B->SetFillColor(0);
-        leg_v2_vs_pT_B->SetTextSize(0.045);
-        leg_v2_vs_pT_B->AddEntry((TGraphErrors*)tg_Upsilon_v2_vs_pT->Clone(),"#Upsilon","p");
-        leg_v2_vs_pT_B->AddEntry((TGraphErrors*)tg_JPsi_v2_vs_pT->Clone(),"J/#Psi","p");
-        leg_v2_vs_pT_B->Draw();
-
-        plotTopLegend((char*)"30-40%",0.73,0.83,0.045,kBlack,0.0,42,1,1); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
-        plotTopLegend((char*)"5-60%",0.85,0.83,0.045,kBlack,0.0,42,1,1); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
-        plotTopLegend((char*)"|y|<0.5",0.73,0.89,0.045,kBlack,0.0,42,1,1); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
-        plotTopLegend((char*)"2.5<y<4",0.85,0.89,0.045,kBlack,0.0,42,1,1); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
-
-        HistName = "#chi^{2}/ndf = ";
-        sprintf(NoP,"%4.2f",chi2_min);
-        HistName += NoP;
-        plotTopLegend((char*)HistName.Data(),0.18,0.85,0.045,kBlack,0.0,42,1,1); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
-
-        fCanvas->GetCanvas()->Modified();
-        fCanvas->GetCanvas()->Update();
-    }
-    //-------------------------------------
-
-
-    //-------------------------------------
-    // pt spectra
-    for(Int_t iPid = 0; iPid < 5; iPid++)
+    for(Int_t i_mass = 0; i_mass < 8; i_mass++)
     {
-        if(h_dN_dpT_mesons[iPid])
+        tp_v2_vs_pT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->SetLineWidth(4);
+        if(fCheckBox[i_mass]->GetState() == kButtonDown)
         {
-            Double_t integral = h_dN_dpT_mesons[iPid] ->Integral("width");
-            if(integral <= 0.0) continue;
-            h_dN_dpT_mesons[iPid] ->Scale(1.0/integral);
+            //printf("Draw i_mass: %d \n", i_mass);
+            tp_v2_vs_pT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->Draw("same L hist");
         }
     }
 
+    if(leg_v2_vs_pT_A) delete leg_v2_vs_pT_A;
+    leg_v2_vs_pT_A = new TLegend(0.76,0.63,0.86,0.82); // x1,y1,x2,y2
+    leg_v2_vs_pT_A->SetBorderSize(0);
+    leg_v2_vs_pT_A->SetFillColor(0);
+    leg_v2_vs_pT_A->SetTextSize(0.045);
+    leg_v2_vs_pT_A->AddEntry((TH1D*)vec_graphs[plot_centrality]->Clone(),"#pi","p");
+    leg_v2_vs_pT_A->AddEntry((TH1D*)vec_graphs[plot_centrality+14]->Clone(),"K_{s}^{0}","p");
+    leg_v2_vs_pT_A->AddEntry((TH1D*)vec_graphs[plot_centrality+28]->Clone(),"p","p");
+    leg_v2_vs_pT_A->Draw();
+
+    if(leg_v2_vs_pT_B) delete leg_v2_vs_pT_B;
+    leg_v2_vs_pT_B = new TLegend(0.87,0.68,0.97,0.81); // x1,y1,x2,y2
+    leg_v2_vs_pT_B->SetBorderSize(0);
+    leg_v2_vs_pT_B->SetFillColor(0);
+    leg_v2_vs_pT_B->SetTextSize(0.045);
+    leg_v2_vs_pT_B->AddEntry((TGraphErrors*)tg_Upsilon_v2_vs_pT->Clone(),"#Upsilon","p");
+    leg_v2_vs_pT_B->AddEntry((TGraphErrors*)tg_JPsi_v2_vs_pT->Clone(),"J/#Psi","p");
+    leg_v2_vs_pT_B->Draw();
+
+    plotTopLegend((char*)"30-40%",0.73,0.83,0.045,kBlack,0.0,42,1,1); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
+    plotTopLegend((char*)"5-60%",0.85,0.83,0.045,kBlack,0.0,42,1,1); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
+    plotTopLegend((char*)"|y|<0.5",0.73,0.89,0.045,kBlack,0.0,42,1,1); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
+    plotTopLegend((char*)"2.5<y<4",0.85,0.89,0.045,kBlack,0.0,42,1,1); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
+
+    HistName = "#chi^{2}/ndf = ";
+    sprintf(NoP,"%4.2f",chi2_min);
+    HistName += NoP;
+    plotTopLegend((char*)HistName.Data(),0.18,0.85,0.045,kBlack,0.0,42,1,1); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
+
+    fCanvas->GetCanvas()->Modified();
+    fCanvas->GetCanvas()->Update();
+    //-------------------------------------
+
+
+    //-------------------------------------
     for(Int_t i_pid = 0; i_pid < 3; i_pid++)
     {
         vec_tgae_pT_spectra[i_pid][3]->SetMarkerColor(kBlue);
@@ -693,18 +691,18 @@ void TTripleSliderDemo::DoSlider()
     Double_t x_range_dNdpT[5] = {3.5,4.1,4.5,8.5,15.0};
     Double_t y_range_dNdpT[5] = {2.2,1.4,1.1,0.45,0.35};
 
-    for(Int_t iPid = 0; iPid < 5; iPid++)
+    for(Int_t i_mass = 0; i_mass < 5; i_mass++)
     {
-        fCanvasB ->GetCanvas()->cd(iPid + 1);
-        h_dummy_dNdpT ->GetXaxis()->SetRangeUser(0.0,x_range_dNdpT[iPid]);
-        h_dummy_dNdpT ->GetYaxis()->SetRangeUser(-0.2,y_range_dNdpT[iPid]);
+        fCanvasB ->GetCanvas()->cd(i_mass + 1);
+        h_dummy_dNdpT ->GetXaxis()->SetRangeUser(0.0,x_range_dNdpT[i_mass]);
+        h_dummy_dNdpT ->GetYaxis()->SetRangeUser(-0.2,y_range_dNdpT[i_mass]);
         h_dummy_dNdpT ->DrawCopy("");
-        if(iPid < 3)
+        if(i_mass < 3)
         {
-            //vec_tgae_pT_spectra[iPid][10] ->Draw("same P"); // data, 5-60%
-            vec_tgae_pT_spectra[iPid][7] ->Draw("same P"); // data, 30-40%
+            //vec_tgae_pT_spectra[i_mass][10] ->Draw("same P"); // data, 5-60%
+            vec_tgae_pT_spectra[i_mass][7] ->Draw("same P"); // data, 30-40%
         }
-        if(iPid == 3)
+        if(i_mass == 3)
         {
             //tge_JPsi_spectra[1][0] ->SetLineColor(kRed);
             //tge_JPsi_spectra[1][0] ->Draw("same P");; // 0-20%, 20-40%, 40-90%
@@ -713,14 +711,14 @@ void TTripleSliderDemo::DoSlider()
             tge_JPsi_forward_spectrum_stat ->SetMarkerStyle(20);
             tge_JPsi_forward_spectrum_stat ->Draw("same P");
         }
-        if(iPid == 4)
+        if(i_mass == 4)
         {
             // No Upsilon pT spectrum available
         }
 
-        h_dN_dpT_mesons[iPid] ->SetLineColor(kRed); // blast wave MC
-        h_dN_dpT_mesons[iPid] ->SetLineWidth(5); // blast wave MC
-        h_dN_dpT_mesons[iPid] ->DrawCopy("same hist L"); // blast wave MC
+        h_dN_dpT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->SetLineColor(kRed); // blast wave MC
+        h_dN_dpT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->SetLineWidth(5); // blast wave MC
+        h_dN_dpT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->DrawCopy("same hist L"); // blast wave MC
     }
 
     for(Int_t iPad = 1; iPad <= 3; iPad++)
@@ -739,44 +737,6 @@ void TTripleSliderDemo::DoSlider()
     fCanvasB->GetCanvas()->Modified();
     fCanvasB->GetCanvas()->Update();
     //-------------------------------------
-
-    // Do chi2 calculation here:
-    
-    Double_t chi2[3]; 
-    
-    for(Int_t i_mass = 0; i_mass < 3; i_mass++)
-    {
-        chi2[i_mass] = 0.0;
-
-        if(tp_v2_vs_pT_mesons[i_mass])
-        {
-            Int_t plot_centrality   = 4;
-            Int_t n_arr             = vec_graphs[plot_centrality+14*i_mass]->GetN();
-            Double_t x_pid;
-            Double_t v2_pid;
-            Double_t v2_bw_pid;
-
-            for(Int_t i_pT = 0; i_pT < n_arr; i_pT++) // pT loop
-            {
-                // Loop over pT points
-                //tp_v2_vs_pT_mesons[i_mass] ->GetPoint...
-                // Compare to data vec_graphs[plot_centrality]...
-
-                vec_graphs[plot_centrality+14*i_mass]            ->GetPoint(i_pT,x_pid,v2_pid);
-                v2_bw_pid           = tp_v2_vs_pT_mesons[i_mass] ->GetBinContent(tp_v2_vs_pT_mesons[i_mass]->FindBin(x_pid));
-                chi2[i_mass]        += (v2_pid-v2_bw_pid)*(v2_pid-v2_bw_pid);
-
-                //if(i_pid == 0) printf("i_pid: %d, i_cent: %d, i_pT: %d, pT: %4.2f, v2: %4.3f, dNdpT: %4.6f, v2_unnorm_pid: %4.3f \n",i_pid,i_cent,i_pT,x_arr_pid[i_pT],y_arr_pid,y_pt_arr_pid,v2_unnorm_pid[i_pT]);
-            }
-
-            cout << "i_mass: " << i_mass << endl;
-            cout << "chi2[i_mass]: " << chi2[i_mass] << endl;
-        }
-    }
-
-
-    //if(fHProg1) cout << "OK" << endl;
-    //else cout << "Not OK" << endl;
 
 }
 
@@ -821,23 +781,24 @@ void TTripleSliderDemo::DoMinimize()
 
     Int_t n_arr;
 
-    for (Int_t i_Temp = 0; i_Temp < 8; i_Temp++)
+    for (Int_t i_R_x = 0; i_R_x < 8; i_R_x++)
     {
         if(flag_stop_minimize) break;
-        //printf("i_Temp: %d \n",i_Temp);
-        for (Int_t i_rho_0 = 0; i_rho_0 < 8; i_rho_0++)
+        for (Int_t i_fboost = 0; i_fboost < 8; i_fboost++)
         {
-            if(flag_stop_minimize) break;
-            //printf("i_rho_0: %d \n",i_rho_0);
-            for (Int_t i_rho_a = 0; i_rho_a < 8; i_rho_a++)
+            for (Int_t i_Temp = 0; i_Temp < 8; i_Temp++)
             {
                 if(flag_stop_minimize) break;
-                //printf("i_rho_a: %d \n",i_rho_a);
-                for (Int_t i_R_x = 0; i_R_x < 8; i_R_x++)
+                //printf("i_Temp: %d \n",i_Temp);
+                for (Int_t i_rho_0 = 0; i_rho_0 < 8; i_rho_0++)
                 {
                     if(flag_stop_minimize) break;
-                    for (Int_t i_fboost = 0; i_fboost < 8; i_fboost++)
+                    //printf("i_rho_0: %d \n",i_rho_0);
+                    for (Int_t i_rho_a = 0; i_rho_a < 8; i_rho_a++)
                     {
+                        if(flag_stop_minimize) break;
+                        //printf("i_rho_a: %d \n",i_rho_a);
+
                         if(flag_stop_minimize) break;
 
                         //chi2 - sum - the one we need
@@ -846,89 +807,81 @@ void TTripleSliderDemo::DoMinimize()
                         Double_t pT_lim[5] = {1.8,2,2.5,TMath::MaxElement(tg_JPsi_v2_vs_pT->GetN(),tg_JPsi_v2_vs_pT->GetX()),TMath::MaxElement(tg_Upsilon_v2_vs_pT->GetN(),tg_Upsilon_v2_vs_pT->GetX())};
 
 
-                        for(Int_t i_mass = 0; i_mass < 5; i_mass++)
+                        for(Int_t i_mass = 0; i_mass < 8; i_mass++)
                         {
-                            Int_t i_mass_arr = arr_mass[i_mass];
-
-                            tp_v2_vs_pT_mesons[i_mass] = NULL;
-
-                            tp_v2_vs_pT_mesons[i_mass] = (TProfile*)inputfile->Get(Form("v2_vs_pT_BW_id%d_T%d_rho0%d_rhoa%d_Rx%d_fb%d",i_mass,i_Temp,i_rho_0,i_rho_a,i_R_x,i_fboost));
-
+                            Int_t index_data = i_mass + i_rho_a*8 + i_rho_0*8*9 + i_Temp*8*9*9;
 
                             //chi2[i_mass] = 0.0; // for everybody
                             n_arr        = 0;
 
-                            if(tp_v2_vs_pT_mesons[i_mass])
+                            Int_t plot_centrality   = 4;
+
+                            // get n_arr for different particles
+
+                            if(i_mass < 3)
                             {
-                                Int_t plot_centrality   = 4;
+                                n_arr             = vec_graphs[plot_centrality+14*i_mass]->GetN();
+                            }
 
-                                // get n_arr for different particles
+                            if(i_mass == 3)
+                            {
+                                n_arr             = tg_JPsi_v2_vs_pT                     ->GetN();
+                            }
 
+                            if (i_mass == 4)
+                            {
+                                n_arr             = tg_Upsilon_v2_vs_pT                  ->GetN();
+                            }
+
+                            Double_t x_pid; //for everybody too
+                            Double_t v2_pid;
+                            Double_t v2_err_pid;
+                            Double_t v2_bw_pid;
+                            //Int_t nop = 0; // number of points - individual
+
+                            for(Int_t i_pT = 0; i_pT < n_arr; i_pT++) // pT loop
+                            {
+                                //get v2_pid, v2_err_pid for different particles
                                 if(i_mass < 3)
                                 {
-                                    n_arr             = vec_graphs[plot_centrality+14*i_mass]->GetN();
+                                    vec_graphs[plot_centrality+14*i_mass]                       ->GetPoint(i_pT,x_pid,v2_pid);
+                                    v2_err_pid          = vec_graphs[plot_centrality+14*i_mass] ->GetErrorY(i_pT);
                                 }
 
                                 if(i_mass == 3)
                                 {
-                                    n_arr             = tg_JPsi_v2_vs_pT                     ->GetN();
+                                    tg_JPsi_v2_vs_pT                       ->GetPoint(i_pT,x_pid,v2_pid);
+                                    v2_err_pid          = tg_JPsi_v2_vs_pT ->GetErrorY(i_pT);
                                 }
 
-                                if (i_mass == 4)
+                                if(i_mass == 4)
                                 {
-                                    n_arr             = tg_Upsilon_v2_vs_pT                  ->GetN();
+                                    tg_Upsilon_v2_vs_pT                       ->GetPoint(i_pT,x_pid,v2_pid);
+                                    v2_err_pid          = tg_Upsilon_v2_vs_pT ->GetErrorY(i_pT);
                                 }
 
-                                Double_t x_pid; //for everybody too
-                                Double_t v2_pid;
-                                Double_t v2_err_pid;
-                                Double_t v2_bw_pid;
-                                //Int_t nop = 0; // number of points - individual
-
-                                for(Int_t i_pT = 0; i_pT < n_arr; i_pT++) // pT loop
+                                //if(x_pid <= pT_lim[i_mass] && v2_err_pid != 0) // calculate only within cetrain pT range; one loop for everybody
+                                if(x_pid >= min_max_pT_range_pid[0][i_mass]
+                                   && x_pid <= min_max_pT_range_pid[1][i_mass]
+                                   && v2_err_pid != 0) // calculate only within cetrain pT range; one loop for everybody
                                 {
-                                    //get v2_pid, v2_err_pid for different particles
-                                    if(i_mass < 3)
-                                    {
-                                        vec_graphs[plot_centrality+14*i_mass]                       ->GetPoint(i_pT,x_pid,v2_pid);
-                                        v2_err_pid          = vec_graphs[plot_centrality+14*i_mass] ->GetErrorY(i_pT);
-                                    }
-
-                                    if(i_mass == 3)
-                                    {
-                                        tg_JPsi_v2_vs_pT                       ->GetPoint(i_pT,x_pid,v2_pid);
-                                        v2_err_pid          = tg_JPsi_v2_vs_pT ->GetErrorY(i_pT);
-                                    }
-
-                                    if(i_mass == 4)
-                                    {
-                                        tg_Upsilon_v2_vs_pT                       ->GetPoint(i_pT,x_pid,v2_pid);
-                                        v2_err_pid          = tg_Upsilon_v2_vs_pT ->GetErrorY(i_pT);
-                                    }
-                                        
-                                    //if(x_pid <= pT_lim[i_mass] && v2_err_pid != 0) // calculate only within cetrain pT range; one loop for everybody
-                                    if(x_pid >= min_max_pT_range_pid[0][i_mass_arr]
-                                       && x_pid <= min_max_pT_range_pid[1][i_mass_arr]
-                                       && v2_err_pid != 0) // calculate only within cetrain pT range; one loop for everybody
-                                    {
-                                        v2_bw_pid           = tp_v2_vs_pT_mesons[i_mass]        ->GetBinContent(tp_v2_vs_pT_mesons[i_mass]->FindBin(x_pid));
-                                        //chi2[i_mass]        += ((v2_pid-v2_bw_pid)*(v2_pid-v2_bw_pid))/(v2_err_pid*v2_err_pid);
-                                        chi2_tot            += ((v2_pid-v2_bw_pid)*(v2_pid-v2_bw_pid))/(v2_err_pid*v2_err_pid);
-                                        //nop                 += 1;
-                                        nop_tot             += 1;
-                                     }
-
-                                     //cout << "i_pT: " << i_pT << endl;
-
+                                    v2_bw_pid           = tp_v2_vs_pT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->GetBinContent(tp_v2_vs_pT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a]->FindBin(x_pid));
+                                    //chi2[i_mass]        += ((v2_pid-v2_bw_pid)*(v2_pid-v2_bw_pid))/(v2_err_pid*v2_err_pid);
+                                    chi2_tot            += ((v2_pid-v2_bw_pid)*(v2_pid-v2_bw_pid))/(v2_err_pid*v2_err_pid);
+                                    //nop                 += 1;
+                                    nop_tot             += 1;
                                 }
 
-                                
-                                // if (nop > 5) //individual chi2 
-                                // {
-                                //     chi2[i_mass] = chi2[i_mass]/(nop-5);
-                                // }
+                                //cout << "i_pT: " << i_pT << endl;
 
                             }
+
+
+                            // if (nop > 5) //individual chi2
+                            // {
+                            //     chi2[i_mass] = chi2[i_mass]/(nop-5);
+                            // }
+
 
                         }
 
@@ -989,15 +942,9 @@ void TTripleSliderDemo::DoMinimize()
 
     if(flag_stop_minimize) cout << "Minimization was externally stopped" << endl;
 
-    Double_t Temp_loop_start  = 0.08;
-    Double_t rho_0_loop_start = 0.3;
-    Double_t arr_rho_a[8]   = {0.0,0.05,0.1,0.15,0.2,0.25,0.3,0.35};
-    Double_t arr_R_x[8]     = {0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9};
-    Double_t arr_f_boost[8] = {0.05,0.1,0.15,0.2,0.4,0.6,0.8,1.0};
-
-    Double_t Temp_val_min   = Temp_loop_start  + i_Temp_min*0.02;
-    Double_t rho_0_val_min  = rho_0_loop_start + i_rho_0_min*0.125;
-    Double_t rho_a_val_min  = arr_rho_a[i_rho_a_min];
+    Double_t Temp_val_min   = Temp_loop_start  + i_Temp_min*Delta_Temp;
+    Double_t rho_0_val_min  = rho_0_loop_start + i_rho_0_min*Delta_rho_0;
+    Double_t rho_a_val_min  = rho_a_loop_start + i_rho_a_min*Delta_rho_a;
     Double_t R_x_val_min    = arr_R_x[i_R_x_min];
     Double_t fboost_val_min = arr_f_boost[i_fboost_min];
 
