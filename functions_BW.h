@@ -97,16 +97,6 @@ static vector<TGraphErrors*> vec_tge_v2_vs_pT_560_pid;
 static TString label_pid_spectra[6] = {"#pi","K","p","J/#Psi","#Upsilon",""};
 static TString label_full_pid_spectra[8] = {"pi","K","p","phi","Omega","D0","J/Psi","Upsilon"};
 
-static Double_t Temp_loop_start  = 0.08;
-static Double_t rho_0_loop_start = 0.3;
-static Double_t rho_a_loop_start = 0.0;
-static Double_t Delta_Temp       = 0.02;
-static Double_t Delta_rho_0      = 0.125;
-static Double_t Delta_rho_a      = 0.05;
-static Double_t arr_R_x[9]       = {0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0};
-static Double_t arr_f_boost[9]   = {0.0,0.05,0.1,0.15,0.2,0.4,0.6,0.8,1.0};
-static Int_t    arr_color_line_mass[8] = {kBlack,kGreen,kRed,kMagenta,kCyan,kOrange,kAzure,kGray};
-
 
 //------------------------------------------------------------------------------------------------------------
 static const Float_t Pi = TMath::Pi();
