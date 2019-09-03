@@ -160,6 +160,27 @@ void BlastWaveMinuitFit()
   // do the minimization
   min->Minimize();
   */
+
+  c_play ->cd();
+  double mass_vals[3] = {0.140,0.498,0.938};
+  TGraph* tg_BW_pid[3];
+  for(int i_pid = 0; i_pid < 3; ++i_pid)
+  {
+      tg_BW_pid[i_pid] = new TGraph();
+      for(Int_t i_pT = 0; i_pT < 20; i_pT++)
+      {
+          Double_t pt_BW = i_pT*0.2 + 0.1;
+          Double_t v2_BW = 0;
+          Double_t inv_yield_BW = 0;
+          blastwave_yield_and_v2(pt_BW, mass_vals[i_pid], T_BW, Rho0_BW, Rho2_BW, RxOverRy_BW, inv_yield_BW, v2_BW);
+          tg_BW_pid[i_pid] ->SetPoint(i_pT,pt_BW,v2_BW);
+      }
+      tg_BW_pid[i_pid] -> SetLineColor(arr_color_mass[i_pid]);
+      tg_BW_pid[i_pid] -> SetLineWidth(3);
+      tg_BW_pid[i_pid] -> SetLineStyle(1);
+      tg_BW_pid[i_pid] -> Draw("same L");
+  }
+
 }
 
 // numerator of the blastwave v2 formula
