@@ -56,7 +56,7 @@ static TFile *inputfile_spectra_id;
 static TFile *inputfle_D_dNdpT;
 static vector<TString> arr_labels;
 static vector<Int_t>   arr_pid;
-static vector<TGraph*> vec_graphs;
+static vector<TGraphAsymmErrors*> vec_graphs;
 static vector< vector<TGraphAsymmErrors*> > vec_tgae_pT_spectra;
 
  // pi, K+/-, K0s, <K>, p, phi, Lambda, Xi, Omega
@@ -107,6 +107,9 @@ static Double_t arr_R_x[9]       = {0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0};
 static Double_t arr_f_boost[9]   = {0.0,0.05,0.1,0.15,0.2,0.4,0.6,0.8,1.0};
 static Int_t    arr_color_line_mass[8] = {kBlack,kGreen,kRed,kMagenta,kCyan,kOrange,kAzure,kGray};
 
+static TGraphAsymmErrors* tgae_v2_vs_pT_mesons_data[8]; // pi, K, p, phi, Omega, D0, J/Psi, Upsilon
+static TH1F*     h_dN_dpT_mesons_data[8];    // pi, K, p, phi, Omega, D0, J/Psi, Upsilon
+
 
 //------------------------------------------------------------------------------------------------------------
 static const Float_t Pi = TMath::Pi();
@@ -114,6 +117,104 @@ static TRandom ran;
 static TString HistName;
 static char NoP[50];
 //------------------------------------------------------------------------------------------------------------
+
+
+
+//------------------------------------------------------------------------------------------------------------
+// numerator of the blastwave v2 formula
+double v2_numerator(const double *x, const double *p) {
+
+    // integration variables
+    double rHat = x[0];
+    double PhiHat = x[1];
+
+    // parameters
+    double pt = p[0];
+    double m = p[1];
+    double T = p[2];
+    double rho0 = p[3];
+    double rho2 = p[4];
+    double RxOverRy = p[5];
+
+    double PhiB = TMath::ATan(RxOverRy * TMath::Tan(PhiHat));  // boost angle
+    double rho = rho0 + rho2 * TMath::Cos(2 * PhiB);  // transverse rapidity
+
+    return rHat * TMath::BesselI(2, (pt * TMath::SinH(rHat * rho)) / T) *
+           TMath::BesselK(1, (TMath::Sqrt(TMath::Power(m, 2) + TMath::Power(pt, 2)) * TMath::CosH(rHat * rho)) / T) *
+           TMath::Cos(2 * PhiB);
+}
+//------------------------------------------------------------------------------------------------------------
+
+
+
+//------------------------------------------------------------------------------------------------------------
+// denominator of the blastwave v2 formula
+double v2_denominator(const double *x, const double *p) {
+
+    // integration variables
+    double rHat = x[0];
+    double PhiHat = x[1];
+
+    // parameters
+    double pt = p[0];
+    double m = p[1];
+    double T = p[2];
+    double rho0 = p[3];
+    double rho2 = p[4];
+    double RxOverRy = p[5];
+
+	double PhiB = TMath::ATan(RxOverRy * TMath::Tan(PhiHat));  // boost angle
+    double rho = rho0 + rho2 * TMath::Cos(2 * PhiB);  // transverse rapidity
+
+    return rHat * TMath::BesselI(0, (pt * TMath::SinH(rHat * rho)) / T) *
+           TMath::BesselK(1, (TMath::Sqrt(TMath::Power(m, 2) + TMath::Power(pt, 2)) *
+                              TMath::CosH(rHat * (rho0 + rho2 * TMath::Cos(2 * PhiB)))) /
+                                 T);
+}
+//------------------------------------------------------------------------------------------------------------
+
+
+
+//------------------------------------------------------------------------------------------------------------
+void blastwave_yield_and_v2(const double pt, const double m, const double T, const double rho0, const double rho2,
+                            const double RxOverRy, double &inv_yield, double &v2) {
+
+    double pars[6] = {pt, m, T, rho0, rho2, RxOverRy};
+
+    //printf("pt: %4.3f, m: %4.3f, T: %4.3f, rho0: %4.3f, rho2: %4.3f, RxOverRy: %4.3f \n",pt,m,T,rho0,rho2,RxOverRy);
+
+    // wrapper function for numerical integration of v2 numerator
+    ROOT::Math::WrappedParamFunction<> w_v2_num(&v2_numerator, 2, 6);
+    w_v2_num.SetParameters(pars);
+    ROOT::Math::AdaptiveIntegratorMultiDim ig_num;
+    ig_num.SetFunction(w_v2_num);
+    ig_num.SetRelTolerance(0.0001);
+
+    // wrapper function for numerical integration of v2 denominator
+    ROOT::Math::WrappedParamFunction<> w_v2_den(&v2_denominator, 2, 6);
+    w_v2_den.SetParameters(pars);
+    ROOT::Math::AdaptiveIntegratorMultiDim ig_den;
+    ig_den.SetFunction(w_v2_den);
+    ig_den.SetRelTolerance(0.0001);
+
+    // integration range
+    double xmin[2] = {0., 0.};
+    double xmax[2] = {1., 2. * TMath::Pi()};
+
+    // integrate
+    double v2_num = ig_num.Integral(xmin, xmax);
+    double v2_den = ig_den.Integral(xmin, xmax);
+    if (v2_den != 0) {
+        v2 = v2_num / v2_den;
+    } else {
+        cout << "WARNING: v2 denominator zero!!!" << endl;
+    }
+
+    // calculate invariant yield 1/(2 pi pt) dN/(dpt dy) (with arbitrary constant pre-factor)
+    inv_yield = TMath::Sqrt(m * m + pt * pt) * v2_den;
+}
+//------------------------------------------------------------------------------------------------------------
+
 
 
 //----------------------------------------------------------------------------------------
@@ -612,7 +713,7 @@ void init_data()
     
     for(Int_t i = 0; i < (Int_t)arr_labels.size(); i++)
     {
-        vec_graphs.push_back((TGraph*)inputfile_id->Get(Form("Table %d/Graph1D_y1",i+1)));
+        vec_graphs.push_back((TGraphAsymmErrors*)inputfile_id->Get(Form("Table %d/Graph1D_y1",i+1)));
         vec_graphs[i]->SetName(arr_labels[i]);
         vec_graphs[i]->SetMarkerColor(arr_color[arr_pid[i]]);
         vec_graphs[i]->SetMarkerStyle(20);
@@ -644,20 +745,15 @@ void init_data()
     tg_D0_v2_vs_pT ->SetMarkerSize(0.8);
     tg_D0_v2_vs_pT ->SetMarkerColor(kGray+1);
 
-    /*
-     // scanned data
-    tg_JPsi_v2_vs_pT = new TGraphErrors();
-    tg_JPsi_v2_vs_pT ->SetPoint(0,1.52,	0.0334471);
-    tg_JPsi_v2_vs_pT ->SetPoint(1,4.10286,	0.0798635);
-    tg_JPsi_v2_vs_pT ->SetPoint(2,7.82857,	0.0784983);
-    tg_JPsi_v2_vs_pT ->SetPointError(0,0.0,0.00546075);
-    tg_JPsi_v2_vs_pT ->SetPointError(1,0.0,0.00477816);
-    tg_JPsi_v2_vs_pT ->SetPointError(2,0.0,0.0102389);
-    tg_JPsi_v2_vs_pT ->SetMarkerStyle(20);
-    tg_JPsi_v2_vs_pT ->SetMarkerSize(0.8);
-    tg_JPsi_v2_vs_pT ->SetMarkerColor(kRed);
-    */
-
+    //tgae_v2_vs_pT_mesons_data[8]; // pi, K, p, phi, Omega, D0, J/Psi, Upsilon
+    tgae_v2_vs_pT_mesons_data[0] = (TGraphAsymmErrors*)vec_graphs[4]->Clone();  // pi
+    tgae_v2_vs_pT_mesons_data[1] = (TGraphAsymmErrors*)vec_graphs[18]->Clone(); // K
+    tgae_v2_vs_pT_mesons_data[2] = (TGraphAsymmErrors*)vec_graphs[32]->Clone(); // p
+    tgae_v2_vs_pT_mesons_data[3] = (TGraphAsymmErrors*)vec_graphs[37]->Clone(); // phi  to be changed
+    tgae_v2_vs_pT_mesons_data[4] = (TGraphAsymmErrors*)vec_graphs[57]->Clone(); // Omega  to be changed
+    tgae_v2_vs_pT_mesons_data[5] = (TGraphAsymmErrors*)tg_D0_v2_vs_pT->Clone(); // D0
+    tgae_v2_vs_pT_mesons_data[6] = (TGraphAsymmErrors*)tg_JPsi_v2_vs_pT->Clone(); // J/Psi
+    tgae_v2_vs_pT_mesons_data[7] = (TGraphAsymmErrors*)tg_Upsilon_v2_vs_pT->Clone(); // Upsilon
 }
 //------------------------------------------------------------------------------------------------------------
 
