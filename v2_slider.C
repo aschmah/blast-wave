@@ -106,6 +106,9 @@ private:
     Int_t flag_minimization_ana = 0;
 
     Double_t chi2_min;
+    Double_t chi2_ndf_dNdpT_min;
+    Double_t chi2_final_min;
+    Double_t chi2_final_min_piKp;
     TString HistName;
     char NoP[50];
 
@@ -711,7 +714,7 @@ void TTripleSliderDemo::DoSlider()
     plotTopLegend((char*)"2.5<y<4",0.85,0.89,0.045,kBlack,0.0,42,1,1); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
 
     HistName = "#chi^{2}/ndf = ";
-    sprintf(NoP,"%4.2f",chi2_min);
+    sprintf(NoP,"%4.2f",chi2_final_min);
     HistName += NoP;
     plotTopLegend((char*)HistName.Data(),0.18,0.85,0.045,kBlack,0.0,42,1,1); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
 
@@ -931,149 +934,178 @@ void TTripleSliderDemo::DoMinimize()
     Int_t i_R_x_min    = 0;
     Int_t i_fboost_min = 0;
 
-    chi2_min = 10000000.0;
-    Double_t chi2_tot = 0;
+    Int_t i_Temp_dNdpT_min   = 0;
+    Int_t i_rho_0_dNdpT_min  = 0;
+    Int_t i_rho_a_dNdpT_min  = 0;
+    Int_t i_R_x_dNdpT_min    = 0;
+    Int_t i_fboost_dNdpT_min = 0;
 
-    Double_t N_total_params = TMath::Power(8,5);
+    chi2_min                       = 10000000.0;
+    Double_t chi2_tot              = 0;
+    Double_t chi2_tot_piKp         = 0;
+    chi2_ndf_dNdpT_min             = 10000000.0;
+    Double_t chi2_ndf_dNdpT_min_v2 = 0;
+    Double_t chi2_final            = 0;
+    Double_t chi2_final_piKp       = 0;
+    chi2_final_min                 = 10000000.0;
+    chi2_final_min_piKp            = 10000000.0;
+    Double_t chi2_ndf_dNdpT        = 0;
+    Double_t chi2_ndf_dNdpT_piKp   = 0;
+
+    Double_t N_total_params = TMath::Power(9,5);
 
     Double_t N_params_use = 0;
     Int_t    N_params_total_use = 0;
     Double_t fraction_progress_bar_update = 0.005;
 
     Int_t n_arr;
+    Int_t n_arr_dNdpT;
 
     // Data
     //static TGraphAsymmErrors* tgae_v2_vs_pT_mesons_data[8]; // pi, K, p, phi, Omega, D0, J/Psi, Upsilon
-    //static TGraphAsymmErrors* tgae_dN_dpT_mesons_data[8];    // pi, K, p, phi, Omega, D0, J/Psi, Upsilon
-
+    //static TGraphAsymmErrors* tgae_dN_dpT_mesons_data[8];    
+    
     // Blast wave
     //TProfile* tp_v2_vs_pT_mesons[8][9][9][9][9][9]; // [i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a]
     //TH1F*     h_dN_dpT_mesons[8][9][9][9][9][9]; // [i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a]
     // tp_v2_vs_pT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a]
 
-    for (Int_t i_R_x = 0; i_R_x < 8; i_R_x++)
+    for (Int_t i_R_x = 0; i_R_x < 9; i_R_x++)
     {
         if(flag_stop_minimize) break;
-        for (Int_t i_fboost = 0; i_fboost < 8; i_fboost++)
+        for (Int_t i_fboost = 0; i_fboost < 9; i_fboost++)
         {
-            for (Int_t i_Temp = 0; i_Temp < 8; i_Temp++)
+            for (Int_t i_Temp = 0; i_Temp < 9; i_Temp++)
             {
                 if(flag_stop_minimize) break;
                 //printf("i_Temp: %d \n",i_Temp);
-                for (Int_t i_rho_0 = 0; i_rho_0 < 8; i_rho_0++)
+                for (Int_t i_rho_0 = 0; i_rho_0 < 9; i_rho_0++)
                 {
                     if(flag_stop_minimize) break;
                     //printf("i_rho_0: %d \n",i_rho_0);
-                    for (Int_t i_rho_a = 0; i_rho_a < 8; i_rho_a++)
+                    for (Int_t i_rho_a = 0; i_rho_a < 9; i_rho_a++)
                     {
                         if(flag_stop_minimize) break;
                         //printf("i_rho_a: %d \n",i_rho_a);
 
                         if(flag_stop_minimize) break;
 
-                        //chi2 - sum - the one we need
-                        //Double_t chi2[5]; //chi2 - individual - in case we want to look at it at some point
-                        Int_t    nop_tot = 0; // number of points - sum
-                        Double_t pT_lim[5] = {1.8,2,2.5,TMath::MaxElement(tg_JPsi_v2_vs_pT->GetN(),tg_JPsi_v2_vs_pT->GetX()),TMath::MaxElement(tg_Upsilon_v2_vs_pT->GetN(),tg_Upsilon_v2_vs_pT->GetX())};
+                        Int_t    nop_tot        = 0; // number of points - sum
+                        Int_t    nop_tot_piKp   = 0;
+                        Int_t    nop_dNdpT      = 0;
+                        Int_t    nop_dNdpT_piKp = 0;
 
+                        chi2_final     = 0;
+                        chi2_tot       = 0;
+                        chi2_ndf_dNdpT = 0;
 
-                        for(Int_t i_mass = 0; i_mass < 8; i_mass++)
+                      
+                        for(Int_t i_mass = 0; i_mass < 3; i_mass++) // only pi K p!!
+
+                            // dNdpT chi2 separately: pi good, K good, p very good, 
+                            //phi ~159, Omega very bad ~100000, D0 ~2000, J/Psi ~159, Upsilon (in fact in function_BW it's D again) ~697
+
                         {
-                            Int_t index_data = i_mass + i_rho_a*8 + i_rho_0*8*9 + i_Temp*8*9*9;
+                    
+                            n_arr       = 0;
+                            n_arr_dNdpT = 0;
+                            n_arr       = tgae_v2_vs_pT_mesons_data[i_mass] ->GetN();
+                            n_arr_dNdpT = tgae_dN_dpT_mesons_data[i_mass]   ->GetN();
+                            
 
-                            //chi2[i_mass] = 0.0; // for everybody
-                            n_arr        = 0;
-
-                            Int_t plot_centrality   = 4;
-
-                            // get n_arr for different particles
-
-                            if(i_mass < 3)
-                            {
-                                n_arr             = vec_graphs[plot_centrality+14*i_mass]->GetN();
-                            }
-
-                            if(i_mass == 3)
-                            {
-                                n_arr             = tg_JPsi_v2_vs_pT                     ->GetN();
-                            }
-
-                            if (i_mass == 4)
-                            {
-                                n_arr             = tg_Upsilon_v2_vs_pT                  ->GetN();
-                            }
-
-                            Double_t x_pid; //for everybody too
+                            Double_t x_pid; 
                             Double_t v2_pid;
                             Double_t v2_err_pid;
                             Double_t v2_bw_pid;
-                            //Int_t nop = 0; // number of points - individual
 
                             for(Int_t i_pT = 0; i_pT < n_arr; i_pT++) // pT loop
                             {
                                 //get v2_pid, v2_err_pid for different particles
-                                if(i_mass < 3)
-                                {
-                                    vec_graphs[plot_centrality+14*i_mass]                       ->GetPoint(i_pT,x_pid,v2_pid);
-                                    v2_err_pid          = vec_graphs[plot_centrality+14*i_mass] ->GetErrorY(i_pT);
-                                }
 
-                                if(i_mass == 3)
-                                {
-                                    tg_JPsi_v2_vs_pT                       ->GetPoint(i_pT,x_pid,v2_pid);
-                                    v2_err_pid          = tg_JPsi_v2_vs_pT ->GetErrorY(i_pT);
-                                }
-
-                                if(i_mass == 4)
-                                {
-                                    tg_Upsilon_v2_vs_pT                       ->GetPoint(i_pT,x_pid,v2_pid);
-                                    v2_err_pid          = tg_Upsilon_v2_vs_pT ->GetErrorY(i_pT);
-                                }
-
-                                //if(x_pid <= pT_lim[i_mass] && v2_err_pid != 0) // calculate only within cetrain pT range; one loop for everybody
+                                tgae_v2_vs_pT_mesons_data[i_mass]              ->GetPoint(i_pT,x_pid,v2_pid);
+                                v2_err_pid = tgae_v2_vs_pT_mesons_data[i_mass] ->GetErrorY(i_pT);
+                              
                                 if(x_pid >= min_max_pT_range_pid[0][i_mass]
                                    && x_pid <= min_max_pT_range_pid[1][i_mass]
                                    && v2_err_pid != 0) // calculate only within cetrain pT range; one loop for everybody
                                 {
                                     v2_bw_pid           = tp_v2_vs_pT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->GetBinContent(tp_v2_vs_pT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a]->FindBin(x_pid));
-                                    //chi2[i_mass]        += ((v2_pid-v2_bw_pid)*(v2_pid-v2_bw_pid))/(v2_err_pid*v2_err_pid);
                                     chi2_tot            += ((v2_pid-v2_bw_pid)*(v2_pid-v2_bw_pid))/(v2_err_pid*v2_err_pid);
-                                    //nop                 += 1;
                                     nop_tot             += 1;
+
+                                    // if (i_mass < 3) // pi K p only
+                                    // {
+                                    //     chi2_tot_piKp           += ((v2_pid-v2_bw_pid)*(v2_pid-v2_bw_pid))/(v2_err_pid*v2_err_pid);
+                                    //     nop_tot_piKp            += 1;
+                                    //}
                                 }
 
-                                //cout << "i_pT: " << i_pT << endl;
+                            }
+
+                            x_pid = 0; 
+                            Double_t dNdpT_pid;
+                            Double_t dNdpT_err_pid;
+                            Double_t dNdpT_bw_pid;
+
+                            for(Int_t i_pT = 0; i_pT < n_arr_dNdpT; i_pT++) // pT loop for dNdpT
+                            {
+                                //get dNdpT + errors
+
+                                tgae_dN_dpT_mesons_data[i_mass]                 ->GetPoint(i_pT,x_pid,dNdpT_pid);
+                                dNdpT_err_pid = tgae_dN_dpT_mesons_data[i_mass] ->GetErrorY(i_pT);
+                                 
+                                if(x_pid >= min_max_pT_range_pid[0][i_mass]
+                                   && x_pid <= min_max_pT_range_pid[1][i_mass]
+                                   && dNdpT_err_pid != 0)  //&& (dNdpT_pid-dNdpT_bw_pid) <  100.0
+                                {
+                                    dNdpT_bw_pid    = h_dN_dpT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->GetBinContent(h_dN_dpT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a]->FindBin(x_pid));
+                                    chi2_ndf_dNdpT += ((dNdpT_pid-dNdpT_bw_pid)*(dNdpT_pid-dNdpT_bw_pid))/(dNdpT_err_pid*dNdpT_err_pid);
+                                    nop_dNdpT      += 1;
+
+                                    // if (i_mass < 3) // pi K p only
+                                    // {
+                                    //     chi2_ndf_dNdpT_piKp           += ((v2_pid-v2_bw_pid)*(v2_pid-v2_bw_pid))/(v2_err_pid*v2_err_pid);
+                                    //     nop_dNdpT_piKp            += 1;
+                                    // }
+
+                                    // cout << "x_pid: " << x_pid << endl;
+                                    // cout << "dNdpT_bw_pid: " << dNdpT_bw_pid << endl;
+                                    // cout << "dNdpT_pid: " << dNdpT_pid << endl;
+                                    // cout << "dNdpT_err_pid: " << dNdpT_err_pid << endl;
+                                    // cout << "chi2_ndf_dNdpT: " << chi2_ndf_dNdpT << endl;
+
+                                 }
+
 
                             }
 
 
-                            // if (nop > 5) //individual chi2
-                            // {
-                            //     chi2[i_mass] = chi2[i_mass]/(nop-5);
-                            // }
-
-
                         }
 
+                        chi2_final      = chi2_tot      + chi2_ndf_dNdpT;
+                        //chi2_final_piKp = chi2_tot_piKp + chi2_ndf_dNdpT_piKp;
 
-                        if (nop_tot > 5) //sum of chi2
+                        if (nop_tot + nop_dNdpT > 5) //sum of chi2
                         {
-                            chi2_tot = chi2_tot/(nop_tot-5);
+                            chi2_final = chi2_final/(nop_tot + nop_dNdpT - 5);
                         }
 
-                        //chi2_min = chi_tot;
-                        //cout << "vec_graphs[i_cent]->GetN():" << vec_graphs[i_cent+i_pid*7+pid_helper]->GetN() << endl;
-                        //cout << "i_pid:" << i_pid << endl;
-                        if(chi2_tot < chi2_min)
-                        {
-                            chi2_min     = chi2_tot;
-                            i_Temp_min   = i_Temp;
-                            i_rho_0_min  = i_rho_0;
-                            i_rho_a_min  = i_rho_a;
-                            i_R_x_min    = i_R_x;
-                            i_fboost_min = i_fboost;
+                        // if (nop_tot_piKp + nop_dNdpT_piKp > 5) //sum of chi2
+                        // {
+                        //     chi2_final_piKp = chi2_final_piKp/(nop_tot_piKp + nop_dNdpT_piKp - 5);
+                        // }
 
-                            printf("chi2_min: %4.3f \n",chi2_min);
+                        
+                        if(chi2_final < chi2_final_min)
+                        {
+                            chi2_final_min     = chi2_final;
+                            i_Temp_min         = i_Temp;
+                            i_rho_0_min        = i_rho_0;
+                            i_rho_a_min        = i_rho_a;
+                            i_R_x_min          = i_R_x;
+                            i_fboost_min       = i_fboost;
+
+                            printf("chi2_min: %4.3f \n",chi2_final_min);
 
                             vec_slider[0]->SetPosition(i_Temp_min);
                             vec_slider[1]->SetPosition(i_rho_0_min);
@@ -1086,10 +1118,35 @@ void TTripleSliderDemo::DoMinimize()
                             gSystem->ProcessEvents();
                         }
 
-                        //cout << "chi2_min: " << chi2_m << endl;
-                        //cout << "chi2_tot: " << chi2_tot << endl;
+
+                        // if(chi2_final_piKp < chi2_final_min_piKp)
+                        // {
+                        //     chi2_final_min_piKp     = chi2_final_piKp;
+                        //     i_Temp_min              = i_Temp;
+                        //     i_rho_0_min             = i_rho_0;
+                        //     i_rho_a_min             = i_rho_a;
+                        //     i_R_x_min               = i_R_x;
+                        //     i_fboost_min            = i_fboost;
+
+                        //     printf("chi2_min: %4.3f \n",chi2_final_min_piKp);
+
+                        //     vec_slider[0]->SetPosition(i_Temp_min);
+                        //     vec_slider[1]->SetPosition(i_rho_0_min);
+                        //     vec_slider[2]->SetPosition(i_rho_a_min);
+                        //     vec_slider[3]->SetPosition(i_R_x_min);
+                        //     vec_slider[4]->SetPosition(i_fboost_min);
+                        //     gSystem->ProcessEvents();
+                        //     DoSlider();
+                        //     gSystem->Sleep(100);
+                        //     gSystem->ProcessEvents();
+                        // }
 
 
+                        // cout << "chi2_final: " << chi2_final << endl;
+                        // cout << "chi2_tot: " << chi2_tot << endl;
+                        // cout << "chi2_ndf_dNdpT: " << chi2_ndf_dNdpT << endl;
+
+                        // cout << "chi2_final_min: " << chi2_final_min << endl;
 
                         N_params_use += 1.0;
                         N_params_total_use++;
@@ -1119,10 +1176,9 @@ void TTripleSliderDemo::DoMinimize()
     Double_t fboost_val_min = arr_f_boost[i_fboost_min];
 
     Double_t arr_param_val_min[5] = {Temp_val_min,rho_0_val_min,rho_a_val_min,R_x_val_min,fboost_val_min};
-    
-
-    cout << "Hello Dave. Your minimum Chi2 = " << chi2_min << endl;
-    cout << "Corresponding parameters are:" << chi2_min << endl;
+  
+    cout << "Hello Dave. Your pi K p minimum Chi2 = " << chi2_final_min << endl;
+    cout << "Corresponding parameters are:" << endl;
     cout << "Temperature: " << arr_param_val_min[0] << endl;
     cout << "rho_0: " << arr_param_val_min[1] << endl;
     cout << "rho_a: " << arr_param_val_min[2] << endl;
