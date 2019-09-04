@@ -53,8 +53,10 @@ private:
     TGLayoutHints* fLcanD;
     TGHorizontalFrame *hframeD1;
     TGHorizontalFrame *hframeD2;
+    TGHorizontalFrame *hframeD2b;
     //TGVerticalFrame *hframeD3;
     TGHorizontalFrame *hframeD3;
+    TGHorizontalFrame *hframeD4;
     TGVerticalFrame *hVframeD3;
     TGVerticalFrame *vframeD1;
     TGCompositeFrame *cframe2;
@@ -74,8 +76,10 @@ private:
     TGTransientFrame* frame_TGTransient;
     TGTransientFrame* frame_TGTransientB;
 
-    TGCheckButton* fCheckBox[8];
+    TGCheckButton* fCheckBox_sel[2];
+    TGCheckButton* fCheckBox_pid[8];
     TGLayoutHints* fLCheckBox;
+    TString label_checkbox[2] = {"Plot MC","Plot Ana"};
 
     TGHorizontalFrame* arr_HFrame_NEntry_limits[8];
     TGVerticalFrame* arr_VFrame_NEntry_limits[2];
@@ -83,11 +87,15 @@ private:
     TGNumberEntry*     arr_NEntry_limits[2][8];
     TGLayoutHints* arr_fL1[2];
     Double_t min_max_pT_range_pid[2][8];
+    TGraph* tg_BW_ana_pid[8];
 
     Double_t var_test = 5.2;
 
     TGTextButton *Button_minimize;
     TGTextButton *Button_stop_minimize;
+
+    TGTextButton *Button_minimize_ana;
+    TGTextButton *Button_stop_minimize_ana;
 
     TFile* inputfile;
     TH1D* h_dummy;
@@ -95,6 +103,7 @@ private:
     TLegend* leg_v2_vs_pT_A = NULL;
     TLegend* leg_v2_vs_pT_B = NULL;
     Int_t flag_stop_minimize = 0;
+    Int_t flag_minimization_ana = 0;
 
     Double_t chi2_min;
     TString HistName;
@@ -106,6 +115,7 @@ public:
     void CloseWindow();
     void DoText(const char *text);
     void DoSlider();
+    void DoMinimize_ana();
     void DoMinimize();
     void StopMinimize();
     void HandleButtons();
@@ -128,17 +138,17 @@ TTripleSliderDemo::TTripleSliderDemo() : TGMainFrame(gClient->GetRoot(), 100, 10
 
     //--------------------------------------------------------------------
     min_max_pT_range_pid[0][0] = 0.1; // pi
-    min_max_pT_range_pid[1][0] = 1.8;
+    min_max_pT_range_pid[1][0] = 1.6;
     min_max_pT_range_pid[0][1] = 0.1; // K
-    min_max_pT_range_pid[1][1] = 2.0;
+    min_max_pT_range_pid[1][1] = 1.9;
     min_max_pT_range_pid[0][2] = 0.1; // p
-    min_max_pT_range_pid[1][2] = 2.5;
+    min_max_pT_range_pid[1][2] = 2.2;
     min_max_pT_range_pid[0][3] = 0.1; // phi
-    min_max_pT_range_pid[1][3] = 2.5;
+    min_max_pT_range_pid[1][3] = 2.2;
     min_max_pT_range_pid[0][4] = 0.1; // Omega
-    min_max_pT_range_pid[1][4] = 2.8;
+    min_max_pT_range_pid[1][4] = 4.0;
     min_max_pT_range_pid[0][5] = 0.1; // D0
-    min_max_pT_range_pid[1][5] = 3.5;
+    min_max_pT_range_pid[1][5] = 8.5;
     min_max_pT_range_pid[0][6] = 0.1; // J/Psi
     min_max_pT_range_pid[1][6] = 15.0;
     min_max_pT_range_pid[0][7] = 0.1; // Upsilon
@@ -406,12 +416,12 @@ TTripleSliderDemo::TTripleSliderDemo() : TGMainFrame(gClient->GetRoot(), 100, 10
     hframeD2  = new TGHorizontalFrame(FrameD,200,100);
 
     // exit button
-    Button_minimize = new TGTextButton(hframeD2, "Minimize ",10);
+    Button_minimize = new TGTextButton(hframeD2, "Minimize MC",10);
     Button_minimize->Connect("Clicked()", "TTripleSliderDemo", this, "DoMinimize()");
     hframeD2->AddFrame(Button_minimize, new TGLayoutHints(kLHintsCenterX,5,5,3,4));
 
     // save button
-    Button_stop_minimize = new TGTextButton(hframeD2, "Stop minimize ",10);
+    Button_stop_minimize = new TGTextButton(hframeD2, "Stop minimize MC",10);
     Button_stop_minimize->Connect("Clicked()", "TTripleSliderDemo", this, "StopMinimize()");
     hframeD2->AddFrame(Button_stop_minimize, new TGLayoutHints(kLHintsCenterX,5,5,3,4));
 
@@ -421,16 +431,49 @@ TTripleSliderDemo::TTripleSliderDemo() : TGMainFrame(gClient->GetRoot(), 100, 10
 
 
     //--------------
+    // A horizontal frame
+    hframeD2b  = new TGHorizontalFrame(FrameD,200,100);
+
+    // exit button
+    Button_minimize_ana = new TGTextButton(hframeD2b, "Minimize Ana",10);
+    Button_minimize_ana->Connect("Clicked()", "TTripleSliderDemo", this, "DoMinimize_ana()");
+    hframeD2b->AddFrame(Button_minimize_ana, new TGLayoutHints(kLHintsCenterX,5,5,3,4));
+
+    // save button
+    Button_stop_minimize_ana = new TGTextButton(hframeD2b, "Stop minimize Ana",10);
+    Button_stop_minimize_ana->Connect("Clicked()", "TTripleSliderDemo", this, "StopMinimize()");
+    hframeD2b->AddFrame(Button_stop_minimize_ana, new TGLayoutHints(kLHintsCenterX,5,5,3,4));
+
+
+    FrameD ->AddFrame(hframeD2b, new TGLayoutHints(kLHintsCenterX,2,2,2,2));
+    //--------------
+
+
+    //--------------
     hframeD3  = new TGHorizontalFrame(FrameD,200,100);
     fLCheckBox = new TGLayoutHints(kLHintsTop | kLHintsLeft,0, 0, 5, 0);
     for(Int_t i_particle = 0; i_particle < 8; i_particle++)
     {
-        fCheckBox[i_particle]  = new TGCheckButton(hframeD3, new TGHotString(label_full_pid_spectra[i_particle].Data()), -1);
-        fCheckBox[i_particle] ->SetState(kButtonDown);
-        fCheckBox[i_particle] ->Connect("Clicked()", "TTripleSliderDemo", this, "DoSlider()");
-        hframeD3->AddFrame(fCheckBox[i_particle], fLCheckBox);
+        fCheckBox_pid[i_particle]  = new TGCheckButton(hframeD3, new TGHotString(label_full_pid_spectra[i_particle].Data()), -1);
+        fCheckBox_pid[i_particle] ->SetState(kButtonDown);
+        fCheckBox_pid[i_particle] ->Connect("Clicked()", "TTripleSliderDemo", this, "DoSlider()");
+        hframeD3->AddFrame(fCheckBox_pid[i_particle], fLCheckBox);
     }
     FrameD ->AddFrame(hframeD3, new TGLayoutHints(kLHintsCenterX,2,2,2,2));
+    //--------------
+
+
+
+    //--------------
+    hframeD4  = new TGHorizontalFrame(FrameD,200,100);
+    for(Int_t i_cb = 0; i_cb < 2; i_cb++)
+    {
+        fCheckBox_sel[i_cb]  = new TGCheckButton(hframeD4, new TGHotString(label_checkbox[i_cb].Data()), -1);
+        fCheckBox_sel[i_cb] ->SetState(kButtonDown);
+        fCheckBox_sel[i_cb] ->Connect("Clicked()", "TTripleSliderDemo", this, "DoSlider()");
+        hframeD4->AddFrame(fCheckBox_sel[i_cb], fLCheckBox);
+    }
+    FrameD ->AddFrame(hframeD4, new TGLayoutHints(kLHintsCenterX,2,2,2,2));
     //--------------
 
 
@@ -598,52 +641,49 @@ void TTripleSliderDemo::DoSlider()
 
     Int_t plot_centrality = 4;
 
-
+    /*
     // 30-40%
     vec_graphs[plot_centrality] ->SetMarkerColor(arr_color_mass[0]);
-    if(fCheckBox[0]->GetState() == kButtonDown) vec_graphs[plot_centrality] ->Draw("same P"); // pions
+    if(fCheckBox_pid[0]->GetState() == kButtonDown) vec_graphs[plot_centrality] ->Draw("same P"); // pions
     //vec_graphs[plot_centrality+7] ->Draw("same P"); // charged kaons
     vec_graphs[plot_centrality+14] ->SetMarkerColor(arr_color_mass[1]);
-    if(fCheckBox[1]->GetState() == kButtonDown) vec_graphs[plot_centrality+14] ->Draw("same P"); // K0s
+    if(fCheckBox_pid[1]->GetState() == kButtonDown) vec_graphs[plot_centrality+14] ->Draw("same P"); // K0s
     vec_graphs[plot_centrality+28] ->SetMarkerColor(arr_color_mass[2]);
-    if(fCheckBox[2]->GetState() == kButtonDown) vec_graphs[plot_centrality+28] ->Draw("same P"); // protons
-
-
-#if 0
-    for(Int_t i_mass = 0; i_mass < 5; i_mass++)
-    {
-        vec_tg_v2_vs_pT_Mathematica[i_mass] ->SetMarkerColor(arr_color_mass[i_mass]);
-        vec_tg_v2_vs_pT_Mathematica[i_mass] ->SetMarkerStyle(28); // 24
-        vec_tg_v2_vs_pT_Mathematica[i_mass] ->SetLineColor(arr_color_mass[i_mass]);
-        vec_tg_v2_vs_pT_Mathematica[i_mass] ->SetLineStyle(1);
-        vec_tg_v2_vs_pT_Mathematica[i_mass] ->SetLineWidth(2);
-        vec_tg_v2_vs_pT_Mathematica[i_mass] ->Draw("same P");
-    }
-#endif
-
-    /*
-     vec_tge_v2_vs_pT_560_pid[0] ->SetMarkerColor(arr_color_mass[0]);
-     vec_tge_v2_vs_pT_560_pid[0] ->Draw("same P"); // pions
-     vec_tge_v2_vs_pT_560_pid[1] ->SetMarkerColor(arr_color_mass[1]);
-     vec_tge_v2_vs_pT_560_pid[1] ->Draw("same P"); // K0s
-     vec_tge_v2_vs_pT_560_pid[2] ->SetMarkerColor(arr_color_mass[2]);
-     vec_tge_v2_vs_pT_560_pid[2] ->Draw("same P"); // protons
-     */
+    if(fCheckBox_pid[2]->GetState() == kButtonDown) vec_graphs[plot_centrality+28] ->Draw("same P"); // protons
 
     tg_JPsi_v2_vs_pT    ->SetMarkerColor(arr_color_mass[3]);
-    if(fCheckBox[6]->GetState() == kButtonDown) tg_JPsi_v2_vs_pT    ->Draw("same P");
+    if(fCheckBox_pid[6]->GetState() == kButtonDown) tg_JPsi_v2_vs_pT    ->Draw("same P");
     tg_D0_v2_vs_pT      ->SetMarkerColor(kGray+1);
-    if(fCheckBox[5]->GetState() == kButtonDown) tg_D0_v2_vs_pT      ->Draw("same P");
+    if(fCheckBox_pid[5]->GetState() == kButtonDown) tg_D0_v2_vs_pT      ->Draw("same P");
     tg_Upsilon_v2_vs_pT ->SetMarkerColor(arr_color_mass[4]);
-    if(fCheckBox[7]->GetState() == kButtonDown) tg_Upsilon_v2_vs_pT ->Draw("same P");
+    if(fCheckBox_pid[7]->GetState() == kButtonDown) tg_Upsilon_v2_vs_pT ->Draw("same P");
+    */
 
     for(Int_t i_mass = 0; i_mass < 8; i_mass++)
     {
-        tp_v2_vs_pT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->SetLineWidth(4);
-        if(fCheckBox[i_mass]->GetState() == kButtonDown)
+        if(fCheckBox_pid[i_mass]->GetState() == kButtonDown)
         {
             //printf("Draw i_mass: %d \n", i_mass);
-            tp_v2_vs_pT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->Draw("same L hist");
+            tgae_v2_vs_pT_mesons_data[i_mass] ->SetMarkerColor(arr_color_mass[i_mass]);
+            tgae_v2_vs_pT_mesons_data[i_mass] ->Draw("same P");
+
+            if(fCheckBox_sel[0]->GetState() == kButtonDown)
+            {
+                tp_v2_vs_pT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->SetLineWidth(4);
+                tp_v2_vs_pT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->SetLineColor(arr_color_mass[i_mass]);
+                tp_v2_vs_pT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->Draw("same L hist");
+            }
+        }
+    }
+
+    if(fCheckBox_sel[1]->GetState() == kButtonDown && flag_minimization_ana)
+    {
+        for(int i_mass = 0; i_mass < N_masses; ++i_mass)
+        {
+            if(fCheckBox_pid[i_mass]->GetState() == kButtonDown)
+            {
+                tg_BW_ana_pid[i_mass] -> Draw("same L");
+            }
         }
     }
 
@@ -652,9 +692,9 @@ void TTripleSliderDemo::DoSlider()
     leg_v2_vs_pT_A->SetBorderSize(0);
     leg_v2_vs_pT_A->SetFillColor(0);
     leg_v2_vs_pT_A->SetTextSize(0.045);
-    leg_v2_vs_pT_A->AddEntry((TH1D*)vec_graphs[plot_centrality]->Clone(),"#pi","p");
-    leg_v2_vs_pT_A->AddEntry((TH1D*)vec_graphs[plot_centrality+14]->Clone(),"K_{s}^{0}","p");
-    leg_v2_vs_pT_A->AddEntry((TH1D*)vec_graphs[plot_centrality+28]->Clone(),"p","p");
+    leg_v2_vs_pT_A->AddEntry((TGraphAsymmErrors*)tgae_v2_vs_pT_mesons_data[0]->Clone(),"#pi","p");
+    leg_v2_vs_pT_A->AddEntry((TGraphAsymmErrors*)tgae_v2_vs_pT_mesons_data[1]->Clone(),"K_{s}^{0}","p");
+    leg_v2_vs_pT_A->AddEntry((TGraphAsymmErrors*)tgae_v2_vs_pT_mesons_data[2]->Clone(),"p","p");
     leg_v2_vs_pT_A->Draw();
 
     if(leg_v2_vs_pT_B) delete leg_v2_vs_pT_B;
@@ -662,8 +702,8 @@ void TTripleSliderDemo::DoSlider()
     leg_v2_vs_pT_B->SetBorderSize(0);
     leg_v2_vs_pT_B->SetFillColor(0);
     leg_v2_vs_pT_B->SetTextSize(0.045);
-    leg_v2_vs_pT_B->AddEntry((TGraphErrors*)tg_Upsilon_v2_vs_pT->Clone(),"#Upsilon","p");
-    leg_v2_vs_pT_B->AddEntry((TGraphErrors*)tg_JPsi_v2_vs_pT->Clone(),"J/#Psi","p");
+    leg_v2_vs_pT_B->AddEntry((TGraphAsymmErrors*)tgae_v2_vs_pT_mesons_data[6]->Clone(),"J/#Psi","p");
+    leg_v2_vs_pT_B->AddEntry((TGraphAsymmErrors*)tgae_v2_vs_pT_mesons_data[7]->Clone(),"#Upsilon","p");
     leg_v2_vs_pT_B->Draw();
 
     plotTopLegend((char*)"30-40%",0.73,0.83,0.045,kBlack,0.0,42,1,1); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
@@ -746,6 +786,128 @@ void TTripleSliderDemo::StopMinimize()
     printf("Minimization stopped \n");
     flag_stop_minimize = 1;
 }
+
+
+//______________________________________________________________________________
+void TTripleSliderDemo::DoMinimize_ana()
+{
+    cout << "DoMinimize_ana started" << endl;
+
+    auto chi2Function = [&](const Double_t *par)
+    {
+        //minimisation function computing the sum of squares of residuals
+        double chi2 = 0;
+        for(int i_mass = 0; i_mass < N_masses; ++i_mass)
+        {
+            if(!(fCheckBox_pid[i_mass]->GetState() == kButtonDown)) continue;
+            for(int i_point = 0; i_point < tgae_v2_vs_pT_mesons_data[i_mass]->GetN(); ++i_point)
+            {
+                double v2_data = 0.0;
+                double pt_data = 0.0;
+
+                tgae_v2_vs_pT_mesons_data[i_mass]->GetPoint(i_point,pt_data,v2_data);
+                double v2_err = tgae_v2_vs_pT_mesons_data[i_mass]->GetErrorYhigh(i_point);
+                // cout << "i_point = " << i_point << ", pt_data = " << pt_data << "v2 = " << v2_data << " +/- " << v2_err << endl;
+
+                Double_t min_val_pT = arr_NEntry_limits[0][i_mass]->GetNumberEntry()->GetNumber();
+                Double_t max_val_pT = arr_NEntry_limits[1][i_mass]->GetNumberEntry()->GetNumber();
+
+                if(pt_data > min_val_pT &&
+                   pt_data < max_val_pT)
+                {
+                    double v2_BW = 0;
+                    double inv_yield_BW = 0;
+
+                    // blast wave parameters
+                    const double pt_BW = pt_data;         // in GeV
+                    const double m = arr_quark_mass_meson[i_mass];       // in GeV
+                    const double T = par[0];       // fit parameter: Temp in GeV
+                    const double rho0 = par[1];   // fit parameter: transverse rapidity
+                    const double rho2 = par[2];    // fit parameter: azimuthal modulation of transverse rapidity
+                    const double RxOverRy = par[3]; // fit parameter: ratio of the radii Rx and Ry of the freeze-out ellipse in the transverse plane
+
+                    blastwave_yield_and_v2(pt_BW, m, T, rho0, rho2, RxOverRy, inv_yield_BW, v2_BW);
+                    // cout << "i_point = " << i_point << ", pt_BW = " << pt_BW << ", v2_BW = " << v2_BW << endl;
+                    double diff   = (v2_data - v2_BW)/v2_err;
+                    //double diff_yield = (inv_yield_BW - inv_yield_data)/yield_err;
+                    chi2 += diff*diff;
+                }
+            }
+        }
+        return chi2;
+    };
+
+
+    // wrap chi2 funciton in a function object for the fit
+    // 3 is the number of fit parameters (size of array par)
+    ROOT::Math::Functor fcn(chi2Function,4);
+    ROOT::Fit::Fitter fitter;
+    // ROOT::Math::MinimizerOptions::SetDefaultPrintLevel(1);
+
+    double pStart[4] = {0.14,0.925,0.05,0.9};
+    fitter.SetFCN(fcn, pStart);
+
+    fitter.Config().ParSettings(0).SetName("T"); // set parameters name
+    fitter.Config().ParSettings(1).SetName("rho0");
+    fitter.Config().ParSettings(2).SetName("rho2");
+    fitter.Config().ParSettings(3).SetName("RxOverRy");
+
+    // fitter.Config().ParSettings(0).SetLimits(0.01,0.30); // set parameters range
+    //fitter.Config().ParSettings(0).Fix(); // T
+    fitter.Config().ParSettings(0).SetLimits(0.05,2.5); // T
+    fitter.Config().ParSettings(1).SetLimits(0.01,2.0); // rho0
+    fitter.Config().ParSettings(2).SetLimits(0.01,1.0); // rho2
+    fitter.Config().ParSettings(3).SetLimits(0.01,2.0); // RxOverRy
+
+    fitter.Config().ParSettings(0).SetStepSize(0.01); // set parameters minimizer step size
+    fitter.Config().ParSettings(1).SetStepSize(0.01);
+    fitter.Config().ParSettings(2).SetStepSize(0.01);
+    fitter.Config().ParSettings(3).SetStepSize(0.01);
+
+    fitter.Config().SetMinimizer("Minuit","Migrad"); // set minimizer
+    // fitter.Config().SetMinimizer("Minuit2","Migrad"); // set minimizer
+
+    // do the fit
+    bool ok = fitter.FitFCN();
+    if (!ok) {
+        Error("BWFit","BlastWave Fit failed");
+    }
+
+    const ROOT::Fit::FitResult & result = fitter.Result();
+    result.Print(std::cout);
+    const double *fitpar = result.GetParams();
+    double T_BW        = fitpar[0];
+    double Rho0_BW     = fitpar[1];
+    double Rho2_BW     = fitpar[2];
+    double RxOverRy_BW = fitpar[3];
+    cout << "T_BW = " << T_BW << ", Rho0_BW = " << Rho0_BW << ", Rho2_BW = " << Rho2_BW << ", RxOverRy_BW = " << RxOverRy_BW << endl;
+
+    fCanvas ->GetCanvas() ->cd();
+    flag_minimization_ana = 1;
+
+    for(int i_mass = 0; i_mass < N_masses; ++i_mass)
+    {
+        tg_BW_ana_pid[i_mass] = new TGraph();
+        for(Int_t i_pT = 0; i_pT < 300; i_pT++)
+        {
+            Double_t pt_BW = i_pT*0.05 + 0.0;
+            Double_t v2_BW = 0;
+            Double_t inv_yield_BW = 0;
+            blastwave_yield_and_v2(pt_BW, arr_quark_mass_meson[i_mass], T_BW, Rho0_BW, Rho2_BW, RxOverRy_BW, inv_yield_BW, v2_BW);
+            tg_BW_ana_pid[i_mass] ->SetPoint(i_pT,pt_BW,v2_BW);
+        }
+        tg_BW_ana_pid[i_mass] -> SetLineColor(arr_color_mass[i_mass]);
+        tg_BW_ana_pid[i_mass] -> SetLineWidth(3);
+        tg_BW_ana_pid[i_mass] -> SetLineStyle(1);
+        if(!(fCheckBox_pid[i_mass]->GetState() == kButtonDown)) tg_BW_ana_pid[i_mass] -> SetLineStyle(9);
+        if(fCheckBox_sel[1]->GetState() == kButtonDown) tg_BW_ana_pid[i_mass] -> Draw("same L");
+    }
+
+    fCanvas->GetCanvas()->Modified();
+    fCanvas->GetCanvas()->Update();
+}
+
+
 
 //______________________________________________________________________________
 void TTripleSliderDemo::DoMinimize()

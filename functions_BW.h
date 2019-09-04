@@ -188,14 +188,16 @@ void blastwave_yield_and_v2(const double pt, const double m, const double T, con
     w_v2_num.SetParameters(pars);
     ROOT::Math::AdaptiveIntegratorMultiDim ig_num;
     ig_num.SetFunction(w_v2_num);
-    ig_num.SetRelTolerance(0.0001);
+    ig_num.SetRelTolerance(0.000001);
+    ig_num.SetMinPts(1000);
 
     // wrapper function for numerical integration of v2 denominator
     ROOT::Math::WrappedParamFunction<> w_v2_den(&v2_denominator, 2, 6);
     w_v2_den.SetParameters(pars);
     ROOT::Math::AdaptiveIntegratorMultiDim ig_den;
     ig_den.SetFunction(w_v2_den);
-    ig_den.SetRelTolerance(0.0001);
+    ig_den.SetRelTolerance(0.000001);
+    ig_den.SetMinPts(1000);
 
     // integration range
     double xmin[2] = {0., 0.};
@@ -643,7 +645,7 @@ void init_data()
 {
     printf("Initialize data \n");
     // https://arxiv.org/pdf/1405.4632.pdf
-    inputfile_id   = TFile::Open("./Data/HEPData-ins1297103-v1-root.root");
+    inputfile_id   = TFile::Open("./Data/HEPData-ins1297103-v1-root.root"); // https://www.hepdata.net/record/ins1297103
     inputfile_JPsi = TFile::Open("./Data/HEPData-ins1225273-v1-Table_1.root");
     inputfile_D    = TFile::Open("./Data/HEPData-ins1233087-v1-root.root");
 

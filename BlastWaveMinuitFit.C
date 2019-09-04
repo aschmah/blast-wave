@@ -62,13 +62,13 @@ void BlastWaveMinuitFit()
     for(int i_pid = 0; i_pid < 3; ++i_pid)
     {
       int fit_id = plotId[i_pid];
-      for(int i_point = 0; i_point < vec_graphs[plot_centrality]->GetN(); ++i_point)
+      for(int i_point = 0; i_point < vec_graphs[fit_id]->GetN(); ++i_point)
       {
 	double v2_data = 0.0;
 	double pt_data = 0.0;
 
 	vec_graphs[fit_id]->GetPoint(i_point,pt_data,v2_data);
-	double v2_err = vec_graphs[plot_centrality]->GetErrorYhigh(i_point);
+	double v2_err = vec_graphs[fit_id]->GetErrorYhigh(i_point);
 	// cout << "i_point = " << i_point << ", pt_data = " << pt_data << "v2 = " << v2_data << " +/- " << v2_err << endl;
 
 	if(pt_data < 2.5)

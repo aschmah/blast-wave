@@ -397,8 +397,8 @@ Int_t v2_boost(Double_t Temp_set = 0.1, Double_t rho_0_set = 0.95, Double_t rho_
         N_rho_a_loop = 9; // 9
 
         //Double_t arr_rho_a[9]   = {0.0,0.05,0.1,0.15,0.2,0.25,0.3,0.35,0.4};
-        Double_t arr_R_x[9]     = {0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0};
-        Double_t arr_f_boost[9] = {0.0,0.05,0.1,0.15,0.2,0.4,0.6,0.8,1.0};
+        //Double_t arr_R_x[9]     = {0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0};
+        //Double_t arr_f_boost[9] = {0.0,0.05,0.1,0.15,0.2,0.4,0.6,0.8,1.0};
 
         //rho_a_best  = arr_rho_a[i_rho_a];
         R_x_best    = arr_R_x[i_R_x];
@@ -631,9 +631,9 @@ Int_t v2_boost(Double_t Temp_set = 0.1, Double_t rho_0_set = 0.95, Double_t rho_
 
 
 #if 0
-                            //tlv_quark.Boost(tv3_boost);
-                            tlv_quark.Boost(tv3_boost_long);
                             tlv_quark.Boost(tv3_boost);
+                            tlv_quark.Boost(tv3_boost_long);
+                            //tlv_quark.Boost(tv3_boost);
 #endif
 
 #if 1
