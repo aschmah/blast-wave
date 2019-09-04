@@ -53,6 +53,8 @@ static TFile *inputfile_id;
 static TFile *inputfile_JPsi;
 static TFile *inputfile_D;
 static TFile *inputfile_spectra_id;
+static TFile *inputfile_spectra_phi;
+static TFile *inputfile_spectra_Omega;
 static TFile *inputfle_D_dNdpT;
 static vector<TString> arr_labels;
 static vector<Int_t>   arr_pid;
@@ -92,6 +94,8 @@ static vector< vector<TGraphErrors*> > tge_JPsi_spectra;
 static TGraphErrors* tge_JPsi_forward_spectrum_stat;
 static TGraphErrors* tge_JPsi_forward_spectrum_syst;
 static TGraphAsymmErrors* tge_D_dNdpT;
+static TGraphAsymmErrors* tge_phi_dNdpT;
+static TGraphAsymmErrors* tge_Omega_dNdpT[3];
 static TH1D* h_dNdpT_best = NULL;
 static vector<TGraphErrors*> vec_tge_v2_vs_pT_560_pid;
 static TString label_pid_spectra[6] = {"#pi","K","p","J/#Psi","#Upsilon",""};
@@ -108,7 +112,7 @@ static Double_t arr_f_boost[9]   = {0.0,0.05,0.1,0.15,0.2,0.4,0.6,0.8,1.0};
 static Int_t    arr_color_line_mass[8] = {kBlack,kGreen,kRed,kMagenta,kCyan,kOrange,kAzure,kGray};
 
 static TGraphAsymmErrors* tgae_v2_vs_pT_mesons_data[8]; // pi, K, p, phi, Omega, D0, J/Psi, Upsilon
-static TH1F*     h_dN_dpT_mesons_data[8];    // pi, K, p, phi, Omega, D0, J/Psi, Upsilon
+static TGraphAsymmErrors* tgae_dN_dpT_mesons_data[8];    // pi, K, p, phi, Omega, D0, J/Psi, Upsilon
 
 
 //------------------------------------------------------------------------------------------------------------
@@ -163,13 +167,13 @@ double v2_denominator(const double *x, const double *p) {
     double rho2 = p[4];
     double RxOverRy = p[5];
 
-	double PhiB = TMath::ATan(RxOverRy * TMath::Tan(PhiHat));  // boost angle
+    double PhiB = TMath::ATan(RxOverRy * TMath::Tan(PhiHat));  // boost angle
     double rho = rho0 + rho2 * TMath::Cos(2 * PhiB);  // transverse rapidity
 
     return rHat * TMath::BesselI(0, (pt * TMath::SinH(rHat * rho)) / T) *
-           TMath::BesselK(1, (TMath::Sqrt(TMath::Power(m, 2) + TMath::Power(pt, 2)) *
-                              TMath::CosH(rHat * (rho0 + rho2 * TMath::Cos(2 * PhiB)))) /
-                                 T);
+        TMath::BesselK(1, (TMath::Sqrt(TMath::Power(m, 2) + TMath::Power(pt, 2)) *
+                           TMath::CosH(rHat * (rho0 + rho2 * TMath::Cos(2 * PhiB)))) /
+                       T);
 }
 //------------------------------------------------------------------------------------------------------------
 
@@ -219,6 +223,87 @@ void blastwave_yield_and_v2(const double pt, const double m, const double T, con
 
 
 
+//------------------------------------------------------------------------------------------------------------
+void Multiply_pT_norm_to_integral_tgae(TGraphAsymmErrors* tgae_in = NULL, Int_t flag_mult_pT = 1)
+{
+    // Modify a TGraphAsymmErrors by multiplying each value with pT
+    // In a second step the spectrum is normalized to its integral
+    // Multiply with pt
+    Double_t integral = 0.0;
+    for(Int_t i_point = 0; i_point < tgae_in ->GetN(); i_point++)
+    {
+        Double_t pT,y_val,err_X_high,err_X_low,err_Y_high,err_Y_low;
+        tgae_in ->GetPoint(i_point,pT,y_val);
+        err_X_high = tgae_in ->GetErrorXhigh(i_point);
+        err_X_low  = tgae_in ->GetErrorXlow(i_point);
+        err_Y_high = tgae_in ->GetErrorYhigh(i_point);
+        err_Y_low  = tgae_in ->GetErrorYlow(i_point);
+
+        if(!flag_mult_pT) pT = 1.0;
+        tgae_in ->SetPoint(i_point,pT,y_val*pT);
+        tgae_in ->SetPointEYhigh(i_point,err_Y_high*pT);
+        tgae_in ->SetPointEYlow(i_point,err_Y_low*pT);
+
+        integral += y_val*pT*(err_X_low + err_X_high); // bin content * bin width
+    }
+
+    if(integral >= 0.0)
+    {
+        // Normalize to integral
+        for(Int_t i_point = 0; i_point < tgae_in ->GetN(); i_point++)
+        {
+            Double_t pT,y_val,err_X_high,err_X_low,err_Y_high,err_Y_low;
+            tgae_in ->GetPoint(i_point,pT,y_val);
+            err_X_high = tgae_in ->GetErrorXhigh(i_point);
+            err_X_low  = tgae_in ->GetErrorXlow(i_point);
+            err_Y_high = tgae_in ->GetErrorYhigh(i_point);
+            err_Y_low  = tgae_in ->GetErrorYlow(i_point);
+
+            tgae_in ->SetPoint(i_point,pT,y_val/integral);
+            tgae_in ->SetPointEYhigh(i_point,err_Y_high/integral);
+            tgae_in ->SetPointEYlow(i_point,err_Y_low/integral);
+        }
+    }
+}
+//------------------------------------------------------------------------------------------------------------
+
+
+
+//------------------------------------------------------------------------------------------------------------
+TGraphAsymmErrors* Add_tgae(TGraphAsymmErrors* tgae_inA = NULL, TGraphAsymmErrors* tgae_inB = NULL)
+{
+    // Add two TGraphAsymmErrors with identical number of points and positions
+
+    TGraphAsymmErrors* tgae_inAB[2] = {tgae_inA,tgae_inB};
+    TGraphAsymmErrors* tgae_out = new TGraphAsymmErrors();
+
+    for(Int_t i_point = 0; i_point < tgae_inAB[0] ->GetN(); i_point++)
+    {
+        Double_t pT[2],y_val[2],err_X_high[2],err_X_low[2],err_Y_high[2],err_Y_low[2];
+        for(Int_t in_AB = 0; in_AB < 2; in_AB++)
+        {
+            tgae_inAB[in_AB] ->GetPoint(i_point,pT[in_AB],y_val[in_AB]);
+            err_X_high[in_AB] = tgae_inAB[in_AB] ->GetErrorXhigh(i_point);
+            err_X_low[in_AB]  = tgae_inAB[in_AB] ->GetErrorXlow(i_point);
+            err_Y_high[in_AB] = tgae_inAB[in_AB] ->GetErrorYhigh(i_point);
+            err_Y_low[in_AB]  = tgae_inAB[in_AB] ->GetErrorYlow(i_point);
+        }
+
+        tgae_out ->SetPoint(i_point,pT[0],y_val[0]+y_val[1]);
+        Double_t err_Y_high_out = TMath::Sqrt(TMath::Power(err_Y_high[0],2.0) + TMath::Power(err_Y_high[1],2.0));
+        Double_t err_Y_low_out = TMath::Sqrt(TMath::Power(err_Y_low[0],2.0) + TMath::Power(err_Y_low[1],2.0));
+        tgae_out ->SetPointEYhigh(i_point,err_Y_high_out);
+        tgae_out ->SetPointEYlow(i_point,err_Y_low_out);
+        tgae_out ->SetPointEXhigh(i_point,err_X_high[0]);
+        tgae_out ->SetPointEXlow(i_point,err_X_low[0]);
+    }
+
+    return tgae_out;
+}
+//------------------------------------------------------------------------------------------------------------
+
+
+
 //----------------------------------------------------------------------------------------
 Double_t PtFitBessel(Double_t* x_val, Double_t* par)
 {
@@ -236,8 +321,157 @@ Double_t PtFitBessel(Double_t* x_val, Double_t* par)
 
 
 //------------------------------------------------------------------------------------------------------------
-void init_JPsi_spectra_data()
+void init_pT_spectra_data()
 {
+    f_FitBessel = new TF1("f_FitBessel",PtFitBessel,0.0,10.0,4);
+
+    // https://www.hepdata.net/record/ins1377750
+    printf("Initialize pT spectra data \n");
+
+    inputfle_D_dNdpT        = TFile::Open("./Data/HEPData-ins1394580-v1-root.root"); // https://www.hepdata.net/record/ins1394580;
+    inputfile_spectra_id    = TFile::Open("./Data/HEP_ALICE_PID_pT_spectra.root"); // pi, K, p
+    inputfile_spectra_phi   = TFile::Open("./Data/HEPData-ins1511864-v1-root_phi_KStar_dNdpT_2.76TeV.root"); // phi
+    inputfile_spectra_Omega = TFile::Open("./Data/HEPData-ins1243865-v1-root_omegas_dNdpT_2.76TeV.root"); // Omega
+
+
+    tge_D_dNdpT        = (TGraphAsymmErrors*)inputfle_D_dNdpT        ->Get(Form("Table %d/Graph1D_y%d",4,1)); // 30-50%
+    tge_phi_dNdpT      = (TGraphAsymmErrors*)inputfile_spectra_phi   ->Get(Form("Table %d/Graph1D_y%d",13,1)); // 30-40%
+    tge_Omega_dNdpT[0] = (TGraphAsymmErrors*)inputfile_spectra_Omega ->Get(Form("Table %d/Graph1D_y%d",8,1)); // 20-40%, Omega-
+    tge_Omega_dNdpT[1] = (TGraphAsymmErrors*)inputfile_spectra_Omega ->Get(Form("Table %d/Graph1D_y%d",8,2)); // 20-40%, Omega+
+
+    tge_Omega_dNdpT[2] = Add_tgae(tge_Omega_dNdpT[0],tge_Omega_dNdpT[1]);
+
+    Multiply_pT_norm_to_integral_tgae(tge_Omega_dNdpT[2],0);
+
+    const Int_t arr_centrality_low[11]        = {0,5,10,20,40,60,20,30,40,50,5};
+    const Int_t arr_centrality_high[11]       = {5,10,20,40,60,80,30,40,50,60,60};
+    TString label_pid[3] = {"pi","K","p"};
+
+    vec_tgae_pT_spectra.resize(3); // pi, K, p
+    for(Int_t i_pid = 0; i_pid < 3; i_pid++)
+    {
+        TString label = label_pid[i_pid];
+        // 0-5, 5-10, 10-20, 20-40, 40-60, 60-80, 20-30, 30-40, 40-50, (50-60), 5-60
+        for(Int_t i = 0; i < 6; i++)
+        {
+            label += Form("_%d_%d",arr_centrality_low[i],arr_centrality_high[i]);
+            vec_tgae_pT_spectra[i_pid].push_back((TGraphAsymmErrors*)inputfile_spectra_id->Get(Form("Table %d/Graph1D_y%d",i_pid+1,i+1)));
+            vec_tgae_pT_spectra[i_pid][i]->SetName(label.Data());
+            vec_tgae_pT_spectra[i_pid][i]->SetMarkerColor(arr_color[i]);
+            vec_tgae_pT_spectra[i_pid][i]->SetMarkerStyle(20);
+            vec_tgae_pT_spectra[i_pid][i]->SetMarkerSize(0.8);
+            vec_tgae_pT_spectra[i_pid][i]->GetXaxis()->CenterTitle();
+            vec_tgae_pT_spectra[i_pid][i]->GetYaxis()->CenterTitle();
+            vec_tgae_pT_spectra[i_pid][i]->GetXaxis()->SetTitle("p_{T} (GeV/c)");
+            vec_tgae_pT_spectra[i_pid][i]->GetYaxis()->SetTitle("1/p_{T} dN/dp_{T} (GeV/c)^{-2}");
+            vec_tgae_pT_spectra[i_pid][i]->SetTitle("");
+            vec_tgae_pT_spectra[i_pid][i]->GetXaxis()->SetTitleOffset(1.2);
+            vec_tgae_pT_spectra[i_pid][i]->GetYaxis()->SetTitleOffset(1.2);
+            vec_tgae_pT_spectra[i_pid][i]->GetXaxis()->SetLabelSize(0.06);
+            vec_tgae_pT_spectra[i_pid][i]->GetYaxis()->SetLabelSize(0.06);
+            vec_tgae_pT_spectra[i_pid][i]->GetXaxis()->SetTitleSize(0.06);
+            vec_tgae_pT_spectra[i_pid][i]->GetYaxis()->SetTitleSize(0.06);
+            vec_tgae_pT_spectra[i_pid][i]->GetXaxis()->SetNdivisions(505,'N');
+            vec_tgae_pT_spectra[i_pid][i]->GetYaxis()->SetNdivisions(505,'N');
+        }
+    }
+
+    for(Int_t i_pid = 0; i_pid < 3; i_pid++)
+    {
+        TString label = label_pid[i_pid];
+        // 0-5, 5-10, 10-20, 20-40, 40-60, 60-80, 20-30, 30-40, 40-50, (50-60)
+        for(Int_t i = 6; i < 9; i++)
+        {
+            label += Form("_%d_%d",arr_centrality_low[i],arr_centrality_high[i]);
+            vec_tgae_pT_spectra[i_pid].push_back((TGraphAsymmErrors*)inputfile_spectra_id->Get(Form("Table %d/Graph1D_y%d",i_pid+4,i-5)));
+            vec_tgae_pT_spectra[i_pid][i]->SetName(label.Data());
+            vec_tgae_pT_spectra[i_pid][i]->SetMarkerColor(arr_color[i]);
+            vec_tgae_pT_spectra[i_pid][i]->SetMarkerStyle(20);
+            vec_tgae_pT_spectra[i_pid][i]->SetMarkerSize(0.8);
+            vec_tgae_pT_spectra[i_pid][i]->GetXaxis()->SetTitle("p_{T} (GeV/c)");
+            vec_tgae_pT_spectra[i_pid][i]->GetYaxis()->SetTitle("1/p_{T} dN/dp_{T} (GeV/c)^{-2}");
+        }
+    }
+
+    // Make 50-60%
+    for(Int_t i_pid = 0; i_pid < 3; i_pid++)
+    {
+        TString label = label_pid[i_pid];
+        // 0-5, 5-10, 10-20, 20-40, 40-60, 60-80, 20-30, 30-40, 40-50, (50-60)
+        Int_t i = 9; // 50-60% = 40-60% - 40-50%
+        Int_t i_40_60 = 4; // 40-60%
+        Int_t i_40_50 = 8; // 40-50%
+        label += Form("_%d_%d",arr_centrality_low[i],arr_centrality_high[i]);
+        vec_tgae_pT_spectra[i_pid].push_back((TGraphAsymmErrors*)vec_tgae_pT_spectra[i_pid][i_40_60]);
+        vec_tgae_pT_spectra[i_pid][i]->SetName(label.Data());
+        vec_tgae_pT_spectra[i_pid][i]->SetMarkerColor(arr_color[i]);
+        vec_tgae_pT_spectra[i_pid][i]->SetMarkerStyle(20);
+        vec_tgae_pT_spectra[i_pid][i]->SetMarkerSize(0.8);
+        vec_tgae_pT_spectra[i_pid][i]->GetXaxis()->SetTitle("p_{T} (GeV/c)");
+        vec_tgae_pT_spectra[i_pid][i]->GetYaxis()->SetTitle("1/p_{T} dN/dp_{T} (GeV/c)^{-2}");
+
+        for(Int_t i_pT = 0; i_pT < vec_tgae_pT_spectra[i_pid][i]->GetN(); i_pT++)
+        {
+            Double_t x_val, y_val;
+            vec_tgae_pT_spectra[i_pid][i]       ->GetPoint(i_pT,x_val,y_val);
+            y_val *= 2.0; // 40-60% was divided by the number of events in a 20% bin, relative to the 10% one in 40-50%
+            Double_t y_val_40_50 = vec_tgae_pT_spectra[i_pid][i_40_50] ->Eval(x_val);
+
+            vec_tgae_pT_spectra[i_pid][i]       ->SetPoint(i_pT,x_val,y_val - y_val_40_50);
+            //if(i_pid == 0) printf("i_pT: %d, pT: %4.3f, y_val(40-60%): %4.6f, y_val(40-50%): %4.6f \n",i_pT,x_val,y_val,y_val_40_50);
+        }
+    }
+
+    // Make 5-60%
+    for(Int_t i_pid = 0; i_pid < 3; i_pid++)
+    {
+        TString label = label_pid[i_pid];
+        // 0-5, 5-10, 10-20, 20-40, 40-60, 60-80, 20-30, 30-40, 40-50, (50-60), (5-60)
+        Int_t i = 10;
+        label += Form("_%d_%d",arr_centrality_low[i],arr_centrality_high[i]);
+        vec_tgae_pT_spectra[i_pid].push_back((TGraphAsymmErrors*)vec_tgae_pT_spectra[i_pid][1]);
+        vec_tgae_pT_spectra[i_pid][i]->SetName(label.Data());
+        vec_tgae_pT_spectra[i_pid][i]->SetMarkerColor(arr_color[i]);
+        vec_tgae_pT_spectra[i_pid][i]->SetMarkerStyle(20);
+        vec_tgae_pT_spectra[i_pid][i]->SetMarkerSize(0.8);
+        vec_tgae_pT_spectra[i_pid][i]->GetXaxis()->SetTitle("p_{T} (GeV/c)");
+        vec_tgae_pT_spectra[i_pid][i]->GetYaxis()->SetTitle("1/p_{T} dN/dp_{T} (GeV/c)^{-2}");
+
+        Double_t arr_scale_cent_width[5] = {1.0,1.0,2.0,4.0,4.0}; // width: 5%, 5%, 10%, 20%, 20%
+
+        for(Int_t i_pT = 0; i_pT < vec_tgae_pT_spectra[i_pid][i]->GetN(); i_pT++)
+        {
+            Double_t x_val, y_val;
+            vec_tgae_pT_spectra[i_pid][i]       ->GetPoint(i_pT,x_val,y_val);
+            for(Int_t i_cent = 2; i_cent <= 4; i_cent++)
+            {
+                Double_t y_val_cent = vec_tgae_pT_spectra[i_pid][i_cent] ->Eval(x_val);
+                y_val += y_val_cent*arr_scale_cent_width[i_cent];
+            }
+            vec_tgae_pT_spectra[i_pid][i]       ->SetPoint(i_pT,x_val,y_val);
+        }
+    }
+
+
+    //----------------------------------------------------------------------
+    for(Int_t i_pid = 0; i_pid < 3; i_pid++)
+    {
+        for(Int_t i = 0; i < 11; i++)
+        {
+            Multiply_pT_norm_to_integral_tgae(vec_tgae_pT_spectra[i_pid][i],1);
+        }
+    }
+    //----------------------------------------------------------------------
+
+    //----------------------------------------------------------------------
+    // phi mesons 2.76 TeV
+    Multiply_pT_norm_to_integral_tgae(tge_phi_dNdpT,1);
+    //----------------------------------------------------------------------
+
+
+
+    //----------------------------------------------------------------------
+    // J/Psi
     // Private communication Markus Koehler
     // dN/dpt
 
@@ -466,175 +700,20 @@ void init_JPsi_spectra_data()
             tge_JPsi_forward_spectrum_syst ->SetPointError(iPoint,err_X_high,err_Y_high_syst/integral);
         }
     }
-}
-//------------------------------------------------------------------------------------------------------------
+    // End J/Psi
+    //----------------------------------------------------------------------
 
 
 
-//------------------------------------------------------------------------------------------------------------
-void init_pT_spectra_data()
-{
-    f_FitBessel = new TF1("f_FitBessel",PtFitBessel,0.0,10.0,4);
 
-    // https://www.hepdata.net/record/ins1377750
-    printf("Initialize pT spectra data \n");
-
-    inputfle_D_dNdpT     = TFile::Open("./Data/HEPData-ins1394580-v1-root.root"); // https://www.hepdata.net/record/ins1394580;
-    inputfile_spectra_id = TFile::Open("./Data/HEP_ALICE_PID_pT_spectra.root");
-
-
-    tge_D_dNdpT = (TGraphAsymmErrors*)inputfle_D_dNdpT ->Get(Form("Table %d/Graph1D_y%d",4,1));
-
-    const Int_t arr_centrality_low[11]        = {0,5,10,20,40,60,20,30,40,50,5};
-    const Int_t arr_centrality_high[11]       = {5,10,20,40,60,80,30,40,50,60,60};
-    TString label_pid[3] = {"pi","K","p"};
-
-    vec_tgae_pT_spectra.resize(3); // pi, K, p
-    for(Int_t i_pid = 0; i_pid < 3; i_pid++)
-    {
-        TString label = label_pid[i_pid];
-        // 0-5, 5-10, 10-20, 20-40, 40-60, 60-80, 20-30, 30-40, 40-50, (50-60), 5-60
-        for(Int_t i = 0; i < 6; i++)
-        {
-            label += Form("_%d_%d",arr_centrality_low[i],arr_centrality_high[i]);
-            vec_tgae_pT_spectra[i_pid].push_back((TGraphAsymmErrors*)inputfile_spectra_id->Get(Form("Table %d/Graph1D_y%d",i_pid+1,i+1)));
-            vec_tgae_pT_spectra[i_pid][i]->SetName(label.Data());
-            vec_tgae_pT_spectra[i_pid][i]->SetMarkerColor(arr_color[i]);
-            vec_tgae_pT_spectra[i_pid][i]->SetMarkerStyle(20);
-            vec_tgae_pT_spectra[i_pid][i]->SetMarkerSize(0.8);
-            vec_tgae_pT_spectra[i_pid][i]->GetXaxis()->CenterTitle();
-            vec_tgae_pT_spectra[i_pid][i]->GetYaxis()->CenterTitle();
-            vec_tgae_pT_spectra[i_pid][i]->GetXaxis()->SetTitle("p_{T} (GeV/c)");
-            vec_tgae_pT_spectra[i_pid][i]->GetYaxis()->SetTitle("1/p_{T} dN/dp_{T} (GeV/c)^{-2}");
-            vec_tgae_pT_spectra[i_pid][i]->SetTitle("");
-            vec_tgae_pT_spectra[i_pid][i]->GetXaxis()->SetTitleOffset(1.2);
-            vec_tgae_pT_spectra[i_pid][i]->GetYaxis()->SetTitleOffset(1.2);
-            vec_tgae_pT_spectra[i_pid][i]->GetXaxis()->SetLabelSize(0.06);
-            vec_tgae_pT_spectra[i_pid][i]->GetYaxis()->SetLabelSize(0.06);
-            vec_tgae_pT_spectra[i_pid][i]->GetXaxis()->SetTitleSize(0.06);
-            vec_tgae_pT_spectra[i_pid][i]->GetYaxis()->SetTitleSize(0.06);
-            vec_tgae_pT_spectra[i_pid][i]->GetXaxis()->SetNdivisions(505,'N');
-            vec_tgae_pT_spectra[i_pid][i]->GetYaxis()->SetNdivisions(505,'N');
-        }
-    }
-
-    for(Int_t i_pid = 0; i_pid < 3; i_pid++)
-    {
-        TString label = label_pid[i_pid];
-        // 0-5, 5-10, 10-20, 20-40, 40-60, 60-80, 20-30, 30-40, 40-50, (50-60)
-        for(Int_t i = 6; i < 9; i++)
-        {
-            label += Form("_%d_%d",arr_centrality_low[i],arr_centrality_high[i]);
-            vec_tgae_pT_spectra[i_pid].push_back((TGraphAsymmErrors*)inputfile_spectra_id->Get(Form("Table %d/Graph1D_y%d",i_pid+4,i-5)));
-            vec_tgae_pT_spectra[i_pid][i]->SetName(label.Data());
-            vec_tgae_pT_spectra[i_pid][i]->SetMarkerColor(arr_color[i]);
-            vec_tgae_pT_spectra[i_pid][i]->SetMarkerStyle(20);
-            vec_tgae_pT_spectra[i_pid][i]->SetMarkerSize(0.8);
-            vec_tgae_pT_spectra[i_pid][i]->GetXaxis()->SetTitle("p_{T} (GeV/c)");
-            vec_tgae_pT_spectra[i_pid][i]->GetYaxis()->SetTitle("1/p_{T} dN/dp_{T} (GeV/c)^{-2}");
-        }
-    }
-
-    // Make 50-60%
-    for(Int_t i_pid = 0; i_pid < 3; i_pid++)
-    {
-        TString label = label_pid[i_pid];
-        // 0-5, 5-10, 10-20, 20-40, 40-60, 60-80, 20-30, 30-40, 40-50, (50-60)
-        Int_t i = 9; // 50-60% = 40-60% - 40-50%
-        Int_t i_40_60 = 4; // 40-60%
-        Int_t i_40_50 = 8; // 40-50%
-        label += Form("_%d_%d",arr_centrality_low[i],arr_centrality_high[i]);
-        vec_tgae_pT_spectra[i_pid].push_back((TGraphAsymmErrors*)vec_tgae_pT_spectra[i_pid][i_40_60]);
-        vec_tgae_pT_spectra[i_pid][i]->SetName(label.Data());
-        vec_tgae_pT_spectra[i_pid][i]->SetMarkerColor(arr_color[i]);
-        vec_tgae_pT_spectra[i_pid][i]->SetMarkerStyle(20);
-        vec_tgae_pT_spectra[i_pid][i]->SetMarkerSize(0.8);
-        vec_tgae_pT_spectra[i_pid][i]->GetXaxis()->SetTitle("p_{T} (GeV/c)");
-        vec_tgae_pT_spectra[i_pid][i]->GetYaxis()->SetTitle("1/p_{T} dN/dp_{T} (GeV/c)^{-2}");
-
-        for(Int_t i_pT = 0; i_pT < vec_tgae_pT_spectra[i_pid][i]->GetN(); i_pT++)
-        {
-            Double_t x_val, y_val;
-            vec_tgae_pT_spectra[i_pid][i]       ->GetPoint(i_pT,x_val,y_val);
-            y_val *= 2.0; // 40-60% was divided by the number of events in a 20% bin, relative to the 10% one in 40-50%
-            Double_t y_val_40_50 = vec_tgae_pT_spectra[i_pid][i_40_50] ->Eval(x_val);
-
-            vec_tgae_pT_spectra[i_pid][i]       ->SetPoint(i_pT,x_val,y_val - y_val_40_50);
-            //if(i_pid == 0) printf("i_pT: %d, pT: %4.3f, y_val(40-60%): %4.6f, y_val(40-50%): %4.6f \n",i_pT,x_val,y_val,y_val_40_50);
-        }
-    }
-
-    // Make 5-60%
-    for(Int_t i_pid = 0; i_pid < 3; i_pid++)
-    {
-        TString label = label_pid[i_pid];
-        // 0-5, 5-10, 10-20, 20-40, 40-60, 60-80, 20-30, 30-40, 40-50, (50-60), (5-60)
-        Int_t i = 10;
-        label += Form("_%d_%d",arr_centrality_low[i],arr_centrality_high[i]);
-        vec_tgae_pT_spectra[i_pid].push_back((TGraphAsymmErrors*)vec_tgae_pT_spectra[i_pid][1]);
-        vec_tgae_pT_spectra[i_pid][i]->SetName(label.Data());
-        vec_tgae_pT_spectra[i_pid][i]->SetMarkerColor(arr_color[i]);
-        vec_tgae_pT_spectra[i_pid][i]->SetMarkerStyle(20);
-        vec_tgae_pT_spectra[i_pid][i]->SetMarkerSize(0.8);
-        vec_tgae_pT_spectra[i_pid][i]->GetXaxis()->SetTitle("p_{T} (GeV/c)");
-        vec_tgae_pT_spectra[i_pid][i]->GetYaxis()->SetTitle("1/p_{T} dN/dp_{T} (GeV/c)^{-2}");
-
-        Double_t arr_scale_cent_width[5] = {1.0,1.0,2.0,4.0,4.0}; // width: 5%, 5%, 10%, 20%, 20%
-
-        for(Int_t i_pT = 0; i_pT < vec_tgae_pT_spectra[i_pid][i]->GetN(); i_pT++)
-        {
-            Double_t x_val, y_val;
-            vec_tgae_pT_spectra[i_pid][i]       ->GetPoint(i_pT,x_val,y_val);
-            for(Int_t i_cent = 2; i_cent <= 4; i_cent++)
-            {
-                Double_t y_val_cent = vec_tgae_pT_spectra[i_pid][i_cent] ->Eval(x_val);
-                y_val += y_val_cent*arr_scale_cent_width[i_cent];
-            }
-            vec_tgae_pT_spectra[i_pid][i]       ->SetPoint(i_pT,x_val,y_val);
-        }
-    }
-
-    // Multiply with pt
-    for(Int_t i_pid = 0; i_pid < 3; i_pid++)
-    {
-        for(Int_t i = 0; i < 11; i++)
-        {
-            Double_t integral = 0.0;
-            for(Int_t i_point = 0; i_point < vec_tgae_pT_spectra[i_pid][i] ->GetN(); i_point++)
-            {
-                Double_t pT,y_val,err_X_high,err_X_low,err_Y_high,err_Y_low;
-                vec_tgae_pT_spectra[i_pid][i] ->GetPoint(i_point,pT,y_val);
-                err_X_high = vec_tgae_pT_spectra[i_pid][i] ->GetErrorXhigh(i_point);
-                err_X_low  = vec_tgae_pT_spectra[i_pid][i] ->GetErrorXlow(i_point);
-                err_Y_high = vec_tgae_pT_spectra[i_pid][i] ->GetErrorYhigh(i_point);
-                err_Y_low  = vec_tgae_pT_spectra[i_pid][i] ->GetErrorYlow(i_point);
-
-                vec_tgae_pT_spectra[i_pid][i] ->SetPoint(i_point,pT,y_val*pT);
-                vec_tgae_pT_spectra[i_pid][i] ->SetPointEYhigh(i_point,err_Y_high*pT);
-                vec_tgae_pT_spectra[i_pid][i] ->SetPointEYlow(i_point,err_Y_low*pT);
-
-                integral += y_val*pT*(err_X_low + err_X_high); // bin content * bin width
-            }
-
-            if(integral <= 0.0) continue;
-
-            // Normalize to integral
-            for(Int_t i_point = 0; i_point < vec_tgae_pT_spectra[i_pid][i] ->GetN(); i_point++)
-            {
-                Double_t pT,y_val,err_X_high,err_X_low,err_Y_high,err_Y_low;
-                vec_tgae_pT_spectra[i_pid][i] ->GetPoint(i_point,pT,y_val);
-                err_X_high = vec_tgae_pT_spectra[i_pid][i] ->GetErrorXhigh(i_point);
-                err_X_low  = vec_tgae_pT_spectra[i_pid][i] ->GetErrorXlow(i_point);
-                err_Y_high = vec_tgae_pT_spectra[i_pid][i] ->GetErrorYhigh(i_point);
-                err_Y_low  = vec_tgae_pT_spectra[i_pid][i] ->GetErrorYlow(i_point);
-
-                vec_tgae_pT_spectra[i_pid][i] ->SetPoint(i_point,pT,y_val/integral);
-                vec_tgae_pT_spectra[i_pid][i] ->SetPointEYhigh(i_point,err_Y_high/integral);
-                vec_tgae_pT_spectra[i_pid][i] ->SetPointEYlow(i_point,err_Y_low/integral);
-            }
-        }
-    }
-
+    tgae_dN_dpT_mesons_data[0] = (TGraphAsymmErrors*)vec_tgae_pT_spectra[0][7];    // pi, K, p, phi, Omega, D0, J/Psi, Upsilon
+    tgae_dN_dpT_mesons_data[1] = (TGraphAsymmErrors*)vec_tgae_pT_spectra[1][7];    // pi, K, p, phi, Omega, D0, J/Psi, Upsilon
+    tgae_dN_dpT_mesons_data[2] = (TGraphAsymmErrors*)vec_tgae_pT_spectra[2][7];    // pi, K, p, phi, Omega, D0, J/Psi, Upsilon
+    tgae_dN_dpT_mesons_data[3] = (TGraphAsymmErrors*)tge_phi_dNdpT;    // pi, K, p, phi, Omega, D0, J/Psi, Upsilon
+    tgae_dN_dpT_mesons_data[4] = (TGraphAsymmErrors*)tge_Omega_dNdpT[2];    // pi, K, p, phi, Omega, D0, J/Psi, Upsilon
+    tgae_dN_dpT_mesons_data[5] = (TGraphAsymmErrors*)tge_D_dNdpT;    // pi, K, p, phi, Omega, D0, J/Psi, Upsilon
+    tgae_dN_dpT_mesons_data[6] = (TGraphAsymmErrors*)tge_JPsi_spectra[1][0]; // pi, K, p, phi, Omega, D0, J/Psi, Upsilon
+    tgae_dN_dpT_mesons_data[7] = (TGraphAsymmErrors*)tge_D_dNdpT;    // pi, K, p, phi, Omega, D0, J/Psi, Upsilon
 }
 //------------------------------------------------------------------------------------------------------------
 

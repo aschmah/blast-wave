@@ -22,7 +22,6 @@ Int_t v2_boost(Double_t Temp_set = 0.1, Double_t rho_0_set = 0.95, Double_t rho_
     Init_density();
     Init_v2_Mathematica();
     init_pT_spectra_data();
-    init_JPsi_spectra_data();
     make_5_60_spectra();
 
 

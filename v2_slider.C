@@ -246,7 +246,6 @@ TTripleSliderDemo::TTripleSliderDemo() : TGMainFrame(gClient->GetRoot(), 100, 10
 
     init_data();
     init_pT_spectra_data();
-    init_JPsi_spectra_data();
     make_5_60_spectra();
     Init_v2_Mathematica();
 
@@ -942,6 +941,15 @@ void TTripleSliderDemo::DoMinimize()
     Double_t fraction_progress_bar_update = 0.005;
 
     Int_t n_arr;
+
+    // Data
+    //static TGraphAsymmErrors* tgae_v2_vs_pT_mesons_data[8]; // pi, K, p, phi, Omega, D0, J/Psi, Upsilon
+    //static TGraphAsymmErrors* tgae_dN_dpT_mesons_data[8];    // pi, K, p, phi, Omega, D0, J/Psi, Upsilon
+
+    // Blast wave
+    //TProfile* tp_v2_vs_pT_mesons[8][9][9][9][9][9]; // [i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a]
+    //TH1F*     h_dN_dpT_mesons[8][9][9][9][9][9]; // [i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a]
+    // tp_v2_vs_pT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a]
 
     for (Int_t i_R_x = 0; i_R_x < 8; i_R_x++)
     {
