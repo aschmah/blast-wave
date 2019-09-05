@@ -638,10 +638,10 @@ void TTripleSliderDemo::DoText(const char * /*text*/)
 //______________________________________________________________________________
 void TTripleSliderDemo::DoSlider()
 {
-    cout << "DoSlider started" << endl;
+    //cout << "DoSlider started" << endl;
 
     Double_t number_entry = arr_NEntry_limits[0][0]->GetNumberEntry()->GetNumber();
-    printf("number_entry: %4.1f \n",number_entry);
+    //printf("number_entry: %4.1f \n",number_entry);
 
     Int_t i_Temp   = vec_slider[0]->GetPosition();
     Int_t i_rho_0  = vec_slider[1]->GetPosition();
@@ -852,39 +852,87 @@ void TTripleSliderDemo::DoMinimize_ana()
         for(int i_mass = 0; i_mass < N_masses; ++i_mass)
         {
             if(!(fCheckBox_pid[i_mass]->GetState() == kButtonDown)) continue;
-            for(int i_point = 0; i_point < tgae_v2_vs_pT_mesons_data[i_mass]->GetN(); ++i_point)
+
+            //--------------------------------------------------
+            // v2 chi2
+            if((fCheckBox_v2_dNdpT[0]->GetState() == kButtonDown))
             {
-                double v2_data = 0.0;
-                double pt_data = 0.0;
-
-                tgae_v2_vs_pT_mesons_data[i_mass]->GetPoint(i_point,pt_data,v2_data);
-                double v2_err = tgae_v2_vs_pT_mesons_data[i_mass]->GetErrorYhigh(i_point);
-                // cout << "i_point = " << i_point << ", pt_data = " << pt_data << "v2 = " << v2_data << " +/- " << v2_err << endl;
-
-                Double_t min_val_pT = arr_NEntry_limits[0][i_mass]->GetNumberEntry()->GetNumber();
-                Double_t max_val_pT = arr_NEntry_limits[1][i_mass]->GetNumberEntry()->GetNumber();
-
-                if(pt_data > min_val_pT &&
-                   pt_data < max_val_pT)
+                for(int i_point = 0; i_point < tgae_v2_vs_pT_mesons_data[i_mass]->GetN(); ++i_point)
                 {
-                    double v2_BW = 0;
-                    double inv_yield_BW = 0;
+                    double v2_data = 0.0;
+                    double pt_data = 0.0;
 
-                    // blast wave parameters
-                    const double pt_BW = pt_data;         // in GeV
-                    const double m = arr_quark_mass_meson[i_mass];       // in GeV
-                    const double T = par[0];       // fit parameter: Temp in GeV
-                    const double rho0 = par[1];   // fit parameter: transverse rapidity
-                    const double rho2 = par[2];    // fit parameter: azimuthal modulation of transverse rapidity
-                    const double RxOverRy = par[3]; // fit parameter: ratio of the radii Rx and Ry of the freeze-out ellipse in the transverse plane
+                    tgae_v2_vs_pT_mesons_data[i_mass]->GetPoint(i_point,pt_data,v2_data);
+                    double v2_err = tgae_v2_vs_pT_mesons_data[i_mass]->GetErrorYhigh(i_point);
+                    // cout << "i_point = " << i_point << ", pt_data = " << pt_data << "v2 = " << v2_data << " +/- " << v2_err << endl;
 
-                    blastwave_yield_and_v2(pt_BW, m, T, rho0, rho2, RxOverRy, inv_yield_BW, v2_BW);
-                    // cout << "i_point = " << i_point << ", pt_BW = " << pt_BW << ", v2_BW = " << v2_BW << endl;
-                    double diff   = (v2_data - v2_BW)/v2_err;
-                    //double diff_yield = (inv_yield_BW - inv_yield_data)/yield_err;
-                    chi2 += diff*diff;
+                    Double_t min_val_pT = arr_NEntry_limits[0][i_mass]->GetNumberEntry()->GetNumber();
+                    Double_t max_val_pT = arr_NEntry_limits[1][i_mass]->GetNumberEntry()->GetNumber();
+
+                    if(pt_data > min_val_pT &&
+                       pt_data < max_val_pT)
+                    {
+                        double v2_BW = 0;
+                        double inv_yield_BW = 0;
+
+                        // blast wave parameters
+                        const double pt_BW = pt_data;         // in GeV
+                        const double m = arr_quark_mass_meson[i_mass];       // in GeV
+                        const double T = par[0];       // fit parameter: Temp in GeV
+                        const double rho0 = par[1];   // fit parameter: transverse rapidity
+                        const double rho2 = par[2];    // fit parameter: azimuthal modulation of transverse rapidity
+                        const double RxOverRy = par[3]; // fit parameter: ratio of the radii Rx and Ry of the freeze-out ellipse in the transverse plane
+
+                        blastwave_yield_and_v2(pt_BW, m, T, rho0, rho2, RxOverRy, inv_yield_BW, v2_BW);
+                        // cout << "i_point = " << i_point << ", pt_BW = " << pt_BW << ", v2_BW = " << v2_BW << endl;
+                        double diff   = (v2_data - v2_BW)/v2_err;
+                        //double diff_yield = (inv_yield_BW - inv_yield_data)/yield_err;
+                        chi2 += diff*diff;
+                    }
                 }
             }
+            //--------------------------------------------------
+
+
+            //--------------------------------------------------
+            // dNdpT chi2
+            if((fCheckBox_v2_dNdpT[1]->GetState() == kButtonDown))
+            {
+                for(int i_point = 0; i_point < tgae_dN_dpT_mesons_data[i_mass]->GetN(); ++i_point)
+                {
+                    double dNdpT_data = 0.0;
+                    double pt_data = 0.0;
+
+                    tgae_dN_dpT_mesons_data[i_mass]->GetPoint(i_point,pt_data,dNdpT_data);
+                    double dNdpT_err = tgae_dN_dpT_mesons_data[i_mass]->GetErrorYhigh(i_point);
+                    // cout << "i_point = " << i_point << ", pt_data = " << pt_data << "v2 = " << dNdpT_data << " +/- " << dNdpT_err << endl;
+
+                    Double_t min_val_pT = arr_NEntry_limits[0][i_mass]->GetNumberEntry()->GetNumber();
+                    Double_t max_val_pT = arr_NEntry_limits[1][i_mass]->GetNumberEntry()->GetNumber();
+
+                    if(pt_data > min_val_pT &&
+                       pt_data < max_val_pT)
+                    {
+                        double v2_BW = 0;
+                        double inv_yield_BW = 0;
+
+                        // blast wave parameters
+                        const double pt_BW = pt_data;         // in GeV
+                        const double m = arr_quark_mass_meson[i_mass];       // in GeV
+                        const double T = par[0];       // fit parameter: Temp in GeV
+                        const double rho0 = par[1];   // fit parameter: transverse rapidity
+                        const double rho2 = par[2];    // fit parameter: azimuthal modulation of transverse rapidity
+                        const double RxOverRy = par[3]; // fit parameter: ratio of the radii Rx and Ry of the freeze-out ellipse in the transverse plane
+
+                        blastwave_yield_and_v2(pt_BW, m, T, rho0, rho2, RxOverRy, inv_yield_BW, v2_BW);
+                        // cout << "i_point = " << i_point << ", pt_BW = " << pt_BW << ", v2_BW = " << v2_BW << endl;
+                        double diff   = (dNdpT_data - inv_yield_BW)/dNdpT_err;
+                        //double diff_yield = (inv_yield_BW - inv_yield_data)/yield_err;
+                        chi2 += diff*diff;
+                    }
+                }
+            }
+            //--------------------------------------------------
         }
         return chi2;
     };

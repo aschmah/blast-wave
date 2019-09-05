@@ -195,14 +195,14 @@ void blastwave_yield_and_v2(const double pt, const double m, const double T, con
     w_v2_num.SetParameters(pars);
     ROOT::Math::AdaptiveIntegratorMultiDim ig_num;
     ig_num.SetFunction(w_v2_num);
-    ig_num.SetRelTolerance(1e-5);
+    ig_num.SetRelTolerance(1e-6);
     
     // wrapper function for numerical integration of v2 denominator
     ROOT::Math::WrappedParamFunction<> w_v2_den(&v2_denominator, 2, 6);
     w_v2_den.SetParameters(pars);
     ROOT::Math::AdaptiveIntegratorMultiDim ig_den;
     ig_den.SetFunction(w_v2_den);
-    ig_den.SetRelTolerance(1e-5);
+    ig_den.SetRelTolerance(1e-6);
     
     // integration range
     double xmin[2] = {0., 0.};
@@ -727,7 +727,7 @@ void init_pT_spectra_data()
     tgae_dN_dpT_mesons_data[1] = (TGraphAsymmErrors*)vec_tgae_pT_spectra[1][7];    // pi, K, p, phi, Omega, D0, J/Psi, Upsilon
     tgae_dN_dpT_mesons_data[2] = (TGraphAsymmErrors*)vec_tgae_pT_spectra[2][7];    // pi, K, p, phi, Omega, D0, J/Psi, Upsilon
     tgae_dN_dpT_mesons_data[3] = (TGraphAsymmErrors*)tge_phi_dNdpT;    // pi, K, p, phi, Omega, D0, J/Psi, Upsilon
-    tgae_dN_dpT_mesons_data[4] = (TGraphAsymmErrors*)tge_Omega_dNdpT[1];    // pi, K, p, phi, Omega, D0, J/Psi, Upsilon
+    tgae_dN_dpT_mesons_data[4] = (TGraphAsymmErrors*)tge_Omega_dNdpT[2];    // pi, K, p, phi, Omega, D0, J/Psi, Upsilon
     tgae_dN_dpT_mesons_data[5] = (TGraphAsymmErrors*)tge_D_dNdpT;    // pi, K, p, phi, Omega, D0, J/Psi, Upsilon
     tgae_dN_dpT_mesons_data[6] = (TGraphAsymmErrors*)tge_JPsi_spectra[1][0]; // pi, K, p, phi, Omega, D0, J/Psi, Upsilon
     tgae_dN_dpT_mesons_data[7] = (TGraphAsymmErrors*)tge_D_dNdpT;    // pi, K, p, phi, Omega, D0, J/Psi, Upsilon
