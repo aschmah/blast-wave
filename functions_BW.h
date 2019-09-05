@@ -100,6 +100,7 @@ static TH1D* h_dNdpT_best = NULL;
 static vector<TGraphErrors*> vec_tge_v2_vs_pT_560_pid;
 static TString label_pid_spectra[6] = {"#pi","K","p","J/#Psi","#Upsilon",""};
 static TString label_full_pid_spectra[8] = {"pi","K","p","phi","Omega","D0","J/Psi","Upsilon"};
+static TString label_v2_dNdpT[2] = {"v2","dNdpT"};
 
 static Double_t Temp_loop_start  = 0.08;
 static Double_t rho_0_loop_start = 0.3;

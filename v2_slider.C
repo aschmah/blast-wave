@@ -34,7 +34,6 @@ private:
     TGHSlider           *hslider;
     TGTextEntry         *fTeh1, *fTeh2, *fTeh3;
     TGTextBuffer        *fTbh1, *fTbh1a, *fTbh2, *fTbh3;
-    TGCheckButton       *fCheck1, *fCheck2, *fCheck3;
 
     TProfile* tp_v2_vs_pT_mesons[8][9][9][9][9][9]; // [i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a]
     TH1F*     h_dN_dpT_mesons[8][9][9][9][9][9]; // [i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a]
@@ -53,10 +52,12 @@ private:
     TGLayoutHints* fLcanD;
     TGHorizontalFrame *hframeD1;
     TGHorizontalFrame *hframeD2;
+    TGHorizontalFrame *hframeD2a;
     TGHorizontalFrame *hframeD2b;
     //TGVerticalFrame *hframeD3;
     TGHorizontalFrame *hframeD3;
     TGHorizontalFrame *hframeD4;
+    TGHorizontalFrame *hframeD5;
     TGVerticalFrame *hVframeD3;
     TGVerticalFrame *vframeD1;
     TGCompositeFrame *cframe2;
@@ -75,9 +76,11 @@ private:
     TGLabel*       LabelD4b;
     TGTransientFrame* frame_TGTransient;
     TGTransientFrame* frame_TGTransientB;
+    TGTextButton      *Button_take_params_MC_to_ana;
 
     TGCheckButton* fCheckBox_sel[2];
     TGCheckButton* fCheckBox_pid[8];
+    TGCheckButton* fCheckBox_v2_dNdpT[2];
     TGLayoutHints* fLCheckBox;
     TString label_checkbox[2] = {"Plot MC","Plot Ana"};
 
@@ -121,7 +124,7 @@ public:
     void DoMinimize_ana();
     void DoMinimize();
     void StopMinimize();
-    void HandleButtons();
+    void TakeParamsFromMC();
     ClassDef(TTripleSliderDemo, 0)
 };
 
@@ -157,6 +160,12 @@ TTripleSliderDemo::TTripleSliderDemo() : TGMainFrame(gClient->GetRoot(), 100, 10
     min_max_pT_range_pid[0][7] = 0.1; // Upsilon
     min_max_pT_range_pid[1][7] = 15.0;
     //--------------------------------------------------------------------
+
+
+    for(int i_mass = 0; i_mass < N_masses; ++i_mass)
+    {
+        tg_BW_ana_pid[i_mass] = NULL;
+    }
 
 
     //------------------------------------------------------------
@@ -399,6 +408,20 @@ TTripleSliderDemo::TTripleSliderDemo() : TGMainFrame(gClient->GetRoot(), 100, 10
     //--------------
 
 
+
+    //--------------
+    hframeD2a  = new TGHorizontalFrame(FrameD,200,100);
+    for(Int_t i_v2_dNdpT = 0; i_v2_dNdpT < 2; i_v2_dNdpT++)
+    {
+        fCheckBox_v2_dNdpT[i_v2_dNdpT]  = new TGCheckButton(hframeD2a, new TGHotString(label_v2_dNdpT[i_v2_dNdpT].Data()), -1);
+        fCheckBox_v2_dNdpT[i_v2_dNdpT] ->SetState(kButtonDown);
+        hframeD2a->AddFrame(fCheckBox_v2_dNdpT[i_v2_dNdpT], new TGLayoutHints(kLHintsTop | kLHintsLeft,0, 0, 5, 0));
+    }
+    FrameD ->AddFrame(hframeD2a, new TGLayoutHints(kLHintsCenterX,2,2,2,2));
+    //--------------
+
+
+
     //--------------
     // A horizontal frame
     hVframeD3  = new TGVerticalFrame(FrameD,200,100);
@@ -408,7 +431,6 @@ TTripleSliderDemo::TTripleSliderDemo() : TGMainFrame(gClient->GetRoot(), 100, 10
     hVframeD3->AddFrame(fHProg1, fHint2);
     FrameD ->AddFrame(hVframeD3, new TGLayoutHints(kLHintsCenterX,2,2,2,2));
     //fHProg1->Reset();
-    cout << "A fHProg1: "<< fHProg1 << endl;
     //--------------
 
 
@@ -420,6 +442,11 @@ TTripleSliderDemo::TTripleSliderDemo() : TGMainFrame(gClient->GetRoot(), 100, 10
     // exit button
     Button_minimize = new TGTextButton(hframeD2, "Minimize MC",10);
     Button_minimize->Connect("Clicked()", "TTripleSliderDemo", this, "DoMinimize()");
+
+    Pixel_t red;
+    gClient->GetColorByName("red", red);
+    Button_minimize->ChangeBackground(red);
+
     hframeD2->AddFrame(Button_minimize, new TGLayoutHints(kLHintsCenterX,5,5,3,4));
 
     // save button
@@ -439,6 +466,9 @@ TTripleSliderDemo::TTripleSliderDemo() : TGMainFrame(gClient->GetRoot(), 100, 10
     // exit button
     Button_minimize_ana = new TGTextButton(hframeD2b, "Minimize Ana",10);
     Button_minimize_ana->Connect("Clicked()", "TTripleSliderDemo", this, "DoMinimize_ana()");
+
+    Button_minimize_ana->ChangeBackground(red);
+
     hframeD2b->AddFrame(Button_minimize_ana, new TGLayoutHints(kLHintsCenterX,5,5,3,4));
 
     // save button
@@ -449,6 +479,7 @@ TTripleSliderDemo::TTripleSliderDemo() : TGMainFrame(gClient->GetRoot(), 100, 10
 
     FrameD ->AddFrame(hframeD2b, new TGLayoutHints(kLHintsCenterX,2,2,2,2));
     //--------------
+
 
 
     //--------------
@@ -476,6 +507,18 @@ TTripleSliderDemo::TTripleSliderDemo() : TGMainFrame(gClient->GetRoot(), 100, 10
         hframeD4->AddFrame(fCheckBox_sel[i_cb], fLCheckBox);
     }
     FrameD ->AddFrame(hframeD4, new TGLayoutHints(kLHintsCenterX,2,2,2,2));
+    //--------------
+
+
+
+    //--------------
+    hframeD5  = new TGHorizontalFrame(FrameD,200,100);
+
+    Button_take_params_MC_to_ana = new TGTextButton(hframeD5, "Use MC params for ana",10);
+    Button_take_params_MC_to_ana->Connect("Clicked()", "TTripleSliderDemo", this, "TakeParamsFromMC()");
+    hframeD5->AddFrame(Button_take_params_MC_to_ana, new TGLayoutHints(kLHintsCenterX,5,5,3,4));
+
+    FrameD ->AddFrame(hframeD5, new TGLayoutHints(kLHintsCenterX,2,2,2,2));
     //--------------
 
 
@@ -714,6 +757,7 @@ void TTripleSliderDemo::DoSlider()
     plotTopLegend((char*)"2.5<y<4",0.85,0.89,0.045,kBlack,0.0,42,1,1); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
 
     HistName = "#chi^{2}/ndf = ";
+    //sprintf(NoP,"%4.2f",chi2_min);
     sprintf(NoP,"%4.2f",chi2_final_min);
     HistName += NoP;
     plotTopLegend((char*)HistName.Data(),0.18,0.85,0.045,kBlack,0.0,42,1,1); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
@@ -794,6 +838,13 @@ void TTripleSliderDemo::StopMinimize()
 void TTripleSliderDemo::DoMinimize_ana()
 {
     cout << "DoMinimize_ana started" << endl;
+
+    Pixel_t yellow;
+    gClient->GetColorByName("yellow", yellow);
+    Button_minimize_ana->ChangeBackground(yellow);
+
+    Button_take_params_MC_to_ana->ChangeBackground(yellow);
+
 
     auto chi2Function = [&](const Double_t *par)
     {
@@ -905,6 +956,10 @@ void TTripleSliderDemo::DoMinimize_ana()
         if(fCheckBox_sel[1]->GetState() == kButtonDown) tg_BW_ana_pid[i_mass] -> Draw("same L");
     }
 
+    Pixel_t green;
+    gClient->GetColorByName("green", green);
+    Button_minimize_ana->ChangeBackground(green);
+
     fCanvas->GetCanvas()->Modified();
     fCanvas->GetCanvas()->Update();
 }
@@ -916,8 +971,18 @@ void TTripleSliderDemo::DoMinimize()
 {
     cout << "DoMinimize started" << endl;
 
+    Pixel_t yellow;
+    gClient->GetColorByName("yellow", yellow);
+    Button_minimize->ChangeBackground(yellow);
+
+    Button_take_params_MC_to_ana->ChangeBackground(yellow);
+
     flag_stop_minimize = 0;
 
+
+    fHProg1 ->Reset();
+
+    // new
     // Set pT min max values to those entered
     for(Int_t i_min_max = 0; i_min_max < 2; i_min_max++)
     {
@@ -965,6 +1030,8 @@ void TTripleSliderDemo::DoMinimize()
     //static TGraphAsymmErrors* tgae_v2_vs_pT_mesons_data[8]; // pi, K, p, phi, Omega, D0, J/Psi, Upsilon
     //static TGraphAsymmErrors* tgae_dN_dpT_mesons_data[8];    
     
+    //static TGraphAsymmErrors* tgae_dN_dpT_mesons_data[8];
+
     // Blast wave
     //TProfile* tp_v2_vs_pT_mesons[8][9][9][9][9][9]; // [i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a]
     //TH1F*     h_dN_dpT_mesons[8][9][9][9][9][9]; // [i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a]
@@ -1007,6 +1074,20 @@ void TTripleSliderDemo::DoMinimize()
 
                         {
                     
+
+                        chi2_final     = 0;
+                        chi2_tot       = 0;
+                        chi2_ndf_dNdpT = 0;
+
+
+                        for(Int_t i_mass = 0; i_mass < 8; i_mass++) //
+
+                            // dNdpT chi2 separately: pi good, K good, p very good,
+                            //phi ~159, Omega very bad ~100000, D0 ~2000, J/Psi ~159, Upsilon (in fact in function_BW it's D again) ~697
+
+                        {
+                            if(!(fCheckBox_pid[i_mass]->GetState() == kButtonDown)) continue;
+
                             n_arr       = 0;
                             n_arr_dNdpT = 0;
                             n_arr       = tgae_v2_vs_pT_mesons_data[i_mass] ->GetN();
@@ -1014,11 +1095,14 @@ void TTripleSliderDemo::DoMinimize()
                             
 
                             Double_t x_pid; 
+
+
+                            Double_t x_pid;
                             Double_t v2_pid;
                             Double_t v2_err_pid;
                             Double_t v2_bw_pid;
 
-                            for(Int_t i_pT = 0; i_pT < n_arr; i_pT++) // pT loop
+                            if((fCheckBox_v2_dNdpT[0]->GetState() == kButtonDown))
                             {
                                 //get v2_pid, v2_err_pid for different particles
 
@@ -1039,8 +1123,52 @@ void TTripleSliderDemo::DoMinimize()
                                     //     nop_tot_piKp            += 1;
                                     //}
                                 }
+                                for(Int_t i_pT = 0; i_pT < n_arr; i_pT++) // pT loop
+                                {
+                                    //get v2_pid, v2_err_pid for different particles
 
+                                    tgae_v2_vs_pT_mesons_data[i_mass]              ->GetPoint(i_pT,x_pid,v2_pid);
+                                    v2_err_pid = tgae_v2_vs_pT_mesons_data[i_mass] ->GetErrorY(i_pT);
+
+                                    if(x_pid >= min_max_pT_range_pid[0][i_mass]
+                                       && x_pid <= min_max_pT_range_pid[1][i_mass]
+                                       && v2_err_pid != 0) // calculate only within cetrain pT range; one loop for everybody
+                                    {
+                                        v2_bw_pid           = tp_v2_vs_pT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->GetBinContent(tp_v2_vs_pT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a]->FindBin(x_pid));
+                                        chi2_tot            += ((v2_pid-v2_bw_pid)*(v2_pid-v2_bw_pid))/(v2_err_pid*v2_err_pid);
+                                        nop_tot             += 1;
+
+                                        // if (i_mass < 3) // pi K p only
+                                        // {
+                                        //     chi2_tot_piKp           += ((v2_pid-v2_bw_pid)*(v2_pid-v2_bw_pid))/(v2_err_pid*v2_err_pid);
+                                        //     nop_tot_piKp            += 1;
+                                        //}
+                                    }
+
+                                }
                             }
+
+                            x_pid = 0;
+                            Double_t dNdpT_pid;
+                            Double_t dNdpT_err_pid;
+                            Double_t dNdpT_bw_pid;
+
+                            if((fCheckBox_v2_dNdpT[1]->GetState() == kButtonDown))
+                            {
+                                for(Int_t i_pT = 0; i_pT < n_arr_dNdpT; i_pT++) // pT loop for dNdpT
+                                {
+                                    //get dNdpT + errors
+
+                                    tgae_dN_dpT_mesons_data[i_mass]                 ->GetPoint(i_pT,x_pid,dNdpT_pid);
+                                    dNdpT_err_pid = tgae_dN_dpT_mesons_data[i_mass] ->GetErrorY(i_pT);
+
+                                    if(x_pid >= min_max_pT_range_pid[0][i_mass]
+                                       && x_pid <= min_max_pT_range_pid[1][i_mass]
+                                       && dNdpT_err_pid != 0)  //&& (dNdpT_pid-dNdpT_bw_pid) <  100.0
+                                    {
+                                        dNdpT_bw_pid    = h_dN_dpT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->GetBinContent(h_dN_dpT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a]->FindBin(x_pid));
+                                        chi2_ndf_dNdpT += ((dNdpT_pid-dNdpT_bw_pid)*(dNdpT_pid-dNdpT_bw_pid))/(dNdpT_err_pid*dNdpT_err_pid);
+                                        nop_dNdpT      += 1;
 
                             x_pid = 0; 
                             Double_t dNdpT_pid;
@@ -1078,11 +1206,29 @@ void TTripleSliderDemo::DoMinimize()
 
 
                             }
+                                        // if (i_mass < 3) // pi K p only
+                                        // {
+                                        //     chi2_ndf_dNdpT_piKp           += ((v2_pid-v2_bw_pid)*(v2_pid-v2_bw_pid))/(v2_err_pid*v2_err_pid);
+                                        //     nop_dNdpT_piKp            += 1;
+                                        // }
 
+                                        // cout << "x_pid: " << x_pid << endl;
+                                        // cout << "dNdpT_bw_pid: " << dNdpT_bw_pid << endl;
+                                        // cout << "dNdpT_pid: " << dNdpT_pid << endl;
+                                        // cout << "dNdpT_err_pid: " << dNdpT_err_pid << endl;
+                                        // cout << "chi2_ndf_dNdpT: " << chi2_ndf_dNdpT << endl;
 
-                        }
+                                    }
+
 
                         chi2_final      = chi2_tot      + chi2_ndf_dNdpT;
+                                }
+                            }
+
+
+                        } // end of mass loop
+
+                        chi2_final      = chi2_tot + chi2_ndf_dNdpT;
                         //chi2_final_piKp = chi2_tot_piKp + chi2_ndf_dNdpT_piKp;
 
                         if (nop_tot + nop_dNdpT > 5) //sum of chi2
@@ -1095,7 +1241,6 @@ void TTripleSliderDemo::DoMinimize()
                         //     chi2_final_piKp = chi2_final_piKp/(nop_tot_piKp + nop_dNdpT_piKp - 5);
                         // }
 
-                        
                         if(chi2_final < chi2_final_min)
                         {
                             chi2_final_min     = chi2_final;
@@ -1141,6 +1286,23 @@ void TTripleSliderDemo::DoMinimize()
                         //     gSystem->ProcessEvents();
                         // }
 
+                        //     vec_slider[0]->SetPosition(i_Temp_min);
+                        //     vec_slider[1]->SetPosition(i_rho_0_min);
+                        //     vec_slider[2]->SetPosition(i_rho_a_min);
+                        //     vec_slider[3]->SetPosition(i_R_x_min);
+                        //     vec_slider[4]->SetPosition(i_fboost_min);
+                        //     gSystem->ProcessEvents();
+                        //     DoSlider();
+                        //     gSystem->Sleep(100);
+                        //     gSystem->ProcessEvents();
+                        // }
+
+
+                        // cout << "chi2_final: " << chi2_final << endl;
+                        // cout << "chi2_tot: " << chi2_tot << endl;
+                        // cout << "chi2_ndf_dNdpT: " << chi2_ndf_dNdpT << endl;
+
+                        // cout << "chi2_final_min: " << chi2_final_min << endl;
 
                         // cout << "chi2_final: " << chi2_final << endl;
                         // cout << "chi2_tot: " << chi2_tot << endl;
@@ -1176,7 +1338,11 @@ void TTripleSliderDemo::DoMinimize()
     Double_t fboost_val_min = arr_f_boost[i_fboost_min];
 
     Double_t arr_param_val_min[5] = {Temp_val_min,rho_0_val_min,rho_a_val_min,R_x_val_min,fboost_val_min};
-  
+
+    Pixel_t green;
+    gClient->GetColorByName("green", green);
+    Button_minimize->ChangeBackground(green);
+
     cout << "Hello Dave. Your pi K p minimum Chi2 = " << chi2_final_min << endl;
     cout << "Corresponding parameters are:" << endl;
     cout << "Temperature: " << arr_param_val_min[0] << endl;
@@ -1184,28 +1350,66 @@ void TTripleSliderDemo::DoMinimize()
     cout << "rho_a: " << arr_param_val_min[2] << endl;
     cout << "R_x: " << arr_param_val_min[3] << endl;
     cout << "fboost: " << arr_param_val_min[4] << endl;
-
 }
 
 
 
 //______________________________________________________________________________
-void TTripleSliderDemo::HandleButtons()
+void TTripleSliderDemo::TakeParamsFromMC()
 {
-    // Handle different buttons.
-    TGButton *btn = (TGButton *) gTQSender;
-    Int_t id = btn->WidgetId();
-    switch (id) {
-    case HCId1:
-        fHslider1->SetConstrained(fCheck1->GetState());
-        break;
-    case HCId2:
-        fHslider1->SetRelative(fCheck2->GetState());
-        break;
-    default:
-        break;
+    printf("TTripleSliderDemo::TakeParamsFromMC() \n");
+    flag_minimization_ana = 1;
+
+    Int_t i_Temp   = vec_slider[0]->GetPosition();
+    Int_t i_rho_0  = vec_slider[1]->GetPosition();
+    Int_t i_rho_a  = vec_slider[2]->GetPosition();
+    Int_t i_R_x    = vec_slider[3]->GetPosition();
+    Int_t i_fboost = vec_slider[4]->GetPosition();
+
+    Double_t Temp_val   = Temp_loop_start  + i_Temp*Delta_Temp;
+    Double_t rho_0_val  = rho_0_loop_start + i_rho_0*Delta_rho_0;
+    Double_t rho_a_val  = rho_a_loop_start + i_rho_a*Delta_rho_a;
+    Double_t R_x_val    = arr_R_x[i_R_x];
+    Double_t fboost_val = arr_f_boost[i_fboost];
+
+    fCanvas ->GetCanvas() ->cd();
+
+    for(int i_mass = 0; i_mass < N_masses; ++i_mass)
+    {
+        if(tg_BW_ana_pid[i_mass]) delete tg_BW_ana_pid[i_mass];
+        tg_BW_ana_pid[i_mass] = new TGraph();
+        for(Int_t i_pT = 0; i_pT < 300; i_pT++)
+        {
+            Double_t pt_BW = i_pT*0.05 + 0.0;
+            Double_t v2_BW = 0;
+            Double_t inv_yield_BW = 0;
+            blastwave_yield_and_v2(pt_BW, arr_quark_mass_meson[i_mass], Temp_val, rho_0_val, rho_a_val, R_x_val, inv_yield_BW, v2_BW);
+            tg_BW_ana_pid[i_mass] ->SetPoint(i_pT,pt_BW,v2_BW);
+        }
+        tg_BW_ana_pid[i_mass] -> SetLineColor(arr_color_mass[i_mass]);
+        tg_BW_ana_pid[i_mass] -> SetLineWidth(3);
+        tg_BW_ana_pid[i_mass] -> SetLineStyle(1);
+        if(fCheckBox_sel[1]->GetState() == kButtonDown)
+        {
+            if(fCheckBox_pid[i_mass]->GetState() == kButtonDown)
+            {
+                tg_BW_ana_pid[i_mass] -> Draw("same L");
+            }
+        }
     }
+
+    Pixel_t green;
+    gClient->GetColorByName("green", green);
+    Button_take_params_MC_to_ana->ChangeBackground(green);
+
+    fCanvas->GetCanvas()->Modified();
+    fCanvas->GetCanvas()->Update();
 }
+//______________________________________________________________________________
+
+
+
+
 
 void v2_slider()
 {
