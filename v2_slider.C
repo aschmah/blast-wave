@@ -348,8 +348,8 @@ TTripleSliderDemo::TTripleSliderDemo() : TGMainFrame(gClient->GetRoot(), 100, 10
     fCanvasB = new TRootEmbeddedCanvas("CanvasB", FrameB, 1200, 700);
     fLcanC = new TGLayoutHints(kLHintsExpandX | kLHintsExpandY, 10, 10, 10, 10);
     FrameB ->AddFrame(fCanvasB, fLcanC);
-    fCanvasB->GetCanvas()->Divide(3,2);
-    for(Int_t iPad = 1; iPad <= 6; iPad++)
+    fCanvasB->GetCanvas()->Divide(4,2);
+    for(Int_t iPad = 1; iPad <= 8; iPad++)
     {
          fCanvasB->GetCanvas()->cd(iPad)->SetLogy(1);
          fCanvasB->GetCanvas()->cd(iPad);
@@ -374,9 +374,9 @@ TTripleSliderDemo::TTripleSliderDemo() : TGMainFrame(gClient->GetRoot(), 100, 10
 
     // Map main frame
     FrameB->MapWindow();
-    FrameB ->Move(700,10);
+    FrameB ->Move(400,10);
 
-    for(Int_t iPad = 1; iPad <= 6; iPad++)
+    for(Int_t iPad = 1; iPad <= 8; iPad++)
     {
         fCanvasB ->GetCanvas()->cd(iPad);
         h_dummy  ->Draw();
@@ -774,51 +774,39 @@ void TTripleSliderDemo::DoSlider()
         vec_tgae_pT_spectra[i_pid][10]->SetMarkerColor(kGreen);
     }
 
-    Double_t x_range_dNdpT[5] = {3.5,4.1,4.5,8.5,15.0};
-    Double_t y_range_dNdpT[5] = {2.2,1.4,1.1,0.45,0.35};
+    Double_t x_range_dNdpT[8] = {3.5,4.1,4.5,5.0,5.0,5.0,8.5,15.0};
+    Double_t y_range_dNdpT[8] = {2.2,1.4,1.1,1.0,1.0,1.0,0.45,0.35};
 
-    for(Int_t i_mass = 0; i_mass < 5; i_mass++)
+    for(Int_t i_mass = 0; i_mass < 8; i_mass++)
     {
         fCanvasB ->GetCanvas()->cd(i_mass + 1);
         h_dummy_dNdpT ->GetXaxis()->SetRangeUser(0.0,x_range_dNdpT[i_mass]);
         h_dummy_dNdpT ->GetYaxis()->SetRangeUser(-0.2,y_range_dNdpT[i_mass]);
         h_dummy_dNdpT ->DrawCopy("");
-        if(i_mass < 3)
-        {
-            //vec_tgae_pT_spectra[i_mass][10] ->Draw("same P"); // data, 5-60%
-            vec_tgae_pT_spectra[i_mass][7] ->Draw("same P"); // data, 30-40%
-        }
-        if(i_mass == 3)
-        {
-            //tge_JPsi_spectra[1][0] ->SetLineColor(kRed);
-            //tge_JPsi_spectra[1][0] ->Draw("same P");; // 0-20%, 20-40%, 40-90%
-            tge_JPsi_forward_spectrum_stat ->SetLineColor(kGreen);
-            tge_JPsi_forward_spectrum_stat ->SetMarkerColor(kGreen);
-            tge_JPsi_forward_spectrum_stat ->SetMarkerStyle(20);
-            tge_JPsi_forward_spectrum_stat ->Draw("same P");
-        }
-        if(i_mass == 4)
-        {
-            // No Upsilon pT spectrum available
-        }
+
+        tgae_dN_dpT_mesons_data[i_mass] ->SetMarkerColor(kBlack);
+        tgae_dN_dpT_mesons_data[i_mass] ->SetMarkerStyle(20);
+        tgae_dN_dpT_mesons_data[i_mass] ->SetMarkerSize(1.0);
+        tgae_dN_dpT_mesons_data[i_mass] ->Draw("same P");
+
 
         h_dN_dpT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->SetLineColor(kRed); // blast wave MC
         h_dN_dpT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->SetLineWidth(5); // blast wave MC
         h_dN_dpT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->DrawCopy("same hist L"); // blast wave MC
     }
 
-    for(Int_t iPad = 1; iPad <= 3; iPad++)
+    for(Int_t iPad = 1; iPad <= 8; iPad++)
     {
         fCanvasB ->GetCanvas()->cd(iPad);
         plotTopLegend((char*)label_pid_spectra[iPad-1].Data(),0.75,0.83,0.06,kBlack,0.0,42,1,1); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
-        plotTopLegend((char*)"|y|<0.5",0.75,0.77,0.06,kBlack,0.0,42,1,1); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
+        //plotTopLegend((char*)"|y|<0.5",0.75,0.77,0.06,kBlack,0.0,42,1,1); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
     }
-    for(Int_t iPad = 4; iPad <= 5; iPad++)
-    {
-        fCanvasB ->GetCanvas()->cd(iPad);
-        plotTopLegend((char*)label_pid_spectra[iPad-1].Data(),0.75,0.83,0.06,kBlack,0.0,42,1,1); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
-        plotTopLegend((char*)"2.5<y<4",0.75,0.77,0.06,kBlack,0.0,42,1,1); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
-    }
+    //for(Int_t iPad = 4; iPad <= 5; iPad++)
+    //{
+    //    fCanvasB ->GetCanvas()->cd(iPad);
+    //    plotTopLegend((char*)label_pid_spectra[iPad-1].Data(),0.75,0.83,0.06,kBlack,0.0,42,1,1); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
+        //plotTopLegend((char*)"2.5<y<4",0.75,0.77,0.06,kBlack,0.0,42,1,1); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
+    //}
 
     fCanvasB->GetCanvas()->Modified();
     fCanvasB->GetCanvas()->Update();

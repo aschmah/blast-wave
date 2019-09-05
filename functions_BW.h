@@ -98,7 +98,7 @@ static TGraphAsymmErrors* tge_phi_dNdpT;
 static TGraphAsymmErrors* tge_Omega_dNdpT[3];
 static TH1D* h_dNdpT_best = NULL;
 static vector<TGraphErrors*> vec_tge_v2_vs_pT_560_pid;
-static TString label_pid_spectra[6] = {"#pi","K","p","J/#Psi","#Upsilon",""};
+static TString label_pid_spectra[8] = {"#pi","K","p","#phi","#Omega","D^{0}","J/#Psi","#Upsilon"};
 static TString label_full_pid_spectra[8] = {"pi","K","p","phi","Omega","D0","J/Psi","Upsilon"};
 static TString label_v2_dNdpT[2] = {"v2","dNdpT"};
 
@@ -244,12 +244,21 @@ void Multiply_pT_norm_to_integral_tgae(TGraphAsymmErrors* tgae_in = NULL, Int_t 
         err_Y_high = tgae_in ->GetErrorYhigh(i_point);
         err_Y_low  = tgae_in ->GetErrorYlow(i_point);
 
-        if(!flag_mult_pT) pT = 1.0;
-        tgae_in ->SetPoint(i_point,pT,y_val*pT);
-        tgae_in ->SetPointEYhigh(i_point,err_Y_high*pT);
-        tgae_in ->SetPointEYlow(i_point,err_Y_low*pT);
+        if(flag_mult_pT)
+        {
+            tgae_in ->SetPoint(i_point,pT,y_val*pT);
+            tgae_in ->SetPointEYhigh(i_point,err_Y_high*pT);
+            tgae_in ->SetPointEYlow(i_point,err_Y_low*pT);
+            integral += y_val*pT*(err_X_low + err_X_high); // bin content * bin width
+        }
+        else
+        {
+            tgae_in ->SetPoint(i_point,pT,y_val);
+            tgae_in ->SetPointEYhigh(i_point,err_Y_high);
+            tgae_in ->SetPointEYlow(i_point,err_Y_low);
+            integral += y_val*(err_X_low + err_X_high); // bin content * bin width
+        }
 
-        integral += y_val*pT*(err_X_low + err_X_high); // bin content * bin width
     }
 
     if(integral >= 0.0)
@@ -294,13 +303,16 @@ TGraphAsymmErrors* Add_tgae(TGraphAsymmErrors* tgae_inA = NULL, TGraphAsymmError
             err_Y_low[in_AB]  = tgae_inAB[in_AB] ->GetErrorYlow(i_point);
         }
 
-        tgae_out ->SetPoint(i_point,pT[0],y_val[0]+y_val[1]);
+        Double_t new_y_val = y_val[0]+y_val[1];
+        tgae_out ->SetPoint(i_point,pT[0],new_y_val);
         Double_t err_Y_high_out = TMath::Sqrt(TMath::Power(err_Y_high[0],2.0) + TMath::Power(err_Y_high[1],2.0));
         Double_t err_Y_low_out = TMath::Sqrt(TMath::Power(err_Y_low[0],2.0) + TMath::Power(err_Y_low[1],2.0));
         tgae_out ->SetPointEYhigh(i_point,err_Y_high_out);
         tgae_out ->SetPointEYlow(i_point,err_Y_low_out);
         tgae_out ->SetPointEXhigh(i_point,err_X_high[0]);
         tgae_out ->SetPointEXlow(i_point,err_X_low[0]);
+
+        //printf("i_point: %d, pT: %4.3f, new_y_val: %4.3f, y_vals: {%4.3f, %4.3f} \n",i_point,pT[0],new_y_val,y_val[0],y_val[1]);
     }
 
     return tgae_out;
@@ -715,7 +727,7 @@ void init_pT_spectra_data()
     tgae_dN_dpT_mesons_data[1] = (TGraphAsymmErrors*)vec_tgae_pT_spectra[1][7];    // pi, K, p, phi, Omega, D0, J/Psi, Upsilon
     tgae_dN_dpT_mesons_data[2] = (TGraphAsymmErrors*)vec_tgae_pT_spectra[2][7];    // pi, K, p, phi, Omega, D0, J/Psi, Upsilon
     tgae_dN_dpT_mesons_data[3] = (TGraphAsymmErrors*)tge_phi_dNdpT;    // pi, K, p, phi, Omega, D0, J/Psi, Upsilon
-    tgae_dN_dpT_mesons_data[4] = (TGraphAsymmErrors*)tge_Omega_dNdpT[2];    // pi, K, p, phi, Omega, D0, J/Psi, Upsilon
+    tgae_dN_dpT_mesons_data[4] = (TGraphAsymmErrors*)tge_Omega_dNdpT[1];    // pi, K, p, phi, Omega, D0, J/Psi, Upsilon
     tgae_dN_dpT_mesons_data[5] = (TGraphAsymmErrors*)tge_D_dNdpT;    // pi, K, p, phi, Omega, D0, J/Psi, Upsilon
     tgae_dN_dpT_mesons_data[6] = (TGraphAsymmErrors*)tge_JPsi_spectra[1][0]; // pi, K, p, phi, Omega, D0, J/Psi, Upsilon
     tgae_dN_dpT_mesons_data[7] = (TGraphAsymmErrors*)tge_D_dNdpT;    // pi, K, p, phi, Omega, D0, J/Psi, Upsilon
