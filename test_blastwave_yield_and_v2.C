@@ -95,7 +95,7 @@ void blastwave_yield_and_v2(const double &pt, const double &m, const double &T, 
     // if (ig_den.Status() != 0) cout << ig_den.Status() << endl;
 
     // cout << pt << " " << v2_den << endl;
-    cout << pt << " " << inv_yield << endl;
+    // cout << pt << " " << inv_yield << endl;
 
     if (v2_den != 0) {
         v2 = v2_num / v2_den;
