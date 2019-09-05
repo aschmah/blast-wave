@@ -1028,8 +1028,6 @@ void TTripleSliderDemo::DoMinimize()
 
     // Data
     //static TGraphAsymmErrors* tgae_v2_vs_pT_mesons_data[8]; // pi, K, p, phi, Omega, D0, J/Psi, Upsilon
-    //static TGraphAsymmErrors* tgae_dN_dpT_mesons_data[8];    
-    
     //static TGraphAsymmErrors* tgae_dN_dpT_mesons_data[8];
 
     // Blast wave
@@ -1066,19 +1064,6 @@ void TTripleSliderDemo::DoMinimize()
                         chi2_tot       = 0;
                         chi2_ndf_dNdpT = 0;
 
-                      
-                        for(Int_t i_mass = 0; i_mass < 3; i_mass++) // only pi K p!!
-
-                            // dNdpT chi2 separately: pi good, K good, p very good, 
-                            //phi ~159, Omega very bad ~100000, D0 ~2000, J/Psi ~159, Upsilon (in fact in function_BW it's D again) ~697
-
-                        {
-                    
-
-                        chi2_final     = 0;
-                        chi2_tot       = 0;
-                        chi2_ndf_dNdpT = 0;
-
 
                         for(Int_t i_mass = 0; i_mass < 8; i_mass++) //
 
@@ -1092,9 +1077,6 @@ void TTripleSliderDemo::DoMinimize()
                             n_arr_dNdpT = 0;
                             n_arr       = tgae_v2_vs_pT_mesons_data[i_mass] ->GetN();
                             n_arr_dNdpT = tgae_dN_dpT_mesons_data[i_mass]   ->GetN();
-                            
-
-                            Double_t x_pid; 
 
 
                             Double_t x_pid;
@@ -1104,25 +1086,6 @@ void TTripleSliderDemo::DoMinimize()
 
                             if((fCheckBox_v2_dNdpT[0]->GetState() == kButtonDown))
                             {
-                                //get v2_pid, v2_err_pid for different particles
-
-                                tgae_v2_vs_pT_mesons_data[i_mass]              ->GetPoint(i_pT,x_pid,v2_pid);
-                                v2_err_pid = tgae_v2_vs_pT_mesons_data[i_mass] ->GetErrorY(i_pT);
-                              
-                                if(x_pid >= min_max_pT_range_pid[0][i_mass]
-                                   && x_pid <= min_max_pT_range_pid[1][i_mass]
-                                   && v2_err_pid != 0) // calculate only within cetrain pT range; one loop for everybody
-                                {
-                                    v2_bw_pid           = tp_v2_vs_pT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->GetBinContent(tp_v2_vs_pT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a]->FindBin(x_pid));
-                                    chi2_tot            += ((v2_pid-v2_bw_pid)*(v2_pid-v2_bw_pid))/(v2_err_pid*v2_err_pid);
-                                    nop_tot             += 1;
-
-                                    // if (i_mass < 3) // pi K p only
-                                    // {
-                                    //     chi2_tot_piKp           += ((v2_pid-v2_bw_pid)*(v2_pid-v2_bw_pid))/(v2_err_pid*v2_err_pid);
-                                    //     nop_tot_piKp            += 1;
-                                    //}
-                                }
                                 for(Int_t i_pT = 0; i_pT < n_arr; i_pT++) // pT loop
                                 {
                                     //get v2_pid, v2_err_pid for different particles
@@ -1170,42 +1133,6 @@ void TTripleSliderDemo::DoMinimize()
                                         chi2_ndf_dNdpT += ((dNdpT_pid-dNdpT_bw_pid)*(dNdpT_pid-dNdpT_bw_pid))/(dNdpT_err_pid*dNdpT_err_pid);
                                         nop_dNdpT      += 1;
 
-                            x_pid = 0; 
-                            Double_t dNdpT_pid;
-                            Double_t dNdpT_err_pid;
-                            Double_t dNdpT_bw_pid;
-
-                            for(Int_t i_pT = 0; i_pT < n_arr_dNdpT; i_pT++) // pT loop for dNdpT
-                            {
-                                //get dNdpT + errors
-
-                                tgae_dN_dpT_mesons_data[i_mass]                 ->GetPoint(i_pT,x_pid,dNdpT_pid);
-                                dNdpT_err_pid = tgae_dN_dpT_mesons_data[i_mass] ->GetErrorY(i_pT);
-                                 
-                                if(x_pid >= min_max_pT_range_pid[0][i_mass]
-                                   && x_pid <= min_max_pT_range_pid[1][i_mass]
-                                   && dNdpT_err_pid != 0)  //&& (dNdpT_pid-dNdpT_bw_pid) <  100.0
-                                {
-                                    dNdpT_bw_pid    = h_dN_dpT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->GetBinContent(h_dN_dpT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a]->FindBin(x_pid));
-                                    chi2_ndf_dNdpT += ((dNdpT_pid-dNdpT_bw_pid)*(dNdpT_pid-dNdpT_bw_pid))/(dNdpT_err_pid*dNdpT_err_pid);
-                                    nop_dNdpT      += 1;
-
-                                    // if (i_mass < 3) // pi K p only
-                                    // {
-                                    //     chi2_ndf_dNdpT_piKp           += ((v2_pid-v2_bw_pid)*(v2_pid-v2_bw_pid))/(v2_err_pid*v2_err_pid);
-                                    //     nop_dNdpT_piKp            += 1;
-                                    // }
-
-                                    // cout << "x_pid: " << x_pid << endl;
-                                    // cout << "dNdpT_bw_pid: " << dNdpT_bw_pid << endl;
-                                    // cout << "dNdpT_pid: " << dNdpT_pid << endl;
-                                    // cout << "dNdpT_err_pid: " << dNdpT_err_pid << endl;
-                                    // cout << "chi2_ndf_dNdpT: " << chi2_ndf_dNdpT << endl;
-
-                                 }
-
-
-                            }
                                         // if (i_mass < 3) // pi K p only
                                         // {
                                         //     chi2_ndf_dNdpT_piKp           += ((v2_pid-v2_bw_pid)*(v2_pid-v2_bw_pid))/(v2_err_pid*v2_err_pid);
@@ -1221,7 +1148,6 @@ void TTripleSliderDemo::DoMinimize()
                                     }
 
 
-                        chi2_final      = chi2_tot      + chi2_ndf_dNdpT;
                                 }
                             }
 
@@ -1240,6 +1166,7 @@ void TTripleSliderDemo::DoMinimize()
                         // {
                         //     chi2_final_piKp = chi2_final_piKp/(nop_tot_piKp + nop_dNdpT_piKp - 5);
                         // }
+
 
                         if(chi2_final < chi2_final_min)
                         {
@@ -1286,23 +1213,6 @@ void TTripleSliderDemo::DoMinimize()
                         //     gSystem->ProcessEvents();
                         // }
 
-                        //     vec_slider[0]->SetPosition(i_Temp_min);
-                        //     vec_slider[1]->SetPosition(i_rho_0_min);
-                        //     vec_slider[2]->SetPosition(i_rho_a_min);
-                        //     vec_slider[3]->SetPosition(i_R_x_min);
-                        //     vec_slider[4]->SetPosition(i_fboost_min);
-                        //     gSystem->ProcessEvents();
-                        //     DoSlider();
-                        //     gSystem->Sleep(100);
-                        //     gSystem->ProcessEvents();
-                        // }
-
-
-                        // cout << "chi2_final: " << chi2_final << endl;
-                        // cout << "chi2_tot: " << chi2_tot << endl;
-                        // cout << "chi2_ndf_dNdpT: " << chi2_ndf_dNdpT << endl;
-
-                        // cout << "chi2_final_min: " << chi2_final_min << endl;
 
                         // cout << "chi2_final: " << chi2_final << endl;
                         // cout << "chi2_tot: " << chi2_tot << endl;
