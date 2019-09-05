@@ -68,7 +68,7 @@ void blastwave_yield_and_v2(const double &pt, const double &m, const double &T, 
     w_v2_den.SetParameters(pars);
  
     // define integrator
-   	ROOT::Math::AdaptiveIntegratorMultiDim ig;
+    ROOT::Math::AdaptiveIntegratorMultiDim ig;
     ig.SetRelTolerance(1e-6);
 
     // integration range
@@ -84,7 +84,7 @@ void blastwave_yield_and_v2(const double &pt, const double &m, const double &T, 
     double v2_den = ig.Integral(xmin, xmax);
     // if (ig_den.Status() != 0) cout << ig_den.Status() << endl;
 
-    cout << v2_den << endl;
+    //cout << v2_den << endl;
 
     if (v2_den != 0) {
         v2 = v2_num / v2_den;
@@ -123,10 +123,16 @@ void test_blastwave_yield_and_v2() {
     //
     // test 2: plot v2 vs pt
     //
-    const double T_BW = 0.401757;
-    const double Rho0_BW = 2.;
-    const double Rho2_BW = 0.167473;
-    const double RxOverRy_BW = 0.58366;
+    //const double T_BW = 0.401757;
+    //const double Rho0_BW = 2.;
+    //const double Rho2_BW = 0.167473;
+    //const double RxOverRy_BW = 0.58366;
+
+    const double T_BW = 0.102846;
+    const double Rho0_BW = 1.14149;
+    const double Rho2_BW = 0.0652361;
+    const double RxOverRy_BW = 0.824434;
+
     const double m_BW = 9.460;
     // const double m_BW = 3.096;
 
@@ -149,6 +155,8 @@ void test_blastwave_yield_and_v2() {
         blastwave_yield_and_v2(pt_BW, m_BW, T_BW, Rho0_BW, Rho2_BW, RxOverRy_BW, inv_yield_BW, v2_BW);
         gv2.SetPoint(i, pt_BW, v2_BW);
     }
+
+    cout << "End" << endl;
 
     t.Stop();
     t.Print();
