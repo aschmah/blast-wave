@@ -212,6 +212,13 @@ TTripleSliderDemo::TTripleSliderDemo() : TGMainFrame(gClient->GetRoot(), 100, 10
 
     TString vec_label[5] = {"T (GeV)","rho0","rhoa","Rx","fboost"};
 
+
+    init_data();
+    init_pT_spectra_data();
+    make_5_60_spectra();
+    Init_v2_Mathematica();
+
+
     inputfile = TFile::Open("./Data/merge_out_v2_boost.root");
 
     for(Int_t i_R_x = 0; i_R_x < 9; i_R_x++)
@@ -246,7 +253,16 @@ TTripleSliderDemo::TTripleSliderDemo() : TGMainFrame(gClient->GetRoot(), 100, 10
                             tp_v2_vs_pT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] = (TProfile*)arr_list[i_R_x][i_fboost] ->At(i_pos_v2);
                             h_dN_dpT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a]    = (TH1F*)arr_list[i_R_x][i_fboost]     ->At(i_pos_dNdpT);
 
-                            Double_t integral = h_dN_dpT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->Integral("width");
+                            // integrate only in range of available data
+                            Double_t x_val_data_first, y_val_data_first, x_val_data_last, y_val_data_last, x_err_low_data, x_err_high_data;
+                            tgae_dN_dpT_mesons_data[i_mass] ->GetPoint(0,x_val_data_first,y_val_data_first);
+                            x_err_low_data = tgae_dN_dpT_mesons_data[i_mass] ->GetErrorXlow(0);;
+                            tgae_dN_dpT_mesons_data[i_mass] ->GetPoint(tgae_dN_dpT_mesons_data[i_mass] ->GetN()-1,x_val_data_last,y_val_data_last);
+                            x_err_high_data = tgae_dN_dpT_mesons_data[i_mass] ->GetErrorXhigh(tgae_dN_dpT_mesons_data[i_mass] ->GetN()-1);;
+
+                            Int_t start_integrate_bin = h_dN_dpT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->FindBin(x_val_data_first - x_err_low_data);
+                            Int_t stop_integrate_bin  = h_dN_dpT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->FindBin(x_val_data_last  + x_err_high_data);
+                            Double_t integral = h_dN_dpT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->Integral(start_integrate_bin,stop_integrate_bin,"width");
                             if(integral <= 0.0) continue;
                             h_dN_dpT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->Scale(1.0/integral);
                         }
@@ -255,11 +271,6 @@ TTripleSliderDemo::TTripleSliderDemo() : TGMainFrame(gClient->GetRoot(), 100, 10
             }
         }
     }
-
-    init_data();
-    init_pT_spectra_data();
-    make_5_60_spectra();
-    Init_v2_Mathematica();
 
     char buf[32];
     SetCleanup(kDeepCleanup);
