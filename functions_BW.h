@@ -144,7 +144,9 @@ double v2_numerator(const double *x, const double *p) {
     double PhiB = TMath::ATan(RxOverRy * TMath::Tan(PhiHat));  // boost angle
     double rho = rho0 + rho2 * TMath::Cos(2 * PhiB);  // transverse rapidity
 
-    return rHat * TMath::BesselI(2, (pt * TMath::SinH(rHat * rho)) / T) *
+	const double A = 1e12;
+
+    return A * rHat * TMath::BesselI(2, (pt * TMath::SinH(rHat * rho)) / T) *
            TMath::BesselK(1, (TMath::Sqrt(TMath::Power(m, 2) + TMath::Power(pt, 2)) * TMath::CosH(rHat * rho)) / T) *
            TMath::Cos(2 * PhiB);
 }
@@ -168,13 +170,15 @@ double v2_denominator(const double *x, const double *p) {
     double rho2 = p[4];
     double RxOverRy = p[5];
 
-    double PhiB = TMath::ATan(RxOverRy * TMath::Tan(PhiHat));  // boost angle
+	double PhiB = TMath::ATan(RxOverRy * TMath::Tan(PhiHat));  // boost angle
     double rho = rho0 + rho2 * TMath::Cos(2 * PhiB);  // transverse rapidity
 
-    return rHat * TMath::BesselI(0, (pt * TMath::SinH(rHat * rho)) / T) *
-        TMath::BesselK(1, (TMath::Sqrt(TMath::Power(m, 2) + TMath::Power(pt, 2)) *
-                           TMath::CosH(rHat * (rho0 + rho2 * TMath::Cos(2 * PhiB)))) /
-                       T);
+    const double A = 1e12; // arbitrary factor to improve numerical stability
+
+    return A * rHat * TMath::BesselI(0, (pt * TMath::SinH(rHat * rho)) / T) *
+           TMath::BesselK(1, (TMath::Sqrt(TMath::Power(m, 2) + TMath::Power(pt, 2)) *
+                              TMath::CosH(rHat * (rho0 + rho2 * TMath::Cos(2 * PhiB)))) /
+                                 T);
 }
 //------------------------------------------------------------------------------------------------------------
 
@@ -186,31 +190,31 @@ void blastwave_yield_and_v2(const double pt, const double m, const double T, con
 
     double pars[6] = {pt, m, T, rho0, rho2, RxOverRy};
 
-    //printf("pt: %4.3f, m: %4.3f, T: %4.3f, rho0: %4.3f, rho2: %4.3f, RxOverRy: %4.3f \n",pt,m,T,rho0,rho2,RxOverRy);
-
     // wrapper function for numerical integration of v2 numerator
     ROOT::Math::WrappedParamFunction<> w_v2_num(&v2_numerator, 2, 6);
     w_v2_num.SetParameters(pars);
     ROOT::Math::AdaptiveIntegratorMultiDim ig_num;
     ig_num.SetFunction(w_v2_num);
-    ig_num.SetRelTolerance(0.000001);
-    ig_num.SetMinPts(1000);
-
+    ig_num.SetRelTolerance(1e-5);
+    
     // wrapper function for numerical integration of v2 denominator
     ROOT::Math::WrappedParamFunction<> w_v2_den(&v2_denominator, 2, 6);
     w_v2_den.SetParameters(pars);
     ROOT::Math::AdaptiveIntegratorMultiDim ig_den;
     ig_den.SetFunction(w_v2_den);
-    ig_den.SetRelTolerance(0.000001);
-    ig_den.SetMinPts(1000);
-
+    ig_den.SetRelTolerance(1e-5);
+    
     // integration range
     double xmin[2] = {0., 0.};
     double xmax[2] = {1., 2. * TMath::Pi()};
 
     // integrate
     double v2_num = ig_num.Integral(xmin, xmax);
+    // if (ig_num.Status() != 0) cout << ig_num.Status() << endl;
+	
     double v2_den = ig_den.Integral(xmin, xmax);
+	// if (ig_den.Status() != 0) cout << ig_den.Status() << endl;
+	
     if (v2_den != 0) {
         v2 = v2_num / v2_den;
     } else {
