@@ -17,11 +17,10 @@ double v2_numerator(const double *x, const double *p) {
     double rho0 = p[3];
     double rho2 = p[4];
     double RxOverRy = p[5];
+    double A = p[6]; // arbitrary factor, can be adjusted to improve numerical stability
 
     double PhiB = TMath::ATan(RxOverRy * TMath::Tan(PhiHat)); // boost angle
     double rho = rho0 + rho2 * TMath::Cos(2 * PhiB);          // transverse rapidity
-
-    const double A = 1e12;
 
     return A * rHat * TMath::BesselI(2, (pt * TMath::SinH(rHat * rho)) / T) *
            TMath::BesselK(1, (TMath::Sqrt(TMath::Power(m, 2) + TMath::Power(pt, 2)) * TMath::CosH(rHat * rho)) / T) *
@@ -42,11 +41,10 @@ double v2_denominator(const double *x, const double *p) {
     double rho0 = p[3];
     double rho2 = p[4];
     double RxOverRy = p[5];
+    double A = p[6]; // arbitrary factor, can be adjusted to improve numerical stability
 
     double PhiB = TMath::ATan(RxOverRy * TMath::Tan(PhiHat)); // boost angle
     double rho = rho0 + rho2 * TMath::Cos(2 * PhiB);          // transverse rapidity
-
-    const double A = 1e12; // arbitrary factor to improve numerical stability
 
     return A * rHat * TMath::BesselI(0, (pt * TMath::SinH(rHat * rho)) / T) *
            TMath::BesselK(1, (TMath::Sqrt(TMath::Power(m, 2) + TMath::Power(pt, 2)) *
@@ -57,16 +55,19 @@ double v2_denominator(const double *x, const double *p) {
 void blastwave_yield_and_v2(const double &pt, const double &m, const double &T, const double &rho0, const double &rho2,
                             const double &RxOverRy, double &inv_yield, double &v2) {
 
-    double pars[6] = {pt, m, T, rho0, rho2, RxOverRy};
+    // mass and T dependent scale factor prop. to total yield used to improve numerical stability
+    // of the invariant yield
+    double sf = T * m * m * TMath::BesselK(2, m / T);
 
-    // wrapper function for numerical integration of v2 numerator
-    ROOT::Math::WrappedParamFunction<> w_v2_num(&v2_numerator, 2, 6);
-    w_v2_num.SetParameters(pars);
+    // blast wave parameters:
+    // the last number (par[6]) is an arbitrary normalization which we will adjust
+    // in order to have a good numerical stability for different masses and pt
+    double pars[7] = {pt, m, T, rho0, rho2, RxOverRy, 1. / sf};
 
-    // wrapper function for numerical integration of v2 denominator
-    ROOT::Math::WrappedParamFunction<> w_v2_den(&v2_denominator, 2, 6);
-    w_v2_den.SetParameters(pars);
- 
+    // wrapper functions for v2 numerator and denominator
+    ROOT::Math::WrappedParamFunction<> w_v2_num(&v2_numerator, 2, 7);
+    ROOT::Math::WrappedParamFunction<> w_v2_den(&v2_denominator, 2, 7);
+
     // define integrator
     ROOT::Math::AdaptiveIntegratorMultiDim ig;
     ig.SetRelTolerance(1e-6);
@@ -75,25 +76,32 @@ void blastwave_yield_and_v2(const double &pt, const double &m, const double &T, 
     double xmin[2] = {0., 0.};
     double xmax[2] = {1., 2. * TMath::Pi()};
 
+    // We calculate the invariant yield 1/(2 pi pt) dN/(dpt dy) (with arbitrary constant pre-factor)
+    // and determine the optimal normalization for numerical stability in the v2 calculation
+    w_v2_den.SetParameters(pars);
+    ig.SetFunction(w_v2_den);
+    inv_yield = sf * TMath::Sqrt(m * m + pt * pt) * ig.Integral(xmin, xmax);
+    pars[6] = 1. / inv_yield;
+    w_v2_num.SetParameters(pars);
+    w_v2_den.SetParameters(pars);
+
     // integrate
     ig.SetFunction(w_v2_num);
     double v2_num = ig.Integral(xmin, xmax);
     // if (ig_num.Status() != 0) cout << ig_num.Status() << endl;
 
-	ig.SetFunction(w_v2_den);
+    ig.SetFunction(w_v2_den);
     double v2_den = ig.Integral(xmin, xmax);
     // if (ig_den.Status() != 0) cout << ig_den.Status() << endl;
 
-    //cout << v2_den << endl;
+    // cout << pt << " " << v2_den << endl;
+    cout << pt << " " << inv_yield << endl;
 
     if (v2_den != 0) {
         v2 = v2_num / v2_den;
     } else {
         cout << "WARNING: v2 denominator zero!!!" << endl;
     }
-
-    // calculate invariant yield 1/(2 pi pt) dN/(dpt dy) (with arbitrary constant pre-factor)
-    inv_yield = TMath::Sqrt(m * m + pt * pt) * v2_den;
 }
 
 // main function:
@@ -123,10 +131,10 @@ void test_blastwave_yield_and_v2() {
     //
     // test 2: plot v2 vs pt
     //
-    //const double T_BW = 0.401757;
-    //const double Rho0_BW = 2.;
-    //const double Rho2_BW = 0.167473;
-    //const double RxOverRy_BW = 0.58366;
+    // const double T_BW = 0.401757;
+    // const double Rho0_BW = 2.;
+    // const double Rho2_BW = 0.167473;
+    // const double RxOverRy_BW = 0.58366;
 
     const double T_BW = 0.102846;
     const double Rho0_BW = 1.14149;
@@ -135,15 +143,17 @@ void test_blastwave_yield_and_v2() {
 
     const double m_BW = 9.460;
     // const double m_BW = 3.096;
+    // const double m_BW = 0.14;
 
     const double pt_min = 0;
     const double pt_max = 16.;
-    const double dpt = 0.01;
+    const double dpt = 0.1;
 
     const int i_max = (pt_max - pt_min) / dpt + 1;
+    TGraph giy(i_max);
     TGraph gv2(i_max);
 
-    cout << endl << "Test 02: Performance test (plot v2 vs pt)" << endl;
+    cout << endl << "Test 2: Performance test (plot v2 vs pt)" << endl;
 
     TStopwatch t;
     t.Start();
@@ -153,6 +163,7 @@ void test_blastwave_yield_and_v2() {
         double inv_yield_BW = 0;
         double v2_BW = 0;
         blastwave_yield_and_v2(pt_BW, m_BW, T_BW, Rho0_BW, Rho2_BW, RxOverRy_BW, inv_yield_BW, v2_BW);
+        giy.SetPoint(i, pt_BW, inv_yield_BW);
         gv2.SetPoint(i, pt_BW, v2_BW);
     }
 
@@ -163,6 +174,7 @@ void test_blastwave_yield_and_v2() {
 
     // plot v2 vs pt
     gStyle->SetOptStat(0);
+
     TCanvas *c1 = new TCanvas("c1");
     TH2F *fr = new TH2F("frame", "blast wave #it{v}_{2}", 1, pt_min, pt_max + 0.5, 1, 0., 0.8);
     fr->SetXTitle("p_{T} (GeV/#it{c})");
@@ -171,6 +183,18 @@ void test_blastwave_yield_and_v2() {
     gv2.SetMarkerStyle(kFullCircle);
     gv2.SetMarkerSize(0.5);
     gv2.DrawClone("l");
+
+    TCanvas *c2 = new TCanvas("c2");
+    c2->SetLogy();
+    double xmin, ymin, xmax, ymax;
+    giy.ComputeRange(xmin, ymin, xmax, ymax);
+    TH2F *fr2 = new TH2F("frame", "blast wave inv. yield", 1, pt_min, pt_max + 0.5, 1, ymin, ymax);
+    fr2->SetXTitle("p_{T} (GeV/#it{c})");
+    fr2->SetYTitle("inv. yield");
+    fr2->Draw();
+    giy.SetMarkerStyle(kFullCircle);
+    giy.SetMarkerSize(0.5);
+    giy.DrawClone("l");
 
     //
     // test 3: compare to Retiere-Lisa paper results (Fig. 10)
@@ -194,7 +218,7 @@ void test_blastwave_yield_and_v2() {
 
     // pt = 0.2 GeV, protons
     blastwave_yield_and_v2(0.2, m_proton, T_RL, Rho0_RL, Rho2_RL, RxOverRy_RL, inv_yield_RL, v2_RL);
-    cout << "pt = 0.2 GeV/c, v2 = " << v2_RL << " (value in the Retiere-Lisa paper: 0.004) " << endl;
+    cout << "pt = 0.2 GeV/c, protons, v2 = " << v2_RL << " (value in the Retiere-Lisa paper: 0.004) " << endl;
 
     // pt = 0.5 GeV, pions
     blastwave_yield_and_v2(0.5, m_pion, T_RL, Rho0_RL, Rho2_RL, RxOverRy_RL, inv_yield_RL, v2_RL);
@@ -202,7 +226,7 @@ void test_blastwave_yield_and_v2() {
 
     // pt = 0.5 GeV, protons
     blastwave_yield_and_v2(0.5, m_proton, T_RL, Rho0_RL, Rho2_RL, RxOverRy_RL, inv_yield_RL, v2_RL);
-    cout << "pt = 0.5 GeV/c, v2 = " << v2_RL << " (value in the Retiere-Lisa paper: 0.025) " << endl;
+    cout << "pt = 0.5 GeV/c, protons, v2 = " << v2_RL << " (value in the Retiere-Lisa paper: 0.025) " << endl;
 
     // pt = 0.9 GeV, pions
     blastwave_yield_and_v2(0.9, m_pion, T_RL, Rho0_RL, Rho2_RL, RxOverRy_RL, inv_yield_RL, v2_RL);
@@ -210,5 +234,5 @@ void test_blastwave_yield_and_v2() {
 
     // pt = 0.9 GeV, protons
     blastwave_yield_and_v2(0.9, m_proton, T_RL, Rho0_RL, Rho2_RL, RxOverRy_RL, inv_yield_RL, v2_RL);
-    cout << "pt = 0.9 GeV/c, v2 = " << v2_RL << " (value in the Retiere-Lisa paper: 0.067) " << endl;
+    cout << "pt = 0.9 GeV/c, protons, v2 = " << v2_RL << " (value in the Retiere-Lisa paper: 0.067) " << endl;
 }
