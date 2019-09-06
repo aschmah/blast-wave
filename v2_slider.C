@@ -59,12 +59,14 @@ private:
     TGHorizontalFrame *hframeD4;
     TGHorizontalFrame *hframeD5;
     TGVerticalFrame *hVframeD3;
+    TGVerticalFrame *hVframeD4;
     TGVerticalFrame *vframeD1;
     TGCompositeFrame *cframe2;
     TGTextButton *ButtonD1a;
     TGTextButton *Button_exit;
     TGTextButton *Button_save;
     TGHProgressBar* fHProg1 = NULL;
+    TGHProgressBar* fHProg2 = NULL;
     TGVProgressBar* fVProg1;
     TGLayoutHints* fHint2;
     TGTextButton      *fGO;
@@ -77,6 +79,7 @@ private:
     TGTransientFrame* frame_TGTransient;
     TGTransientFrame* frame_TGTransientB;
     TGTextButton      *Button_take_params_MC_to_ana;
+    TGTextButton      *Button_take_params_Set_to_ana;
 
     TGCheckButton* fCheckBox_sel[2];
     TGCheckButton* fCheckBox_pid[8];
@@ -90,7 +93,8 @@ private:
     TGNumberEntry*     arr_NEntry_limits[2][8];
     TGLayoutHints* arr_fL1[2];
     Double_t min_max_pT_range_pid[2][8];
-    TGraph* tg_BW_ana_pid[8];
+    TGraph* tg_v2_BW_ana_pid[8];
+    TGraph* tg_dNdpT_BW_ana_pid[8];
 
     Double_t var_test = 5.2;
 
@@ -125,6 +129,7 @@ public:
     void DoMinimize();
     void StopMinimize();
     void TakeParamsFromMC();
+    void TakeParamsFromSet();
     ClassDef(TTripleSliderDemo, 0)
 };
 
@@ -164,7 +169,8 @@ TTripleSliderDemo::TTripleSliderDemo() : TGMainFrame(gClient->GetRoot(), 100, 10
 
     for(int i_mass = 0; i_mass < N_masses; ++i_mass)
     {
-        tg_BW_ana_pid[i_mass] = NULL;
+        tg_v2_BW_ana_pid[i_mass]    = NULL;
+        tg_dNdpT_BW_ana_pid[i_mass] = NULL;
     }
 
 
@@ -421,19 +427,6 @@ TTripleSliderDemo::TTripleSliderDemo() : TGMainFrame(gClient->GetRoot(), 100, 10
 
 
     //--------------
-    hframeD2a  = new TGHorizontalFrame(FrameD,200,100);
-    for(Int_t i_v2_dNdpT = 0; i_v2_dNdpT < 2; i_v2_dNdpT++)
-    {
-        fCheckBox_v2_dNdpT[i_v2_dNdpT]  = new TGCheckButton(hframeD2a, new TGHotString(label_v2_dNdpT[i_v2_dNdpT].Data()), -1);
-        fCheckBox_v2_dNdpT[i_v2_dNdpT] ->SetState(kButtonDown);
-        hframeD2a->AddFrame(fCheckBox_v2_dNdpT[i_v2_dNdpT], new TGLayoutHints(kLHintsTop | kLHintsLeft,0, 0, 5, 0));
-    }
-    FrameD ->AddFrame(hframeD2a, new TGLayoutHints(kLHintsCenterX,2,2,2,2));
-    //--------------
-
-
-
-    //--------------
     // A horizontal frame
     hVframeD3  = new TGVerticalFrame(FrameD,200,100);
     fHint2 = new TGLayoutHints(kLHintsTop | kLHintsLeft | kLHintsExpandX, 5, 5,  5, 10);
@@ -441,7 +434,7 @@ TTripleSliderDemo::TTripleSliderDemo() : TGMainFrame(gClient->GetRoot(), 100, 10
     fHProg1->ShowPosition();
     hVframeD3->AddFrame(fHProg1, fHint2);
     FrameD ->AddFrame(hVframeD3, new TGLayoutHints(kLHintsCenterX,2,2,2,2));
-    //fHProg1->Reset();
+    fHProg1->Reset();
     //--------------
 
 
@@ -467,6 +460,18 @@ TTripleSliderDemo::TTripleSliderDemo() : TGMainFrame(gClient->GetRoot(), 100, 10
 
 
     FrameD ->AddFrame(hframeD2, new TGLayoutHints(kLHintsCenterX,2,2,2,2));
+    //--------------
+
+
+
+    //--------------
+    // A horizontal frame
+    hVframeD4  = new TGVerticalFrame(FrameD,200,100);
+    fHProg2 = new TGHProgressBar(hVframeD4, 400);
+    fHProg2->ShowPosition();
+    hVframeD4->AddFrame(fHProg2, new TGLayoutHints(kLHintsTop | kLHintsLeft | kLHintsExpandX, 5, 5,  5, 10));
+    FrameD ->AddFrame(hVframeD4, new TGLayoutHints(kLHintsCenterX,2,2,2,2));
+    fHProg2->Reset();
     //--------------
 
 
@@ -510,6 +515,12 @@ TTripleSliderDemo::TTripleSliderDemo() : TGMainFrame(gClient->GetRoot(), 100, 10
 
     //--------------
     hframeD4  = new TGHorizontalFrame(FrameD,200,100);
+    for(Int_t i_v2_dNdpT = 0; i_v2_dNdpT < 2; i_v2_dNdpT++)
+    {
+        fCheckBox_v2_dNdpT[i_v2_dNdpT]  = new TGCheckButton(hframeD4, new TGHotString(label_v2_dNdpT[i_v2_dNdpT].Data()), -1);
+        fCheckBox_v2_dNdpT[i_v2_dNdpT] ->SetState(kButtonDown);
+        hframeD4->AddFrame(fCheckBox_v2_dNdpT[i_v2_dNdpT], fLCheckBox);
+    }
     for(Int_t i_cb = 0; i_cb < 2; i_cb++)
     {
         fCheckBox_sel[i_cb]  = new TGCheckButton(hframeD4, new TGHotString(label_checkbox[i_cb].Data()), -1);
@@ -528,6 +539,10 @@ TTripleSliderDemo::TTripleSliderDemo() : TGMainFrame(gClient->GetRoot(), 100, 10
     Button_take_params_MC_to_ana = new TGTextButton(hframeD5, "Use MC params for ana",10);
     Button_take_params_MC_to_ana->Connect("Clicked()", "TTripleSliderDemo", this, "TakeParamsFromMC()");
     hframeD5->AddFrame(Button_take_params_MC_to_ana, new TGLayoutHints(kLHintsCenterX,5,5,3,4));
+
+    Button_take_params_Set_to_ana = new TGTextButton(hframeD5, "Use SET params for ana",10);
+    Button_take_params_Set_to_ana->Connect("Clicked()", "TTripleSliderDemo", this, "TakeParamsFromSet()");
+    hframeD5->AddFrame(Button_take_params_Set_to_ana, new TGLayoutHints(kLHintsCenterX,5,5,3,4));
 
     FrameD ->AddFrame(hframeD5, new TGLayoutHints(kLHintsCenterX,2,2,2,2));
     //--------------
@@ -738,7 +753,7 @@ void TTripleSliderDemo::DoSlider()
         {
             if(fCheckBox_pid[i_mass]->GetState() == kButtonDown)
             {
-                tg_BW_ana_pid[i_mass] -> Draw("same L");
+                tg_v2_BW_ana_pid[i_mass] -> Draw("same L");
             }
         }
     }
@@ -779,12 +794,6 @@ void TTripleSliderDemo::DoSlider()
 
 
     //-------------------------------------
-    for(Int_t i_pid = 0; i_pid < 3; i_pid++)
-    {
-        vec_tgae_pT_spectra[i_pid][3]->SetMarkerColor(kBlue);
-        vec_tgae_pT_spectra[i_pid][10]->SetMarkerColor(kGreen);
-    }
-
     Double_t x_range_dNdpT[8] = {3.5,4.1,4.5,5.0,5.0,5.0,8.5,15.0};
     Double_t y_range_dNdpT[8] = {2.2,1.4,1.1,1.0,1.0,1.0,0.45,0.35};
 
@@ -800,11 +809,26 @@ void TTripleSliderDemo::DoSlider()
         tgae_dN_dpT_mesons_data[i_mass] ->SetMarkerSize(1.0);
         tgae_dN_dpT_mesons_data[i_mass] ->Draw("same P");
 
-
         h_dN_dpT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->SetLineColor(kRed); // blast wave MC
         h_dN_dpT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->SetLineWidth(5); // blast wave MC
         h_dN_dpT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->DrawCopy("same hist L"); // blast wave MC
+  
+        if(flag_minimization_ana)
+        {
+            if(!tg_dNdpT_BW_ana_pid[i_mass]) continue;
+            tg_dNdpT_BW_ana_pid[i_mass] -> SetLineColor(kAzure-2);
+            tg_dNdpT_BW_ana_pid[i_mass] -> SetLineWidth(3);
+            tg_dNdpT_BW_ana_pid[i_mass] -> SetLineStyle(1);
+            if(!(fCheckBox_pid[i_mass]->GetState() == kButtonDown)) tg_dNdpT_BW_ana_pid[i_mass] -> SetLineStyle(9);
+            if(fCheckBox_sel[1]->GetState() == kButtonDown)
+            {
+                tg_dNdpT_BW_ana_pid[i_mass] -> Draw("same L");
+            }
+        }
     }
+
+    //------------------------------------------------------
+
 
     for(Int_t iPad = 1; iPad <= 8; iPad++)
     {
@@ -837,6 +861,9 @@ void TTripleSliderDemo::StopMinimize()
 void TTripleSliderDemo::DoMinimize_ana()
 {
     cout << "DoMinimize_ana started" << endl;
+    N_calls_BW_ana = 0;
+
+    fHProg2 ->Reset();
 
     Pixel_t yellow;
     gClient->GetColorByName("yellow", yellow);
@@ -848,10 +875,21 @@ void TTripleSliderDemo::DoMinimize_ana()
     auto chi2Function = [&](const Double_t *par)
     {
         //minimisation function computing the sum of squares of residuals
+        N_calls_BW_ana++;
         double chi2 = 0;
+
+        const double T = par[0];       // fit parameter: Temp in GeV
+        const double rho0 = par[1];   // fit parameter: transverse rapidity
+        const double rho2 = par[2];    // fit parameter: azimuthal modulation of transverse rapidity
+        const double RxOverRy = par[3]; // fit parameter: ratio of the radii Rx and Ry of the freeze-out ellipse in the transverse plane
+
         for(int i_mass = 0; i_mass < N_masses; ++i_mass)
         {
             if(!(fCheckBox_pid[i_mass]->GetState() == kButtonDown)) continue;
+            Double_t min_val_pT = arr_NEntry_limits[0][i_mass]->GetNumberEntry()->GetNumber();
+            Double_t max_val_pT = arr_NEntry_limits[1][i_mass]->GetNumberEntry()->GetNumber();
+
+            const double m = arr_quark_mass_meson[i_mass];       // in GeV
 
             //--------------------------------------------------
             // v2 chi2
@@ -866,22 +904,15 @@ void TTripleSliderDemo::DoMinimize_ana()
                     double v2_err = tgae_v2_vs_pT_mesons_data[i_mass]->GetErrorYhigh(i_point);
                     // cout << "i_point = " << i_point << ", pt_data = " << pt_data << "v2 = " << v2_data << " +/- " << v2_err << endl;
 
-                    Double_t min_val_pT = arr_NEntry_limits[0][i_mass]->GetNumberEntry()->GetNumber();
-                    Double_t max_val_pT = arr_NEntry_limits[1][i_mass]->GetNumberEntry()->GetNumber();
+                    if(pt_data > max_val_pT) break;
 
-                    if(pt_data > min_val_pT &&
-                       pt_data < max_val_pT)
+                    if(pt_data > min_val_pT)
                     {
                         double v2_BW = 0;
                         double inv_yield_BW = 0;
 
                         // blast wave parameters
                         const double pt_BW = pt_data;         // in GeV
-                        const double m = arr_quark_mass_meson[i_mass];       // in GeV
-                        const double T = par[0];       // fit parameter: Temp in GeV
-                        const double rho0 = par[1];   // fit parameter: transverse rapidity
-                        const double rho2 = par[2];    // fit parameter: azimuthal modulation of transverse rapidity
-                        const double RxOverRy = par[3]; // fit parameter: ratio of the radii Rx and Ry of the freeze-out ellipse in the transverse plane
 
                         blastwave_yield_and_v2(pt_BW, m, T, rho0, rho2, RxOverRy, inv_yield_BW, v2_BW);
                         // cout << "i_point = " << i_point << ", pt_BW = " << pt_BW << ", v2_BW = " << v2_BW << endl;
@@ -901,29 +932,22 @@ void TTripleSliderDemo::DoMinimize_ana()
                 for(int i_point = 0; i_point < tgae_dN_dpT_mesons_data[i_mass]->GetN(); ++i_point)
                 {
                     double dNdpT_data = 0.0;
-                    double pt_data = 0.0;
+                    double pt_data    = 0.0;
 
                     tgae_dN_dpT_mesons_data[i_mass]->GetPoint(i_point,pt_data,dNdpT_data);
                     double dNdpT_err = tgae_dN_dpT_mesons_data[i_mass]->GetErrorYhigh(i_point);
                     // cout << "i_point = " << i_point << ", pt_data = " << pt_data << "v2 = " << dNdpT_data << " +/- " << dNdpT_err << endl;
 
-                    Double_t min_val_pT = arr_NEntry_limits[0][i_mass]->GetNumberEntry()->GetNumber();
-                    Double_t max_val_pT = arr_NEntry_limits[1][i_mass]->GetNumberEntry()->GetNumber();
+                    if(pt_data > max_val_pT) break;
 
-                    if(pt_data > min_val_pT &&
-                       pt_data < max_val_pT)
+                    if(pt_data > min_val_pT)
                     {
                         double v2_BW = 0;
                         double inv_yield_BW = 0;
 
                         // blast wave parameters
                         const double pt_BW = pt_data;         // in GeV
-                        const double m = arr_quark_mass_meson[i_mass];       // in GeV
-                        const double T = par[0];       // fit parameter: Temp in GeV
-                        const double rho0 = par[1];   // fit parameter: transverse rapidity
-                        const double rho2 = par[2];    // fit parameter: azimuthal modulation of transverse rapidity
-                        const double RxOverRy = par[3]; // fit parameter: ratio of the radii Rx and Ry of the freeze-out ellipse in the transverse plane
-
+                       
                         blastwave_yield_and_v2(pt_BW, m, T, rho0, rho2, RxOverRy, inv_yield_BW, v2_BW);
                         // cout << "i_point = " << i_point << ", pt_BW = " << pt_BW << ", v2_BW = " << v2_BW << endl;
                         double diff   = (dNdpT_data - inv_yield_BW)/dNdpT_err;
@@ -982,33 +1006,75 @@ void TTripleSliderDemo::DoMinimize_ana()
     double RxOverRy_BW = fitpar[3];
     cout << "T_BW = " << T_BW << ", Rho0_BW = " << Rho0_BW << ", Rho2_BW = " << Rho2_BW << ", RxOverRy_BW = " << RxOverRy_BW << endl;
 
-    fCanvas ->GetCanvas() ->cd();
+
     flag_minimization_ana = 1;
+
+    //------------------------------------------------------
+    // v2 plots
+    fCanvas ->GetCanvas() ->cd();
 
     for(int i_mass = 0; i_mass < N_masses; ++i_mass)
     {
-        tg_BW_ana_pid[i_mass] = new TGraph();
+        if(tg_v2_BW_ana_pid[i_mass]) delete tg_v2_BW_ana_pid[i_mass];
+        tg_v2_BW_ana_pid[i_mass] = new TGraph();
         for(Int_t i_pT = 0; i_pT < 300; i_pT++)
         {
             Double_t pt_BW = i_pT*0.05 + 0.0;
             Double_t v2_BW = 0;
             Double_t inv_yield_BW = 0;
             blastwave_yield_and_v2(pt_BW, arr_quark_mass_meson[i_mass], T_BW, Rho0_BW, Rho2_BW, RxOverRy_BW, inv_yield_BW, v2_BW);
-            tg_BW_ana_pid[i_mass] ->SetPoint(i_pT,pt_BW,v2_BW);
+            tg_v2_BW_ana_pid[i_mass] ->SetPoint(i_pT,pt_BW,v2_BW);
         }
-        tg_BW_ana_pid[i_mass] -> SetLineColor(arr_color_mass[i_mass]);
-        tg_BW_ana_pid[i_mass] -> SetLineWidth(3);
-        tg_BW_ana_pid[i_mass] -> SetLineStyle(1);
-        if(!(fCheckBox_pid[i_mass]->GetState() == kButtonDown)) tg_BW_ana_pid[i_mass] -> SetLineStyle(9);
-        if(fCheckBox_sel[1]->GetState() == kButtonDown) tg_BW_ana_pid[i_mass] -> Draw("same L");
+        tg_v2_BW_ana_pid[i_mass] -> SetLineColor(arr_color_mass[i_mass]);
+        tg_v2_BW_ana_pid[i_mass] -> SetLineWidth(3);
+        tg_v2_BW_ana_pid[i_mass] -> SetLineStyle(1);
+        if(!(fCheckBox_pid[i_mass]->GetState() == kButtonDown)) tg_v2_BW_ana_pid[i_mass] -> SetLineStyle(9);
+        if(fCheckBox_sel[1]->GetState() == kButtonDown) tg_v2_BW_ana_pid[i_mass] -> Draw("same L");
     }
+
+    printf("v2 ana plotted \n");
+    fCanvas->GetCanvas()->Modified();
+    fCanvas->GetCanvas()->Update();
+    //------------------------------------------------------
+
+
+
+    //------------------------------------------------------
+    // dNdpT plots
+    fCanvasB ->GetCanvas() ->cd();
+
+    for(int i_mass = 0; i_mass < N_masses; ++i_mass)
+    {
+        fCanvasB ->GetCanvas()->cd(i_mass + 1);
+        if(tg_dNdpT_BW_ana_pid[i_mass]) delete tg_dNdpT_BW_ana_pid[i_mass];
+        tg_dNdpT_BW_ana_pid[i_mass] = new TGraph();
+        for(Int_t i_pT = 0; i_pT < 300; i_pT++)
+        {
+            Double_t pt_BW = i_pT*0.05 + 0.0;
+            Double_t v2_BW = 0;
+            Double_t inv_yield_BW = 0;
+            blastwave_yield_and_v2(pt_BW, arr_quark_mass_meson[i_mass], T_BW, Rho0_BW, Rho2_BW, RxOverRy_BW, inv_yield_BW, v2_BW);
+            tg_dNdpT_BW_ana_pid[i_mass] ->SetPoint(i_pT,pt_BW,inv_yield_BW);
+        }
+        tg_dNdpT_BW_ana_pid[i_mass] -> SetLineColor(kAzure-2);
+        tg_dNdpT_BW_ana_pid[i_mass] -> SetLineWidth(3);
+        tg_dNdpT_BW_ana_pid[i_mass] -> SetLineStyle(1);
+        if(!(fCheckBox_pid[i_mass]->GetState() == kButtonDown)) tg_dNdpT_BW_ana_pid[i_mass] -> SetLineStyle(9);
+        if(fCheckBox_sel[1]->GetState() == kButtonDown)
+        {
+            tg_dNdpT_BW_ana_pid[i_mass] -> Draw("same L");
+        }
+    }
+
+    printf("dNdpT ana plotted \n");
+    fCanvasB->GetCanvas()->Modified();
+    fCanvasB->GetCanvas()->Update();
+    //------------------------------------------------------
+
 
     Pixel_t green;
     gClient->GetColorByName("green", green);
     Button_minimize_ana->ChangeBackground(green);
-
-    fCanvas->GetCanvas()->Modified();
-    fCanvas->GetCanvas()->Update();
 }
 
 
@@ -1310,6 +1376,21 @@ void TTripleSliderDemo::DoMinimize()
 }
 
 
+//______________________________________________________________________________
+void TTripleSliderDemo::TakeParamsFromSet()
+{
+    printf("TTripleSliderDemo::TakeParamsFromSet() \n");
+    //flag_minimization_ana = 1;
+
+    Pixel_t green;
+    gClient->GetColorByName("green", green);
+    Button_take_params_Set_to_ana->ChangeBackground(green);
+
+    Pixel_t yellow;
+    gClient->GetColorByName("yellow", yellow);
+    Button_take_params_MC_to_ana->ChangeBackground(yellow);
+}
+
 
 //______________________________________________________________________________
 void TTripleSliderDemo::TakeParamsFromMC()
@@ -1333,24 +1414,24 @@ void TTripleSliderDemo::TakeParamsFromMC()
 
     for(int i_mass = 0; i_mass < N_masses; ++i_mass)
     {
-        if(tg_BW_ana_pid[i_mass]) delete tg_BW_ana_pid[i_mass];
-        tg_BW_ana_pid[i_mass] = new TGraph();
+        if(tg_v2_BW_ana_pid[i_mass]) delete tg_v2_BW_ana_pid[i_mass];
+        tg_v2_BW_ana_pid[i_mass] = new TGraph();
         for(Int_t i_pT = 0; i_pT < 300; i_pT++)
         {
             Double_t pt_BW = i_pT*0.05 + 0.0;
             Double_t v2_BW = 0;
             Double_t inv_yield_BW = 0;
             blastwave_yield_and_v2(pt_BW, arr_quark_mass_meson[i_mass], Temp_val, rho_0_val, rho_a_val, R_x_val, inv_yield_BW, v2_BW);
-            tg_BW_ana_pid[i_mass] ->SetPoint(i_pT,pt_BW,v2_BW);
+            tg_v2_BW_ana_pid[i_mass] ->SetPoint(i_pT,pt_BW,v2_BW);
         }
-        tg_BW_ana_pid[i_mass] -> SetLineColor(arr_color_mass[i_mass]);
-        tg_BW_ana_pid[i_mass] -> SetLineWidth(3);
-        tg_BW_ana_pid[i_mass] -> SetLineStyle(1);
+        tg_v2_BW_ana_pid[i_mass] -> SetLineColor(arr_color_mass[i_mass]);
+        tg_v2_BW_ana_pid[i_mass] -> SetLineWidth(3);
+        tg_v2_BW_ana_pid[i_mass] -> SetLineStyle(1);
         if(fCheckBox_sel[1]->GetState() == kButtonDown)
         {
             if(fCheckBox_pid[i_mass]->GetState() == kButtonDown)
             {
-                tg_BW_ana_pid[i_mass] -> Draw("same L");
+                tg_v2_BW_ana_pid[i_mass] -> Draw("same L");
             }
         }
     }

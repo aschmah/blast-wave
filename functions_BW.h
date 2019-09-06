@@ -115,6 +115,9 @@ static Int_t    arr_color_line_mass[8] = {kBlack,kGreen,kRed,kMagenta,kCyan,kOra
 static TGraphAsymmErrors* tgae_v2_vs_pT_mesons_data[8]; // pi, K, p, phi, Omega, D0, J/Psi, Upsilon
 static TGraphAsymmErrors* tgae_dN_dpT_mesons_data[8];    // pi, K, p, phi, Omega, D0, J/Psi, Upsilon
 
+static Int_t N_calls_BW_ana = 0;
+static TGHProgressBar* fHProg2 = NULL;
+
 
 //------------------------------------------------------------------------------------------------------------
 static const Float_t Pi = TMath::Pi();
@@ -195,14 +198,14 @@ void blastwave_yield_and_v2(const double pt, const double m, const double T, con
     w_v2_num.SetParameters(pars);
     ROOT::Math::AdaptiveIntegratorMultiDim ig_num;
     ig_num.SetFunction(w_v2_num);
-    ig_num.SetRelTolerance(1e-6);
+    ig_num.SetRelTolerance(1e-5);
     
     // wrapper function for numerical integration of v2 denominator
     ROOT::Math::WrappedParamFunction<> w_v2_den(&v2_denominator, 2, 6);
     w_v2_den.SetParameters(pars);
     ROOT::Math::AdaptiveIntegratorMultiDim ig_den;
     ig_den.SetFunction(w_v2_den);
-    ig_den.SetRelTolerance(1e-6);
+    ig_den.SetRelTolerance(1e-5);
     
     // integration range
     double xmin[2] = {0., 0.};
@@ -223,6 +226,7 @@ void blastwave_yield_and_v2(const double pt, const double m, const double T, con
 
     // calculate invariant yield 1/(2 pi pt) dN/(dpt dy) (with arbitrary constant pre-factor)
     inv_yield = TMath::Sqrt(m * m + pt * pt) * v2_den;
+
 }
 //------------------------------------------------------------------------------------------------------------
 
