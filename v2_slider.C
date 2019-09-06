@@ -111,6 +111,7 @@ private:
     TLegend* leg_v2_vs_pT_B = NULL;
     Int_t flag_stop_minimize = 0;
     Int_t flag_minimization_ana = 0;
+    Double_t integration_range_pid[8][2] = {0.0};
 
     Double_t chi2_min;
     Double_t chi2_ndf_dNdpT_min;
@@ -237,7 +238,20 @@ TTripleSliderDemo::TTripleSliderDemo() : TGMainFrame(gClient->GetRoot(), 100, 10
     }
 
 
-    
+    // Determine integration range of dNdpT for data
+    for(Int_t i_mass = 0; i_mass < 8; i_mass++)
+    {
+        Double_t x_val_data_first, y_val_data_first, x_val_data_last, y_val_data_last, x_err_low_data, x_err_high_data;
+        tgae_dN_dpT_mesons_data[i_mass] ->GetPoint(0,x_val_data_first,y_val_data_first);
+        x_err_low_data = tgae_dN_dpT_mesons_data[i_mass] ->GetErrorXlow(0);
+        tgae_dN_dpT_mesons_data[i_mass] ->GetPoint(tgae_dN_dpT_mesons_data[i_mass] ->GetN()-1,x_val_data_last,y_val_data_last);
+        x_err_high_data = tgae_dN_dpT_mesons_data[i_mass] ->GetErrorXhigh(tgae_dN_dpT_mesons_data[i_mass] ->GetN()-1);
+
+        integration_range_pid[i_mass][0] = x_val_data_first - x_err_low_data;
+        integration_range_pid[i_mass][1] = x_val_data_last  + x_err_high_data;
+    }
+
+
     for(Int_t i_R_x = 0; i_R_x < 9; i_R_x++)
     {
         printf("i_R_x: %d \n",i_R_x);
@@ -260,14 +274,8 @@ TTripleSliderDemo::TTripleSliderDemo() : TGMainFrame(gClient->GetRoot(), 100, 10
                             h_dN_dpT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a]    = (TH1F*)arr_list[i_R_x][i_fboost]     ->At(i_pos_dNdpT);
 
                             // integrate only in range of available data
-                            Double_t x_val_data_first, y_val_data_first, x_val_data_last, y_val_data_last, x_err_low_data, x_err_high_data;
-                            tgae_dN_dpT_mesons_data[i_mass] ->GetPoint(0,x_val_data_first,y_val_data_first);
-                            x_err_low_data = tgae_dN_dpT_mesons_data[i_mass] ->GetErrorXlow(0);;
-                            tgae_dN_dpT_mesons_data[i_mass] ->GetPoint(tgae_dN_dpT_mesons_data[i_mass] ->GetN()-1,x_val_data_last,y_val_data_last);
-                            x_err_high_data = tgae_dN_dpT_mesons_data[i_mass] ->GetErrorXhigh(tgae_dN_dpT_mesons_data[i_mass] ->GetN()-1);;
-
-                            Int_t start_integrate_bin = h_dN_dpT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->FindBin(x_val_data_first - x_err_low_data);
-                            Int_t stop_integrate_bin  = h_dN_dpT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->FindBin(x_val_data_last  + x_err_high_data);
+                            Int_t start_integrate_bin = h_dN_dpT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->FindBin(integration_range_pid[i_mass][0]);
+                            Int_t stop_integrate_bin  = h_dN_dpT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->FindBin(integration_range_pid[i_mass][1]);
                             Double_t integral = h_dN_dpT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->Integral(start_integrate_bin,stop_integrate_bin,"width");
                             if(integral <= 0.0) continue;
                             h_dN_dpT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->Scale(1.0/integral);
@@ -468,7 +476,12 @@ TTripleSliderDemo::TTripleSliderDemo() : TGMainFrame(gClient->GetRoot(), 100, 10
     // A horizontal frame
     hVframeD4  = new TGVerticalFrame(FrameD,200,100);
     fHProg2 = new TGHProgressBar(hVframeD4, 400);
-    fHProg2->ShowPosition();
+
+    fHProg2->SetBarColor("lightblue");
+    fHProg2->SetRange(0.0,1000.0);
+    fHProg2->ShowPosition(kTRUE, kFALSE, "%.0f calls");
+
+    //fHProg2->ShowPosition();
     hVframeD4->AddFrame(fHProg2, new TGLayoutHints(kLHintsTop | kLHintsLeft | kLHintsExpandX, 5, 5,  5, 10));
     FrameD ->AddFrame(hVframeD4, new TGLayoutHints(kLHintsCenterX,2,2,2,2));
     fHProg2->Reset();
@@ -876,6 +889,12 @@ void TTripleSliderDemo::DoMinimize_ana()
     {
         //minimisation function computing the sum of squares of residuals
         N_calls_BW_ana++;
+
+        if(N_calls_BW_ana % 20 == 0) fHProg2->Increment(20);
+        //printf("fraction total: %4.2f%%, fraction added: %4.2f%% \n",fraction_total*100.0,fraction_use*100.0);
+        gSystem->Sleep(100);
+        gSystem->ProcessEvents();
+
         double chi2 = 0;
 
         const double T = par[0];       // fit parameter: Temp in GeV
@@ -947,7 +966,7 @@ void TTripleSliderDemo::DoMinimize_ana()
 
                         // blast wave parameters
                         const double pt_BW = pt_data;         // in GeV
-                       
+
                         blastwave_yield_and_v2(pt_BW, m, T, rho0, rho2, RxOverRy, inv_yield_BW, v2_BW);
                         // cout << "i_point = " << i_point << ", pt_BW = " << pt_BW << ", v2_BW = " << v2_BW << endl;
                         double diff   = (dNdpT_data - inv_yield_BW)/dNdpT_err;

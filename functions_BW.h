@@ -116,7 +116,6 @@ static TGraphAsymmErrors* tgae_v2_vs_pT_mesons_data[8]; // pi, K, p, phi, Omega,
 static TGraphAsymmErrors* tgae_dN_dpT_mesons_data[8];    // pi, K, p, phi, Omega, D0, J/Psi, Upsilon
 
 static Int_t N_calls_BW_ana = 0;
-static TGHProgressBar* fHProg2 = NULL;
 
 
 //------------------------------------------------------------------------------------------------------------
@@ -143,11 +142,10 @@ double v2_numerator(const double *x, const double *p) {
     double rho0 = p[3];
     double rho2 = p[4];
     double RxOverRy = p[5];
+    double A = p[6]; // arbitrary factor, can be adjusted to improve numerical stability
 
-    double PhiB = TMath::ATan(RxOverRy * TMath::Tan(PhiHat));  // boost angle
-    double rho = rho0 + rho2 * TMath::Cos(2 * PhiB);  // transverse rapidity
-
-	const double A = 1e12;
+    double PhiB = TMath::ATan(RxOverRy * TMath::Tan(PhiHat)); // boost angle
+    double rho = rho0 + rho2 * TMath::Cos(2 * PhiB);          // transverse rapidity
 
     return A * rHat * TMath::BesselI(2, (pt * TMath::SinH(rHat * rho)) / T) *
            TMath::BesselK(1, (TMath::Sqrt(TMath::Power(m, 2) + TMath::Power(pt, 2)) * TMath::CosH(rHat * rho)) / T) *
@@ -172,11 +170,10 @@ double v2_denominator(const double *x, const double *p) {
     double rho0 = p[3];
     double rho2 = p[4];
     double RxOverRy = p[5];
+    double A = p[6]; // arbitrary factor, can be adjusted to improve numerical stability
 
-	double PhiB = TMath::ATan(RxOverRy * TMath::Tan(PhiHat));  // boost angle
-    double rho = rho0 + rho2 * TMath::Cos(2 * PhiB);  // transverse rapidity
-
-    const double A = 1e12; // arbitrary factor to improve numerical stability
+    double PhiB = TMath::ATan(RxOverRy * TMath::Tan(PhiHat)); // boost angle
+    double rho = rho0 + rho2 * TMath::Cos(2 * PhiB);          // transverse rapidity
 
     return A * rHat * TMath::BesselI(0, (pt * TMath::SinH(rHat * rho)) / T) *
            TMath::BesselK(1, (TMath::Sqrt(TMath::Power(m, 2) + TMath::Power(pt, 2)) *
@@ -188,45 +185,56 @@ double v2_denominator(const double *x, const double *p) {
 
 
 //------------------------------------------------------------------------------------------------------------
-void blastwave_yield_and_v2(const double pt, const double m, const double T, const double rho0, const double rho2,
-                            const double RxOverRy, double &inv_yield, double &v2) {
+void blastwave_yield_and_v2(const double &pt, const double &m, const double &T, const double &rho0, const double &rho2,
+                            const double &RxOverRy, double &inv_yield, double &v2) {
 
-    double pars[6] = {pt, m, T, rho0, rho2, RxOverRy};
+    // mass and T dependent scale factor prop. to total yield used to improve numerical stability
+    // of the invariant yield
+    double sf = T * m * m * TMath::BesselK(2, m / T);
 
-    // wrapper function for numerical integration of v2 numerator
-    ROOT::Math::WrappedParamFunction<> w_v2_num(&v2_numerator, 2, 6);
-    w_v2_num.SetParameters(pars);
-    ROOT::Math::AdaptiveIntegratorMultiDim ig_num;
-    ig_num.SetFunction(w_v2_num);
-    ig_num.SetRelTolerance(1e-5);
-    
-    // wrapper function for numerical integration of v2 denominator
-    ROOT::Math::WrappedParamFunction<> w_v2_den(&v2_denominator, 2, 6);
-    w_v2_den.SetParameters(pars);
-    ROOT::Math::AdaptiveIntegratorMultiDim ig_den;
-    ig_den.SetFunction(w_v2_den);
-    ig_den.SetRelTolerance(1e-5);
-    
+    // blast wave parameters:
+    // the last number (par[6]) is an arbitrary normalization which we will adjust
+    // in order to have a good numerical stability for different masses and pt
+    double pars[7] = {pt, m, T, rho0, rho2, RxOverRy, 1. / sf};
+
+    // wrapper functions for v2 numerator and denominator
+    ROOT::Math::WrappedParamFunction<> w_v2_num(&v2_numerator, 2, 7);
+    ROOT::Math::WrappedParamFunction<> w_v2_den(&v2_denominator, 2, 7);
+
+    // define integrator
+    ROOT::Math::AdaptiveIntegratorMultiDim ig;
+    ig.SetRelTolerance(1e-6);
+
     // integration range
     double xmin[2] = {0., 0.};
     double xmax[2] = {1., 2. * TMath::Pi()};
 
+    // We calculate the invariant yield 1/(2 pi pt) dN/(dpt dy) (with arbitrary constant pre-factor)
+    // and determine the optimal normalization for numerical stability in the v2 calculation
+    w_v2_den.SetParameters(pars);
+    ig.SetFunction(w_v2_den);
+    inv_yield = sf * TMath::Sqrt(m * m + pt * pt) * ig.Integral(xmin, xmax);
+    pars[6] = 1. / inv_yield;
+    w_v2_num.SetParameters(pars);
+    w_v2_den.SetParameters(pars);
+
     // integrate
-    double v2_num = ig_num.Integral(xmin, xmax);
+    ig.SetFunction(w_v2_num);
+    double v2_num = ig.Integral(xmin, xmax);
     // if (ig_num.Status() != 0) cout << ig_num.Status() << endl;
-	
-    double v2_den = ig_den.Integral(xmin, xmax);
-	// if (ig_den.Status() != 0) cout << ig_den.Status() << endl;
-	
+
+    ig.SetFunction(w_v2_den);
+    double v2_den = ig.Integral(xmin, xmax);
+    // if (ig_den.Status() != 0) cout << ig_den.Status() << endl;
+
+    // cout << pt << " " << v2_den << endl;
+    // cout << pt << " " << inv_yield << endl;
+
     if (v2_den != 0) {
         v2 = v2_num / v2_den;
     } else {
         cout << "WARNING: v2 denominator zero!!!" << endl;
     }
-
-    // calculate invariant yield 1/(2 pi pt) dN/(dpt dy) (with arbitrary constant pre-factor)
-    inv_yield = TMath::Sqrt(m * m + pt * pt) * v2_den;
-
 }
 //------------------------------------------------------------------------------------------------------------
 
@@ -2221,7 +2229,7 @@ void plot_spectra()
 
     // J/Psi
     can_dNdpT_vs_pT ->cd(4);
-    tge_JPsi_spectra[1][0]->Draw("AP");; // 0-20%, 20-40%, 40-90%
+    tge_JPsi_spectra[1][0]->Draw("AP"); // 0-20%, 20-40%, 40-90%
     h_dN_dpT_mesons[3] ->DrawCopy("same");
     tge_JPsi_forward_spectrum_stat ->SetLineColor(kRed);
     tge_JPsi_forward_spectrum_stat ->Draw("same");
