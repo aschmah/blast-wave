@@ -954,59 +954,62 @@ void TTripleSliderDemo::DoMinimize_ana()
                 Double_t integral_ana = 0.0;
                 vector< vector<Double_t> > vec_data_BW;
                 vec_data_BW.resize(4); // data, BW, err, pT
-
-                // First the integral of BW needs to be calculated to do a shape comparison to the data
-                for(int i_point = 0; i_point < tgae_dN_dpT_mesons_data[i_mass]->GetN(); ++i_point)
+                if(i_mass != 7) // Upsilon spectra do not exist
                 {
-                    double dNdpT_data = 0.0;
-                    double pt_data    = 0.0;
-
-                    tgae_dN_dpT_mesons_data[i_mass]->GetPoint(i_point,pt_data,dNdpT_data);
-                    double dNdpT_err = tgae_dN_dpT_mesons_data[i_mass]->GetErrorYhigh(i_point);
-
-                    Double_t x_err_low_data  = tgae_dN_dpT_mesons_data[i_mass] ->GetErrorXlow(i_point);
-                    Double_t x_err_high_data = tgae_dN_dpT_mesons_data[i_mass] ->GetErrorXhigh(i_point);
-                    Double_t bin_width = x_err_low_data + x_err_high_data;
-
-                    // cout << "i_point = " << i_point << ", pt_data = " << pt_data << "v2 = " << dNdpT_data << " +/- " << dNdpT_err << endl;
-
-                    //if(pt_data > max_val_pT) break;
-
-                    //if(pt_data > min_val_pT)
+                    // First the integral of BW needs to be calculated to do a shape comparison to the data
+                    for(int i_point = 0; i_point < tgae_dN_dpT_mesons_data[i_mass]->GetN(); ++i_point)
                     {
-                        double v2_BW = 0;
-                        double inv_yield_BW = 0;
+                        double dNdpT_data = 0.0;
+                        double pt_data    = 0.0;
 
-                        // blast wave parameters
-                        const double pt_BW = pt_data;         // in GeV
+                        tgae_dN_dpT_mesons_data[i_mass]->GetPoint(i_point,pt_data,dNdpT_data);
+                        double dNdpT_err = tgae_dN_dpT_mesons_data[i_mass]->GetErrorYhigh(i_point);
 
-                        blastwave_yield_and_v2(pt_BW, m, T, rho0, rho2, RxOverRy, inv_yield_BW, v2_BW); // invariant yield: (1/pT) (dN/dpT)
-                        vec_data_BW[0].push_back(dNdpT_data);
-                        vec_data_BW[1].push_back(inv_yield_BW*pt_BW);
-                        vec_data_BW[2].push_back(dNdpT_err);
-                        vec_data_BW[3].push_back(pt_BW);
+                        Double_t x_err_low_data  = tgae_dN_dpT_mesons_data[i_mass] ->GetErrorXlow(i_point);
+                        Double_t x_err_high_data = tgae_dN_dpT_mesons_data[i_mass] ->GetErrorXhigh(i_point);
+                        Double_t bin_width = x_err_low_data + x_err_high_data;
 
-                        integral_ana += inv_yield_BW*bin_width*pt_BW;
-                        // cout << "i_point = " << i_point << ", pt_BW = " << pt_BW << ", v2_BW = " << v2_BW << endl;
-                        //double diff   = (dNdpT_data - inv_yield_BW)/dNdpT_err;
-                        //double diff_yield = (inv_yield_BW - inv_yield_data)/yield_err;
-                        //chi2 += diff*diff;
-                    }
-                }
+                        // cout << "i_point = " << i_point << ", pt_data = " << pt_data << "v2 = " << dNdpT_data << " +/- " << dNdpT_err << endl;
 
-                // Calculate chi2 for dNdpT
-                if(integral_ana > 0.0)
-                {
-                    for(Int_t i_point = 0; i_point < (Int_t)vec_data_BW[0].size(); i_point++)
-                    {
-                        Double_t pt_data = vec_data_BW[3][i_point];
-                        if(pt_data > max_val_pT) break;
+                        //if(pt_data > max_val_pT) break;
 
-                        if(pt_data > min_val_pT)
+                        //if(pt_data > min_val_pT)
                         {
-                            // Normalize BW to integral within range of data
-                            double diff   = (vec_data_BW[0][i_point] - (vec_data_BW[1][i_point]/integral_ana))/vec_data_BW[2][i_point];
-                            chi2 += diff*diff;
+                            double v2_BW = 0;
+                            double inv_yield_BW = 0;
+
+                            // blast wave parameters
+                            const double pt_BW = pt_data;         // in GeV
+
+                            blastwave_yield_and_v2(pt_BW, m, T, rho0, rho2, RxOverRy, inv_yield_BW, v2_BW); // invariant yield: (1/pT) (dN/dpT)
+                            vec_data_BW[0].push_back(dNdpT_data);
+                            vec_data_BW[1].push_back(inv_yield_BW*pt_BW);
+                            vec_data_BW[2].push_back(dNdpT_err);
+                            vec_data_BW[3].push_back(pt_BW);
+
+                            integral_ana += inv_yield_BW*bin_width*pt_BW;
+                            // cout << "i_point = " << i_point << ", pt_BW = " << pt_BW << ", v2_BW = " << v2_BW << endl;
+                            //double diff   = (dNdpT_data - inv_yield_BW)/dNdpT_err;
+                            //double diff_yield = (inv_yield_BW - inv_yield_data)/yield_err;
+                            //chi2 += diff*diff;
+                        }
+                    }
+
+
+                    // Calculate chi2 for dNdpT
+                    if(integral_ana > 0.0)
+                    {
+                        for(Int_t i_point = 0; i_point < (Int_t)vec_data_BW[0].size(); i_point++)
+                        {
+                            Double_t pt_data = vec_data_BW[3][i_point];
+                            if(pt_data > max_val_pT) break;
+
+                            if(pt_data > min_val_pT)
+                            {
+                                // Normalize BW to integral within range of data
+                                double diff   = (vec_data_BW[0][i_point] - (vec_data_BW[1][i_point]/integral_ana))/vec_data_BW[2][i_point];
+                                chi2 += diff*diff;
+                            }
                         }
                     }
                 }
@@ -1214,26 +1217,29 @@ void TTripleSliderDemo::DoMinimize()
                             Double_t dNdpT_err_pid;
                             Double_t dNdpT_bw_pid;
 
-                            if((fCheckBox_v2_dNdpT[1]->GetState() == kButtonDown))
+                            if(i_mass != 7) // Upsilon spectra do not exist
                             {
-                                for(Int_t i_pT = 0; i_pT < n_arr_dNdpT; i_pT++) // pT loop for dNdpT
+                                if((fCheckBox_v2_dNdpT[1]->GetState() == kButtonDown))
                                 {
-                                    //get dNdpT + errors
-
-                                    tgae_dN_dpT_mesons_data[i_mass]                 ->GetPoint(i_pT,x_pid,dNdpT_pid);
-                                    dNdpT_err_pid = tgae_dN_dpT_mesons_data[i_mass] ->GetErrorY(i_pT);
-
-                                    if(x_pid >= min_max_pT_range_pid[0][i_mass]
-                                       && x_pid <= min_max_pT_range_pid[1][i_mass]
-                                       && dNdpT_err_pid != 0)  //&& (dNdpT_pid-dNdpT_bw_pid) <  100.0
+                                    for(Int_t i_pT = 0; i_pT < n_arr_dNdpT; i_pT++) // pT loop for dNdpT
                                     {
-                                        dNdpT_bw_pid    = h_dN_dpT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->GetBinContent(h_dN_dpT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a]->FindBin(x_pid));
-                                        chi2_ndf_dNdpT += ((dNdpT_pid-dNdpT_bw_pid)*(dNdpT_pid-dNdpT_bw_pid))/(dNdpT_err_pid*dNdpT_err_pid);
-                                        nop_dNdpT      += 1;
+                                        //get dNdpT + errors
+
+                                        tgae_dN_dpT_mesons_data[i_mass]                 ->GetPoint(i_pT,x_pid,dNdpT_pid);
+                                        dNdpT_err_pid = tgae_dN_dpT_mesons_data[i_mass] ->GetErrorY(i_pT);
+
+                                        if(x_pid >= min_max_pT_range_pid[0][i_mass]
+                                           && x_pid <= min_max_pT_range_pid[1][i_mass]
+                                           && dNdpT_err_pid != 0)  //&& (dNdpT_pid-dNdpT_bw_pid) <  100.0
+                                        {
+                                            dNdpT_bw_pid    = h_dN_dpT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->GetBinContent(h_dN_dpT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a]->FindBin(x_pid));
+                                            chi2_ndf_dNdpT += ((dNdpT_pid-dNdpT_bw_pid)*(dNdpT_pid-dNdpT_bw_pid))/(dNdpT_err_pid*dNdpT_err_pid);
+                                            nop_dNdpT      += 1;
+
+                                        }
+
 
                                     }
-
-
                                 }
                             }
 
@@ -1363,6 +1369,7 @@ void TTripleSliderDemo::TakeParamsFromMC()
 
     Plot_curves_ana(Temp_val,rho_0_val,rho_a_val,R_x_val);
 
+    /*
     fCanvas ->GetCanvas() ->cd();
 
     for(int i_mass = 0; i_mass < N_masses; ++i_mass)
@@ -1388,6 +1395,7 @@ void TTripleSliderDemo::TakeParamsFromMC()
             }
         }
     }
+    */
 
     Pixel_t green;
     gClient->GetColorByName("green", green);
@@ -1410,23 +1418,52 @@ void TTripleSliderDemo::Plot_curves_ana(Double_t T_BW,Double_t  Rho0_BW,Double_t
     printf("TTripleSliderDemo::Plot_curves_ana() \n");
     flag_minimization_ana = 1;
 
+
+    //--------------------------------------------------------------------
+    Double_t min_max_pT_range_pid_plot_ana[2][8];
+    min_max_pT_range_pid_plot_ana[0][0] = 0.1; // pi
+    min_max_pT_range_pid_plot_ana[1][0] = 3.5;
+    min_max_pT_range_pid_plot_ana[0][1] = 0.1; // K
+    min_max_pT_range_pid_plot_ana[1][1] = 4.0;
+    min_max_pT_range_pid_plot_ana[0][2] = 0.1; // p
+    min_max_pT_range_pid_plot_ana[1][2] = 5.0;
+    min_max_pT_range_pid_plot_ana[0][3] = 0.1; // phi
+    min_max_pT_range_pid_plot_ana[1][3] = 5.0;
+    min_max_pT_range_pid_plot_ana[0][4] = 0.1; // Omega
+    min_max_pT_range_pid_plot_ana[1][4] = 6.0;
+    min_max_pT_range_pid_plot_ana[0][5] = 0.1; // D0
+    min_max_pT_range_pid_plot_ana[1][5] = 12.5;
+    min_max_pT_range_pid_plot_ana[0][6] = 0.1; // J/Psi
+    min_max_pT_range_pid_plot_ana[1][6] = 15.0;
+    min_max_pT_range_pid_plot_ana[0][7] = 0.1; // Upsilon
+    min_max_pT_range_pid_plot_ana[1][7] = 15.0;
+    //--------------------------------------------------------------------
+
+
     //------------------------------------------------------
     // v2 plots
     fCanvas ->GetCanvas() ->cd();
 
-    Double_t delta_pT = 0.15;
-    const Int_t N_points_BW_ana = 100;
+    const Int_t N_points_BW_ana = 35;
     for(int i_mass = 0; i_mass < N_masses; ++i_mass)
     {
+        Double_t delta_pT = (Double_t)((min_max_pT_range_pid_plot_ana[1][i_mass] - min_max_pT_range_pid_plot_ana[0][i_mass])/(Double_t)N_points_BW_ana);
+        //Double_t min_pT = arr_NEntry_limits[0][i_mass]->GetNumberEntry()->GetNumber();
+        //Double_t max_pT = arr_NEntry_limits[1][i_mass]->GetNumberEntry()->GetNumber();
+
+
         if(tg_v2_BW_ana_pid[i_mass]) delete tg_v2_BW_ana_pid[i_mass];
         tg_v2_BW_ana_pid[i_mass] = new TGraph();
         for(Int_t i_pT = 0; i_pT < N_points_BW_ana; i_pT++)
         {
             Double_t pt_BW = i_pT*delta_pT + 0.0;
-            Double_t v2_BW = 0;
-            Double_t inv_yield_BW = 0;
-            blastwave_yield_and_v2(pt_BW, arr_quark_mass_meson[i_mass], T_BW, Rho0_BW, Rho2_BW, RxOverRy_BW, inv_yield_BW, v2_BW);
-            tg_v2_BW_ana_pid[i_mass] ->SetPoint(i_pT,pt_BW,v2_BW);
+            if(pt_BW > min_max_pT_range_pid_plot_ana[0][i_mass] && pt_BW < min_max_pT_range_pid_plot_ana[1][i_mass])
+            {
+                Double_t v2_BW = 0;
+                Double_t inv_yield_BW = 0;
+                blastwave_yield_and_v2(pt_BW, arr_quark_mass_meson[i_mass], T_BW, Rho0_BW, Rho2_BW, RxOverRy_BW, inv_yield_BW, v2_BW);
+                tg_v2_BW_ana_pid[i_mass] ->SetPoint(i_pT,pt_BW,v2_BW);
+            }
         }
         tg_v2_BW_ana_pid[i_mass] -> SetLineColor(arr_color_mass[i_mass]);
         tg_v2_BW_ana_pid[i_mass] -> SetLineWidth(3);
@@ -1448,6 +1485,11 @@ void TTripleSliderDemo::Plot_curves_ana(Double_t T_BW,Double_t  Rho0_BW,Double_t
 
     for(int i_mass = 0; i_mass < N_masses; ++i_mass)
     {
+        //Double_t delta_pT = (Double_t)((integration_range_pid[i_mass][1] - 0.0)/(Double_t)N_points_BW_ana);
+        Double_t delta_pT = (Double_t)((min_max_pT_range_pid_plot_ana[1][i_mass] - min_max_pT_range_pid_plot_ana[0][i_mass])/(Double_t)N_points_BW_ana);
+        //Double_t min_pT = arr_NEntry_limits[0][i_mass]->GetNumberEntry()->GetNumber();
+        //Double_t max_pT = arr_NEntry_limits[1][i_mass]->GetNumberEntry()->GetNumber();
+
         fCanvasB ->GetCanvas()->cd(i_mass + 1);
         if(tg_dNdpT_BW_ana_pid[i_mass]) delete tg_dNdpT_BW_ana_pid[i_mass];
         tg_dNdpT_BW_ana_pid[i_mass] = new TGraph();
