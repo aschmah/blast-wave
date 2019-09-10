@@ -1369,33 +1369,6 @@ void TTripleSliderDemo::TakeParamsFromMC()
 
     Plot_curves_ana(Temp_val,rho_0_val,rho_a_val,R_x_val);
 
-    /*
-    fCanvas ->GetCanvas() ->cd();
-
-    for(int i_mass = 0; i_mass < N_masses; ++i_mass)
-    {
-        if(tg_v2_BW_ana_pid[i_mass]) delete tg_v2_BW_ana_pid[i_mass];
-        tg_v2_BW_ana_pid[i_mass] = new TGraph();
-        for(Int_t i_pT = 0; i_pT < 300; i_pT++)
-        {
-            Double_t pt_BW = i_pT*0.05 + 0.0;
-            Double_t v2_BW = 0;
-            Double_t inv_yield_BW = 0;
-            blastwave_yield_and_v2(pt_BW, arr_quark_mass_meson[i_mass], Temp_val, rho_0_val, rho_a_val, R_x_val, inv_yield_BW, v2_BW);
-            tg_v2_BW_ana_pid[i_mass] ->SetPoint(i_pT,pt_BW,v2_BW);
-        }
-        tg_v2_BW_ana_pid[i_mass] -> SetLineColor(arr_color_mass[i_mass]);
-        tg_v2_BW_ana_pid[i_mass] -> SetLineWidth(3);
-        tg_v2_BW_ana_pid[i_mass] -> SetLineStyle(1);
-        if(fCheckBox_sel[1]->GetState() == kButtonDown)
-        {
-            if(fCheckBox_pid[i_mass]->GetState() == kButtonDown)
-            {
-                tg_v2_BW_ana_pid[i_mass] -> Draw("same L");
-            }
-        }
-    }
-    */
 
     Pixel_t green;
     gClient->GetColorByName("green", green);
@@ -1467,8 +1440,8 @@ void TTripleSliderDemo::Plot_curves_ana(Double_t T_BW,Double_t  Rho0_BW,Double_t
         }
         tg_v2_BW_ana_pid[i_mass] -> SetLineColor(arr_color_mass[i_mass]);
         tg_v2_BW_ana_pid[i_mass] -> SetLineWidth(3);
-        tg_v2_BW_ana_pid[i_mass] -> SetLineStyle(1);
-        if(!(fCheckBox_pid[i_mass]->GetState() == kButtonDown)) tg_v2_BW_ana_pid[i_mass] -> SetLineStyle(9);
+        tg_v2_BW_ana_pid[i_mass] -> SetLineStyle(9);
+        //if(!(fCheckBox_pid[i_mass]->GetState() == kButtonDown)) tg_v2_BW_ana_pid[i_mass] -> SetLineStyle(9);
         if(fCheckBox_sel[1]->GetState() == kButtonDown) tg_v2_BW_ana_pid[i_mass] -> Draw("same L");
     }
 

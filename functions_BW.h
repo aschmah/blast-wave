@@ -48,6 +48,7 @@
 #include "TArrow.h"
 #include "TMatrixD.h"
 #include "TVectorD.h"
+#include "Math/WrappedParamFunction.h"
 
 static TFile *inputfile_id;
 static TFile *inputfile_JPsi;
