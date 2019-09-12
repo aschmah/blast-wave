@@ -21,7 +21,7 @@ enum ETestCommandIdentifiers {
     HCId3,
     HSId1
 };
-class TTripleSliderDemo : public TGMainFrame {
+class TBlastWaveGUI : public TGMainFrame {
 private:
     TRootEmbeddedCanvas *fCanvas;
     TRootEmbeddedCanvas *fCanvasB;
@@ -100,6 +100,9 @@ private:
     TGraph* tg_v2_BW_ana_pid[8];
     TGraph* tg_dNdpT_BW_ana_pid[8];
 
+    TGraph* tg_v2_BW_ana_pid_min[8];
+    TGraph* tg_dNdpT_BW_ana_pid_min[8];
+
     Double_t var_test = 5.2;
 
     TGTextButton *Button_minimize;
@@ -119,14 +122,22 @@ private:
 
     Double_t chi2_min;
     Double_t chi2_ndf_dNdpT_min;
-    Double_t chi2_final_min;
+    Double_t chi2_final_min = 0.0;
+    Double_t chi2_final_min_ana = 999999.0;
     Double_t chi2_final_min_piKp;
     TString HistName;
     char NoP[50];
 
+    TLatex* TLatex_chi2_MC = NULL;
+    TLatex* TLatex_chi2_ana = NULL;
+    TLatex* TLatex_legend_system[4] = {NULL,NULL,NULL,NULL};
+    TLatex* TLatex_legend_dNdpT[8];
+
+    TLine* TL_line_base = NULL;
+
 public:
-    TTripleSliderDemo();
-    virtual ~TTripleSliderDemo();
+    TBlastWaveGUI();
+    virtual ~TBlastWaveGUI();
     void CloseWindow();
     void DoText(const char *text);
     void DoSlider();
@@ -136,11 +147,11 @@ public:
     void TakeParamsFromMC();
     void TakeParamsFromSet();
     void Plot_curves_ana(Double_t T_BW,Double_t  Rho0_BW,Double_t  Rho2_BW,Double_t  RxOverRy_BW);
-    ClassDef(TTripleSliderDemo, 0)
+    ClassDef(TBlastWaveGUI, 0)
 };
 
 //______________________________________________________________________________
-TTripleSliderDemo::TTripleSliderDemo() : TGMainFrame(gClient->GetRoot(), 100, 100)
+TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
 {
     //--------------------------------------------------------------------
     cout << "v2_slider started" << endl;
@@ -177,6 +188,11 @@ TTripleSliderDemo::TTripleSliderDemo() : TGMainFrame(gClient->GetRoot(), 100, 10
     {
         tg_v2_BW_ana_pid[i_mass]    = NULL;
         tg_dNdpT_BW_ana_pid[i_mass] = NULL;
+
+        tg_v2_BW_ana_pid_min[i_mass]    = NULL;
+        tg_dNdpT_BW_ana_pid_min[i_mass] = NULL;
+
+        TLatex_legend_dNdpT[i_mass] = NULL;
     }
 
 
@@ -328,7 +344,7 @@ TTripleSliderDemo::TTripleSliderDemo() : TGMainFrame(gClient->GetRoot(), 100, 10
     {
         vec_Hframe[i_param] = new TGHorizontalFrame(this, 0, 0);
         vec_slider[i_param] = new TGHSlider(vec_Hframe[i_param],250,kSlider1|kScaleDownRight,1);
-        vec_slider[i_param]->Connect("PositionChanged(Int_t)", "TTripleSliderDemo",this, "DoSlider()");
+        vec_slider[i_param]->Connect("PositionChanged(Int_t)", "TBlastWaveGUI",this, "DoSlider()");
         vec_slider[i_param]->SetRange(0,8);
         vec_slider[i_param]->SetPosition(start_pos_slider[i_param]);
         vec_LayoutHints[i_param] = new TGLayoutHints(kLHintsTop | kLHintsExpandX, 1, 1, 1, 1); // handles size of slider and number box
@@ -342,7 +358,7 @@ TTripleSliderDemo::TTripleSliderDemo() : TGMainFrame(gClient->GetRoot(), 100, 10
         vec_TextEntry[i_param] ->SetTextColor(kRed);
         vec_TextEntry[i_param]->SetToolTipText("Minimum (left) Value of Slider");
         vec_TextBuffer[i_param]->AddText(0, "0.0");
-        vec_TextEntry[i_param]->Connect("TextChanged(char*)", "TTripleSliderDemo", this,"DoText(char*)");
+        vec_TextEntry[i_param]->Connect("TextChanged(char*)", "TBlastWaveGUI", this,"DoText(char*)");
         //vec_Hframe[i_param]->Resize(100, 25);
         vec_Hframe[i_param]->AddFrame(vec_TextEntry[i_param], vec_LayoutHints[i_param]);
         AddFrame(vec_Hframe[i_param], vec_LayoutHints[i_param]);
@@ -459,7 +475,7 @@ TTripleSliderDemo::TTripleSliderDemo() : TGMainFrame(gClient->GetRoot(), 100, 10
 
     // exit button
     Button_minimize = new TGTextButton(hframeD2, "Minimize MC",10);
-    Button_minimize->Connect("Clicked()", "TTripleSliderDemo", this, "DoMinimize()");
+    Button_minimize->Connect("Clicked()", "TBlastWaveGUI", this, "DoMinimize()");
 
     Pixel_t red;
     gClient->GetColorByName("red", red);
@@ -469,7 +485,7 @@ TTripleSliderDemo::TTripleSliderDemo() : TGMainFrame(gClient->GetRoot(), 100, 10
 
     // save button
     Button_stop_minimize = new TGTextButton(hframeD2, "Stop minimize MC",10);
-    Button_stop_minimize->Connect("Clicked()", "TTripleSliderDemo", this, "StopMinimize()");
+    Button_stop_minimize->Connect("Clicked()", "TBlastWaveGUI", this, "StopMinimize()");
     hframeD2->AddFrame(Button_stop_minimize, new TGLayoutHints(kLHintsCenterX,5,5,3,4));
 
 
@@ -500,7 +516,7 @@ TTripleSliderDemo::TTripleSliderDemo() : TGMainFrame(gClient->GetRoot(), 100, 10
 
     // exit button
     Button_minimize_ana = new TGTextButton(hframeD2b, "Minimize Ana",10);
-    Button_minimize_ana->Connect("Clicked()", "TTripleSliderDemo", this, "DoMinimize_ana()");
+    Button_minimize_ana->Connect("Clicked()", "TBlastWaveGUI", this, "DoMinimize_ana()");
 
     Button_minimize_ana->ChangeBackground(red);
 
@@ -508,7 +524,7 @@ TTripleSliderDemo::TTripleSliderDemo() : TGMainFrame(gClient->GetRoot(), 100, 10
 
     // save button
     Button_stop_minimize_ana = new TGTextButton(hframeD2b, "Stop minimize Ana",10);
-    Button_stop_minimize_ana->Connect("Clicked()", "TTripleSliderDemo", this, "StopMinimize()");
+    Button_stop_minimize_ana->Connect("Clicked()", "TBlastWaveGUI", this, "StopMinimize()");
     hframeD2b->AddFrame(Button_stop_minimize_ana, new TGLayoutHints(kLHintsCenterX,5,5,3,4));
 
 
@@ -524,7 +540,7 @@ TTripleSliderDemo::TTripleSliderDemo() : TGMainFrame(gClient->GetRoot(), 100, 10
     {
         fCheckBox_pid[i_particle]  = new TGCheckButton(hframeD3, new TGHotString(label_full_pid_spectra[i_particle].Data()), -1);
         fCheckBox_pid[i_particle] ->SetState(kButtonDown);
-        fCheckBox_pid[i_particle] ->Connect("Clicked()", "TTripleSliderDemo", this, "DoSlider()");
+        fCheckBox_pid[i_particle] ->Connect("Clicked()", "TBlastWaveGUI", this, "DoSlider()");
         hframeD3->AddFrame(fCheckBox_pid[i_particle], fLCheckBox);
     }
     FrameD ->AddFrame(hframeD3, new TGLayoutHints(kLHintsCenterX,2,2,2,2));
@@ -544,7 +560,7 @@ TTripleSliderDemo::TTripleSliderDemo() : TGMainFrame(gClient->GetRoot(), 100, 10
     {
         fCheckBox_sel[i_cb]  = new TGCheckButton(hframeD4, new TGHotString(label_checkbox[i_cb].Data()), -1);
         fCheckBox_sel[i_cb] ->SetState(kButtonDown);
-        fCheckBox_sel[i_cb] ->Connect("Clicked()", "TTripleSliderDemo", this, "DoSlider()");
+        fCheckBox_sel[i_cb] ->Connect("Clicked()", "TBlastWaveGUI", this, "DoSlider()");
         hframeD4->AddFrame(fCheckBox_sel[i_cb], fLCheckBox);
     }
     FrameD ->AddFrame(hframeD4, new TGLayoutHints(kLHintsCenterX,2,2,2,2));
@@ -576,11 +592,11 @@ TTripleSliderDemo::TTripleSliderDemo() : TGMainFrame(gClient->GetRoot(), 100, 10
     hframeD5  = new TGHorizontalFrame(FrameD,200,100);
 
     Button_take_params_MC_to_ana = new TGTextButton(hframeD5, "Use MC params for Ana",10);
-    Button_take_params_MC_to_ana->Connect("Clicked()", "TTripleSliderDemo", this, "TakeParamsFromMC()");
+    Button_take_params_MC_to_ana->Connect("Clicked()", "TBlastWaveGUI", this, "TakeParamsFromMC()");
     hframeD5->AddFrame(Button_take_params_MC_to_ana, new TGLayoutHints(kLHintsCenterX,5,5,3,4));
 
     Button_take_params_Set_to_ana = new TGTextButton(hframeD5, "Use SET params for Ana",10);
-    Button_take_params_Set_to_ana->Connect("Clicked()", "TTripleSliderDemo", this, "TakeParamsFromSet()");
+    Button_take_params_Set_to_ana->Connect("Clicked()", "TBlastWaveGUI", this, "TakeParamsFromSet()");
     hframeD5->AddFrame(Button_take_params_Set_to_ana, new TGLayoutHints(kLHintsCenterX,5,5,3,4));
 
     FrameD ->AddFrame(hframeD5, new TGLayoutHints(kLHintsCenterX,2,2,2,2));
@@ -619,7 +635,7 @@ TTripleSliderDemo::TTripleSliderDemo() : TGMainFrame(gClient->GetRoot(), 100, 10
         for(Int_t i_pid = 0; i_pid < 8; i_pid++)
         {
             arr_NEntry_limits[i_min_max][i_pid] = new TGNumberEntry(arr_VFrame_NEntry_limits[i_min_max], min_max_pT_range_pid[i_min_max][i_pid], 12,(TGNumberFormat::EStyle) 1);
-            arr_NEntry_limits[i_min_max][i_pid] ->Connect("ValueSet(Long_t)", "TTripleSliderDemo", this, "DoSlider()");
+            arr_NEntry_limits[i_min_max][i_pid] ->Connect("ValueSet(Long_t)", "TBlastWaveGUI", this, "DoSlider()");
             arr_NEntry_limits[i_min_max][i_pid]->SetNumStyle( TGNumberFormat::kNESRealOne); // https://root.cern.ch/doc/master/classTGNumberFormat.html#a8a0f81aac8ac12d0461aef554c6271ad
             arr_VFrame_NEntry_limits[i_min_max]->AddFrame(arr_NEntry_limits[i_min_max][i_pid], LHintsD4a);
             TString label_entry = "pT " + arr_label_min_max[i_min_max] + " " + arr_label_pid[i_pid];
@@ -648,13 +664,13 @@ TTripleSliderDemo::TTripleSliderDemo() : TGMainFrame(gClient->GetRoot(), 100, 10
 
 }
 //______________________________________________________________________________
-TTripleSliderDemo::~TTripleSliderDemo()
+TBlastWaveGUI::~TBlastWaveGUI()
 {
     // Clean up
     Cleanup();
 }
 //______________________________________________________________________________
-void TTripleSliderDemo::CloseWindow()
+void TBlastWaveGUI::CloseWindow()
 {
     // Called when window is closed via the window manager.
     delete this;
@@ -662,7 +678,7 @@ void TTripleSliderDemo::CloseWindow()
 
 
 //______________________________________________________________________________
-void TTripleSliderDemo::DoText(const char * /*text*/)
+void TBlastWaveGUI::DoText(const char * /*text*/)
 {
     //cout << "DoText()" << endl;
     // Handle text entry widgets.
@@ -688,7 +704,7 @@ void TTripleSliderDemo::DoText(const char * /*text*/)
 
 
 //______________________________________________________________________________
-void TTripleSliderDemo::DoSlider()
+void TBlastWaveGUI::DoSlider()
 {
     //cout << "DoSlider started" << endl;
 
@@ -742,7 +758,8 @@ void TTripleSliderDemo::DoSlider()
     fCanvas ->GetCanvas() ->cd();
     h_dummy ->Draw();
 
-    PlotLine(0.0,15.0,0.0,0.0,kBlack,2,2); // (Double_t x1_val, Double_t x2_val, Double_t y1_val, Double_t y2_val, Int_t Line_Col, Int_t LineWidth, Int_t LineStyle)
+    if(TL_line_base) delete TL_line_base;
+    TL_line_base = PlotLine(0.0,15.0,0.0,0.0,kBlack,2,2); // (Double_t x1_val, Double_t x2_val, Double_t y1_val, Double_t y2_val, Int_t Line_Col, Int_t LineWidth, Int_t LineStyle)
 
     Int_t plot_centrality = 4;
 
@@ -793,16 +810,26 @@ void TTripleSliderDemo::DoSlider()
     leg_v2_vs_pT_B->AddEntry((TGraphAsymmErrors*)tgae_v2_vs_pT_mesons_data[7]->Clone(),"#Upsilon","p");
     leg_v2_vs_pT_B->Draw();
 
-    plotTopLegend((char*)"30-40%",0.73,0.83,0.045,kBlack,0.0,42,1,1); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
-    plotTopLegend((char*)"5-60%",0.85,0.83,0.045,kBlack,0.0,42,1,1); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
-    plotTopLegend((char*)"|y|<0.5",0.73,0.89,0.045,kBlack,0.0,42,1,1); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
-    plotTopLegend((char*)"2.5<y<4",0.85,0.89,0.045,kBlack,0.0,42,1,1); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
+    if(TLatex_legend_system[0]) delete TLatex_legend_system[0];
+    TLatex_legend_system[0] = plotTopLegend((char*)"30-40%",0.73,0.83,0.045,kBlack,0.0,42,1,1); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
+    if(TLatex_legend_system[1]) delete TLatex_legend_system[1];
+    TLatex_legend_system[1] = plotTopLegend((char*)"5-60%",0.85,0.83,0.045,kBlack,0.0,42,1,1); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
+    if(TLatex_legend_system[2]) delete TLatex_legend_system[2];
+    TLatex_legend_system[2] = plotTopLegend((char*)"|y|<0.5",0.73,0.89,0.045,kBlack,0.0,42,1,1); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
+    if(TLatex_legend_system[3]) delete TLatex_legend_system[3];
+    TLatex_legend_system[3] = plotTopLegend((char*)"2.5<y<4",0.85,0.89,0.045,kBlack,0.0,42,1,1); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
 
-    HistName = "#chi^{2}/ndf = ";
-    //sprintf(NoP,"%4.2f",chi2_min);
+    HistName = "#chi_{MC}^{2}/ndf = ";
     sprintf(NoP,"%4.2f",chi2_final_min);
     HistName += NoP;
-    plotTopLegend((char*)HistName.Data(),0.18,0.85,0.045,kBlack,0.0,42,1,1); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
+    TLatex_chi2_MC = plotTopLegend((char*)HistName.Data(),0.18,0.86,0.045,kBlack,0.0,42,1,1); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
+
+    HistName = "#chi_{Ana}^{2}/ndf = ";
+    sprintf(NoP,"%4.2f",chi2_final_min_ana);
+    HistName += NoP;
+    if(TLatex_chi2_ana) delete TLatex_chi2_ana;
+    TLatex_chi2_ana = plotTopLegend((char*)HistName.Data(),0.18,0.80,0.045,kBlack,0.0,42,1,1); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
+
 
     fCanvas->GetCanvas()->Modified();
     fCanvas->GetCanvas()->Update();
@@ -849,15 +876,9 @@ void TTripleSliderDemo::DoSlider()
     for(Int_t iPad = 1; iPad <= 8; iPad++)
     {
         fCanvasB ->GetCanvas()->cd(iPad);
-        plotTopLegend((char*)label_pid_spectra[iPad-1].Data(),0.75,0.83,0.06,kBlack,0.0,42,1,1); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
-        //plotTopLegend((char*)"|y|<0.5",0.75,0.77,0.06,kBlack,0.0,42,1,1); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
+        if(TLatex_legend_dNdpT[iPad-1]) delete TLatex_legend_dNdpT[iPad-1];
+        TLatex_legend_dNdpT[iPad-1] = plotTopLegend((char*)label_pid_spectra[iPad-1].Data(),0.75,0.83,0.06,kBlack,0.0,42,1,1); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
     }
-    //for(Int_t iPad = 4; iPad <= 5; iPad++)
-    //{
-    //    fCanvasB ->GetCanvas()->cd(iPad);
-    //    plotTopLegend((char*)label_pid_spectra[iPad-1].Data(),0.75,0.83,0.06,kBlack,0.0,42,1,1); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
-        //plotTopLegend((char*)"2.5<y<4",0.75,0.77,0.06,kBlack,0.0,42,1,1); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
-    //}
 
     fCanvasB->GetCanvas()->Modified();
     fCanvasB->GetCanvas()->Update();
@@ -866,7 +887,7 @@ void TTripleSliderDemo::DoSlider()
 }
 
 //______________________________________________________________________________
-void TTripleSliderDemo::StopMinimize()
+void TBlastWaveGUI::StopMinimize()
 {
     printf("Minimization stopped \n");
     flag_stop_minimize = 1;
@@ -874,7 +895,7 @@ void TTripleSliderDemo::StopMinimize()
 
 
 //______________________________________________________________________________
-void TTripleSliderDemo::DoMinimize_ana()
+void TBlastWaveGUI::DoMinimize_ana()
 {
     cout << "DoMinimize_ana started" << endl;
     N_calls_BW_ana = 0;
@@ -893,11 +914,6 @@ void TTripleSliderDemo::DoMinimize_ana()
         //minimisation function computing the sum of squares of residuals
         N_calls_BW_ana++;
 
-        if(N_calls_BW_ana % 5 == 0) fHProg2->Increment(5);
-        //printf("fraction total: %4.2f%%, fraction added: %4.2f%% \n",fraction_total*100.0,fraction_use*100.0);
-        gSystem->Sleep(100);
-        gSystem->ProcessEvents();
-
         double chi2 = 0;
 
         const double T = par[0];       // fit parameter: Temp in GeV
@@ -913,10 +929,17 @@ void TTripleSliderDemo::DoMinimize_ana()
 
             const double m = arr_quark_mass_meson[i_mass];       // in GeV
 
+            if(tg_v2_BW_ana_pid_min[i_mass])    delete tg_v2_BW_ana_pid_min[i_mass];
+            if(tg_dNdpT_BW_ana_pid_min[i_mass]) delete tg_dNdpT_BW_ana_pid_min[i_mass];
+
+            tg_v2_BW_ana_pid_min[i_mass]    = new TGraph();
+            tg_dNdpT_BW_ana_pid_min[i_mass] = new TGraph();
+
             //--------------------------------------------------
             // v2 chi2
             if((fCheckBox_v2_dNdpT[0]->GetState() == kButtonDown))
             {
+                Int_t i_point_ana = 0;
                 for(int i_point = 0; i_point < tgae_v2_vs_pT_mesons_data[i_mass]->GetN(); ++i_point)
                 {
                     double v2_data = 0.0;
@@ -937,10 +960,14 @@ void TTripleSliderDemo::DoMinimize_ana()
                         const double pt_BW = pt_data;         // in GeV
 
                         blastwave_yield_and_v2(pt_BW, m, T, rho0, rho2, RxOverRy, inv_yield_BW, v2_BW);
+
+                        tg_v2_BW_ana_pid_min[i_mass] ->SetPoint(i_point_ana,pt_BW,v2_BW);
+
                         // cout << "i_point = " << i_point << ", pt_BW = " << pt_BW << ", v2_BW = " << v2_BW << endl;
                         double diff   = (v2_data - v2_BW)/v2_err;
                         //double diff_yield = (inv_yield_BW - inv_yield_data)/yield_err;
                         chi2 += diff*diff;
+                        i_point_ana++;
                     }
                 }
             }
@@ -999,6 +1026,7 @@ void TTripleSliderDemo::DoMinimize_ana()
                     // Calculate chi2 for dNdpT
                     if(integral_ana > 0.0)
                     {
+                        Int_t i_point_ana = 0;
                         for(Int_t i_point = 0; i_point < (Int_t)vec_data_BW[0].size(); i_point++)
                         {
                             Double_t pt_data = vec_data_BW[3][i_point];
@@ -1009,6 +1037,8 @@ void TTripleSliderDemo::DoMinimize_ana()
                                 // Normalize BW to integral within range of data
                                 double diff   = (vec_data_BW[0][i_point] - (vec_data_BW[1][i_point]/integral_ana))/vec_data_BW[2][i_point];
                                 chi2 += diff*diff;
+                                tg_dNdpT_BW_ana_pid_min[i_mass] ->SetPoint(i_point_ana,pt_data,vec_data_BW[1][i_point]/integral_ana);
+                                i_point_ana++;
                             }
                         }
                     }
@@ -1019,6 +1049,48 @@ void TTripleSliderDemo::DoMinimize_ana()
             //integration_range_pid[i_mass][1] = x_val_data_last  + x_err_high_data;
             //--------------------------------------------------
         }
+
+        if(N_calls_BW_ana % 5 == 0) fHProg2->Increment(5);
+        //printf("fraction total: %4.2f%%, fraction added: %4.2f%% \n",fraction_total*100.0,fraction_use*100.0);
+
+        fCanvas->GetCanvas()->cd();
+        HistName = "#chi_{Ana}^{2}/ndf = ";
+        sprintf(NoP,"%4.2f",chi2);
+        HistName += NoP;
+        //printf("chi2 (ana): %4.3f \n",chi2);
+        if(TLatex_chi2_ana) delete TLatex_chi2_ana;
+        TLatex_chi2_ana = plotTopLegend((char*)HistName.Data(),0.18,0.80,0.045,kBlack,0.0,42,1,1); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
+
+        for(int i_mass = 0; i_mass < N_masses; ++i_mass)
+        {
+            if(!tg_v2_BW_ana_pid_min[i_mass]) continue;
+            tg_v2_BW_ana_pid_min[i_mass] ->SetLineColor(arr_color_mass[i_mass]);
+            tg_v2_BW_ana_pid_min[i_mass] ->SetLineWidth(3);
+            tg_v2_BW_ana_pid_min[i_mass] ->SetLineStyle(9);
+            tg_v2_BW_ana_pid_min[i_mass] ->Draw("same L");
+        }
+
+        fCanvas->GetCanvas()->Modified();
+        fCanvas->GetCanvas()->Update();
+
+        for(int i_mass = 0; i_mass < N_masses; ++i_mass)
+        {
+            if(!tg_dNdpT_BW_ana_pid_min[i_mass]) continue;
+            fCanvasB ->GetCanvas()->cd(i_mass+1);
+            tg_dNdpT_BW_ana_pid_min[i_mass] ->SetLineColor(kAzure-2);
+            tg_dNdpT_BW_ana_pid_min[i_mass] ->SetLineWidth(3);
+            tg_dNdpT_BW_ana_pid_min[i_mass] ->SetLineStyle(1);
+            tg_dNdpT_BW_ana_pid_min[i_mass] ->Draw("same L");
+        }
+
+        fCanvasB->GetCanvas()->Modified();
+        fCanvasB->GetCanvas()->Update();
+
+        gSystem->Sleep(100);
+        gSystem->ProcessEvents();
+
+        if(chi2 < chi2_final_min_ana) chi2_final_min_ana = chi2;
+
         return chi2;
     };
 
@@ -1065,6 +1137,8 @@ void TTripleSliderDemo::DoMinimize_ana()
     double Rho0_BW     = fitpar[1];
     double Rho2_BW     = fitpar[2];
     double RxOverRy_BW = fitpar[3];
+    double Chi2_ana = result.Chi2();
+    double NDF_ana  = result.Ndf();
     cout << "T_BW = " << T_BW << ", Rho0_BW = " << Rho0_BW << ", Rho2_BW = " << Rho2_BW << ", RxOverRy_BW = " << RxOverRy_BW << endl;
 
     Plot_curves_ana(T_BW,Rho0_BW,Rho2_BW,RxOverRy_BW);
@@ -1077,7 +1151,7 @@ void TTripleSliderDemo::DoMinimize_ana()
 
 
 //______________________________________________________________________________
-void TTripleSliderDemo::DoMinimize()
+void TBlastWaveGUI::DoMinimize()
 {
     cout << "DoMinimize started" << endl;
 
@@ -1327,9 +1401,9 @@ void TTripleSliderDemo::DoMinimize()
 
 
 //______________________________________________________________________________
-void TTripleSliderDemo::TakeParamsFromSet()
+void TBlastWaveGUI::TakeParamsFromSet()
 {
-    printf("TTripleSliderDemo::TakeParamsFromSet() \n");
+    printf("TBlastWaveGUI::TakeParamsFromSet() \n");
     //flag_minimization_ana = 1;
 
     Pixel_t green;
@@ -1350,9 +1424,9 @@ void TTripleSliderDemo::TakeParamsFromSet()
 
 
 //______________________________________________________________________________
-void TTripleSliderDemo::TakeParamsFromMC()
+void TBlastWaveGUI::TakeParamsFromMC()
 {
-    printf("TTripleSliderDemo::TakeParamsFromMC() \n");
+    printf("TBlastWaveGUI::TakeParamsFromMC() \n");
     flag_minimization_ana = 1;
 
     Int_t i_Temp   = vec_slider[0]->GetPosition();
@@ -1386,9 +1460,9 @@ void TTripleSliderDemo::TakeParamsFromMC()
 
 
 //______________________________________________________________________________
-void TTripleSliderDemo::Plot_curves_ana(Double_t T_BW,Double_t  Rho0_BW,Double_t  Rho2_BW,Double_t  RxOverRy_BW)
+void TBlastWaveGUI::Plot_curves_ana(Double_t T_BW,Double_t  Rho0_BW,Double_t  Rho2_BW,Double_t  RxOverRy_BW)
 {
-    printf("TTripleSliderDemo::Plot_curves_ana() \n");
+    printf("TBlastWaveGUI::Plot_curves_ana() \n");
     flag_minimization_ana = 1;
 
 
@@ -1511,5 +1585,5 @@ void TTripleSliderDemo::Plot_curves_ana(Double_t T_BW,Double_t  Rho0_BW,Double_t
 
 void v2_slider()
 {
-    new TTripleSliderDemo();
+    new TBlastWaveGUI();
 }

@@ -49,6 +49,7 @@
 #include "TMatrixD.h"
 #include "TVectorD.h"
 #include "Math/WrappedParamFunction.h"
+#include "Math/AdaptiveIntegratorMultiDim.h"
 
 static TFile *inputfile_id;
 static TFile *inputfile_JPsi;
@@ -118,6 +119,13 @@ static TGraphAsymmErrors* tgae_dN_dpT_mesons_data[8];    // pi, K, p, phi, Omega
 
 static Int_t N_calls_BW_ana = 0;
 
+static TMatrixD TL_Matrix_Lambda_L(4,4);
+static TMatrixD TL_Matrix_Lambda_LInv(4,4);
+static TMatrixD TL_Matrix_Lambda_R(4,4);
+static TMatrixD TL_Matrix_Lambda_RInv(4,4);
+static TMatrixD TL_Matrix_Lambda_T(4,4);
+static TMatrixD TL_Matrix_Lambda_TInv(4,4);
+
 
 //------------------------------------------------------------------------------------------------------------
 static const Float_t Pi = TMath::Pi();
@@ -126,6 +134,151 @@ static TString HistName;
 static char NoP[50];
 //------------------------------------------------------------------------------------------------------------
 
+
+//------------------------------------------------------------------------------------------------------------
+void Init_Lorentz_Matrices(Double_t y_z, Double_t phis, Double_t y_tp)
+{
+    //--------------------------------------------
+    TL_Matrix_Lambda_L[0][0] = TMath::CosH(y_z);
+    TL_Matrix_Lambda_L[0][1] = 0.0;
+    TL_Matrix_Lambda_L[0][2] = 0.0;
+    TL_Matrix_Lambda_L[0][3] = -TMath::SinH(y_z);
+
+    TL_Matrix_Lambda_L[1][0] = 0.0;
+    TL_Matrix_Lambda_L[1][1] = 1.0;
+    TL_Matrix_Lambda_L[1][2] = 0.0;
+    TL_Matrix_Lambda_L[1][3] = 0.0;
+
+    TL_Matrix_Lambda_L[2][0] = 0.0;
+    TL_Matrix_Lambda_L[2][1] = 0.0;
+    TL_Matrix_Lambda_L[2][2] = 1.0;
+    TL_Matrix_Lambda_L[2][3] = 0.0;
+
+    TL_Matrix_Lambda_L[3][0] = -TMath::SinH(y_z);
+    TL_Matrix_Lambda_L[3][1] = 0.0;
+    TL_Matrix_Lambda_L[3][2] = 0.0;
+    TL_Matrix_Lambda_L[3][3] = TMath::CosH(y_z);
+    //--------------------------------------------
+
+
+    //--------------------------------------------
+    TL_Matrix_Lambda_LInv[0][0] = TMath::CosH(-y_z);
+    TL_Matrix_Lambda_LInv[0][1] = 0.0;
+    TL_Matrix_Lambda_LInv[0][2] = 0.0;
+    TL_Matrix_Lambda_LInv[0][3] = -TMath::SinH(-y_z);
+
+    TL_Matrix_Lambda_LInv[1][0] = 0.0;
+    TL_Matrix_Lambda_LInv[1][1] = 1.0;
+    TL_Matrix_Lambda_LInv[1][2] = 0.0;
+    TL_Matrix_Lambda_LInv[1][3] = 0.0;
+
+    TL_Matrix_Lambda_LInv[2][0] = 0.0;
+    TL_Matrix_Lambda_LInv[2][1] = 0.0;
+    TL_Matrix_Lambda_LInv[2][2] = 1.0;
+    TL_Matrix_Lambda_LInv[2][3] = 0.0;
+
+    TL_Matrix_Lambda_LInv[3][0] = -TMath::SinH(-y_z);
+    TL_Matrix_Lambda_LInv[3][1] = 0.0;
+    TL_Matrix_Lambda_LInv[3][2] = 0.0;
+    TL_Matrix_Lambda_LInv[3][3] = TMath::CosH(-y_z);
+    //--------------------------------------------
+
+
+
+    //--------------------------------------------
+    TL_Matrix_Lambda_R[0][0] = 1.0;
+    TL_Matrix_Lambda_R[0][1] = 0.0;
+    TL_Matrix_Lambda_R[0][2] = 0.0;
+    TL_Matrix_Lambda_R[0][3] = 0.0;
+
+    TL_Matrix_Lambda_R[1][0] = 0.0;
+    TL_Matrix_Lambda_R[1][1] = TMath::Cos(phis);
+    TL_Matrix_Lambda_R[1][2] = TMath::Sin(phis);
+    TL_Matrix_Lambda_R[1][3] = 0.0;
+
+    TL_Matrix_Lambda_R[2][0] = 0.0;
+    TL_Matrix_Lambda_R[2][1] = -TMath::Sin(phis);
+    TL_Matrix_Lambda_R[2][2] = TMath::Cos(phis);
+    TL_Matrix_Lambda_R[2][3] = 0.0;
+
+    TL_Matrix_Lambda_R[3][0] = 0.0;
+    TL_Matrix_Lambda_R[3][1] = 0.0;
+    TL_Matrix_Lambda_R[3][2] = 0.0;
+    TL_Matrix_Lambda_R[3][3] = 1.0;
+    //--------------------------------------------
+
+
+
+    //--------------------------------------------
+    TL_Matrix_Lambda_RInv[0][0] = 1.0;
+    TL_Matrix_Lambda_RInv[0][1] = 0.0;
+    TL_Matrix_Lambda_RInv[0][2] = 0.0;
+    TL_Matrix_Lambda_RInv[0][3] = 0.0;
+
+    TL_Matrix_Lambda_RInv[1][0] = 0.0;
+    TL_Matrix_Lambda_RInv[1][1] = TMath::Cos(-phis);
+    TL_Matrix_Lambda_RInv[1][2] = TMath::Sin(-phis);
+    TL_Matrix_Lambda_RInv[1][3] = 0.0;
+
+    TL_Matrix_Lambda_RInv[2][0] = 0.0;
+    TL_Matrix_Lambda_RInv[2][1] = -TMath::Sin(-phis);
+    TL_Matrix_Lambda_RInv[2][2] = TMath::Cos(-phis);
+    TL_Matrix_Lambda_RInv[2][3] = 0.0;
+
+    TL_Matrix_Lambda_RInv[3][0] = 0.0;
+    TL_Matrix_Lambda_RInv[3][1] = 0.0;
+    TL_Matrix_Lambda_RInv[3][2] = 0.0;
+    TL_Matrix_Lambda_RInv[3][3] = 1.0;
+    //--------------------------------------------
+
+
+
+    //--------------------------------------------
+    TL_Matrix_Lambda_T[0][0] = TMath::CosH(y_tp);
+    TL_Matrix_Lambda_T[0][1] = -TMath::SinH(y_tp);
+    TL_Matrix_Lambda_T[0][2] = 0.0;
+    TL_Matrix_Lambda_T[0][3] = 0.0;
+
+    TL_Matrix_Lambda_T[1][0] = -TMath::SinH(y_tp);
+    TL_Matrix_Lambda_T[1][1] = TMath::CosH(y_tp);
+    TL_Matrix_Lambda_T[1][2] = 0.0;
+    TL_Matrix_Lambda_T[1][3] = 0.0;
+
+    TL_Matrix_Lambda_T[2][0] = 0.0;
+    TL_Matrix_Lambda_T[2][1] = 0.0;
+    TL_Matrix_Lambda_T[2][2] = 1.0;
+    TL_Matrix_Lambda_T[2][3] = 0.0;
+
+    TL_Matrix_Lambda_T[3][0] = 0.0;
+    TL_Matrix_Lambda_T[3][1] = 0.0;
+    TL_Matrix_Lambda_T[3][2] = 0.0;
+    TL_Matrix_Lambda_T[3][3] = 1.0;
+    //--------------------------------------------
+
+
+    //--------------------------------------------
+    TL_Matrix_Lambda_TInv[0][0] = TMath::CosH(-y_tp);
+    TL_Matrix_Lambda_TInv[0][1] = -TMath::SinH(-y_tp);
+    TL_Matrix_Lambda_TInv[0][2] = 0.0;
+    TL_Matrix_Lambda_TInv[0][3] = 0.0;
+
+    TL_Matrix_Lambda_TInv[1][0] = -TMath::SinH(-y_tp);
+    TL_Matrix_Lambda_TInv[1][1] = TMath::CosH(-y_tp);
+    TL_Matrix_Lambda_TInv[1][2] = 0.0;
+    TL_Matrix_Lambda_TInv[1][3] = 0.0;
+
+    TL_Matrix_Lambda_TInv[2][0] = 0.0;
+    TL_Matrix_Lambda_TInv[2][1] = 0.0;
+    TL_Matrix_Lambda_TInv[2][2] = 1.0;
+    TL_Matrix_Lambda_TInv[2][3] = 0.0;
+
+    TL_Matrix_Lambda_TInv[3][0] = 0.0;
+    TL_Matrix_Lambda_TInv[3][1] = 0.0;
+    TL_Matrix_Lambda_TInv[3][2] = 0.0;
+    TL_Matrix_Lambda_TInv[3][3] = 1.0;
+    //--------------------------------------------
+}
+//------------------------------------------------------------------------------------------------------------
 
 
 //------------------------------------------------------------------------------------------------------------
@@ -1008,7 +1161,7 @@ TLatex* plotTopLegend(char* label,Float_t x=-1,Float_t y=-1,Float_t size=0.06,In
 
 
 //----------------------------------------------------------------------------------------
-void PlotLine(Double_t x1_val, Double_t x2_val, Double_t y1_val, Double_t y2_val, Int_t Line_Col, Int_t LineWidth, Int_t LineStyle)
+TLine* PlotLine(Double_t x1_val, Double_t x2_val, Double_t y1_val, Double_t y2_val, Int_t Line_Col, Int_t LineWidth, Int_t LineStyle)
 {
     TLine* Zero_line = new TLine();
     Zero_line -> SetX1(x1_val);
@@ -1020,6 +1173,8 @@ void PlotLine(Double_t x1_val, Double_t x2_val, Double_t y1_val, Double_t y2_val
     Zero_line -> SetLineColor(Line_Col);
     Zero_line -> Draw();
     //delete Zero_line;
+
+    return Zero_line;
 }
 //----------------------------------------------------------------------------------------
 
@@ -1864,6 +2019,7 @@ Double_t get_s2(Double_t R_x, Double_t R_y)
 {
     // Calculates s2 from Rx and Rx, based on equation (6) in
     // https://arxiv.org/pdf/nucl-th/0312024.pdf
+    // WARNING: Only corrrect if rho2 is 0.
 
     Double_t s2 = 0.5*(TMath::Power(R_y/R_x,2.0) - 1.0)/(TMath::Power(R_y/R_x,2.0) + 1.0);
 
