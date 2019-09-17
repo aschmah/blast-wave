@@ -115,6 +115,8 @@ static Double_t arr_f_boost[9]   = {0.0,0.05,0.1,0.15,0.2,0.4,0.6,0.8,1.0};
 static Int_t    arr_color_line_mass[8] = {kBlack,kGreen,kRed,kMagenta,kCyan,kOrange,kAzure,kGray};
 
 static TGraphAsymmErrors* tgae_v2_vs_pT_mesons_data[8]; // pi, K, p, phi, Omega, D0, J/Psi, Upsilon
+static TGraphAsymmErrors* tgae_v2_vs_pT_mesons_data_copy[8]; // pi, K, p, phi, Omega, D0, J/Psi, Upsilon
+static TGraphAsymmErrors* tgae_v2_vs_pT_mesons_data_copyB[8]; // pi, K, p, phi, Omega, D0, J/Psi, Upsilon
 static TGraphAsymmErrors* tgae_dN_dpT_mesons_data[8];    // pi, K, p, phi, Omega, D0, J/Psi, Upsilon
 
 static Int_t N_calls_BW_ana = 0;
@@ -1018,6 +1020,12 @@ void init_data()
     tgae_v2_vs_pT_mesons_data[5] = (TGraphAsymmErrors*)tg_D0_v2_vs_pT->Clone(); // D0
     tgae_v2_vs_pT_mesons_data[6] = (TGraphAsymmErrors*)tg_JPsi_v2_vs_pT->Clone(); // J/Psi
     tgae_v2_vs_pT_mesons_data[7] = (TGraphAsymmErrors*)tg_Upsilon_v2_vs_pT->Clone(); // Upsilon
+
+    for(Int_t i_mass = 0; i_mass < 8; i_mass++)
+    {
+        tgae_v2_vs_pT_mesons_data_copy[i_mass]  = (TGraphAsymmErrors*)tgae_v2_vs_pT_mesons_data[i_mass] ->Clone();
+        tgae_v2_vs_pT_mesons_data_copyB[i_mass] = (TGraphAsymmErrors*)tgae_v2_vs_pT_mesons_data[i_mass] ->Clone();
+    }
 }
 //------------------------------------------------------------------------------------------------------------
 

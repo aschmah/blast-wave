@@ -59,6 +59,7 @@ private:
     TGHorizontalFrame *hframeD4;
     TGHorizontalFrame *hframeD5;
     TGHorizontalFrame *hframeD5a;
+    TGHorizontalFrame *hframeD6;
     TGVerticalFrame *hVframeD5a[4];
     TGVerticalFrame *hVframeD3;
     TGVerticalFrame *hVframeD4;
@@ -103,6 +104,10 @@ private:
     TGraph* tg_v2_BW_ana_pid_min[8];
     TGraph* tg_dNdpT_BW_ana_pid_min[8];
 
+    TGraph* tg_v2_BW_ana_pid_plot[8];
+    TGraph* tg_dNdpT_BW_ana_pid_plot[8];
+
+
     Double_t var_test = 5.2;
 
     TGTextButton *Button_minimize;
@@ -111,8 +116,12 @@ private:
     TGTextButton *Button_minimize_ana;
     TGTextButton *Button_stop_minimize_ana;
 
+    TGTextButton *Button_make_plot_v2;
+    TGTextButton *Button_make_plot_dNdpT;
+
     TFile* inputfile;
     TH1D* h_dummy;
+    TH1D* h_dummy_plot_v2[2] = {NULL,NULL};
     TH1D* h_dummy_dNdpT;
     TLegend* leg_v2_vs_pT_A = NULL;
     TLegend* leg_v2_vs_pT_B = NULL;
@@ -132,8 +141,21 @@ private:
     TLatex* TLatex_chi2_ana = NULL;
     TLatex* TLatex_legend_system[4] = {NULL,NULL,NULL,NULL};
     TLatex* TLatex_legend_dNdpT[8];
+    TLatex* TLatex_legend_v2_plot[8];
 
     TLine* TL_line_base = NULL;
+    TLine* TL_line_base_plot[2] = {NULL,NULL};
+
+    Double_t T_BW_fit_ana        = -1.0;
+    Double_t Rho0_BW_fit_ana     = -1.0;
+    Double_t Rho2_BW_fit_ana     = -1.0;
+    Double_t RxOverRy_BW_fit_ana = -1.0;
+
+    TH1F* h_frame_2X1[2] = {NULL,NULL};
+    TCanvas* c_2X1 = NULL;
+    TGraph* tg_label_plot[3][8];
+
+    TFile* outputfile;
 
 public:
     TBlastWaveGUI();
@@ -147,6 +169,9 @@ public:
     void TakeParamsFromMC();
     void TakeParamsFromSet();
     void Plot_curves_ana(Double_t T_BW,Double_t  Rho0_BW,Double_t  Rho2_BW,Double_t  RxOverRy_BW);
+    void MakePlotv2();
+    void MakePlotdNdpT();
+    void DoSave();
     ClassDef(TBlastWaveGUI, 0)
 };
 
@@ -161,6 +186,8 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
     gStyle->SetOptStat(0);
 
     var_test = 2.6;
+
+    outputfile = new TFile("./out_BW.root","RECREATE");
     //--------------------------------------------------------------------
 
 
@@ -192,7 +219,15 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
         tg_v2_BW_ana_pid_min[i_mass]    = NULL;
         tg_dNdpT_BW_ana_pid_min[i_mass] = NULL;
 
+        tg_v2_BW_ana_pid_plot[i_mass]    = NULL;
+        tg_dNdpT_BW_ana_pid_plot[i_mass] = NULL;
+
         TLatex_legend_dNdpT[i_mass] = NULL;
+        TLatex_legend_v2_plot[i_mass] = NULL;
+
+        tg_label_plot[0][i_mass] = new TGraph();
+        tg_label_plot[1][i_mass] = new TGraph();
+        tg_label_plot[2][i_mass] = new TGraph();
     }
 
 
@@ -448,7 +483,8 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
     hframeD1->AddFrame(Button_exit, new TGLayoutHints(kLHintsCenterX,5,5,3,4));
 
     // save button
-    Button_save = new TGTextButton(hframeD1, "&Save ","gApplication->Terminate(0)");
+    Button_save = new TGTextButton(hframeD1, "&Save ",10);
+    Button_save->Connect("Clicked()", "TBlastWaveGUI", this, "DoSave()");
     hframeD1->AddFrame(Button_save, new TGLayoutHints(kLHintsCenterX,5,5,3,4));
 
     FrameD ->AddFrame(hframeD1, new TGLayoutHints(kLHintsCenterX,2,2,2,2));
@@ -601,6 +637,25 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
 
     FrameD ->AddFrame(hframeD5, new TGLayoutHints(kLHintsCenterX,2,2,2,2));
     //--------------
+
+
+
+
+    //--------------
+    hframeD6  = new TGHorizontalFrame(FrameD,200,100);
+
+    Button_make_plot_v2 = new TGTextButton(hframeD6, "Make plot v2",10);
+    Button_make_plot_v2->Connect("Clicked()", "TBlastWaveGUI", this, "MakePlotv2()");
+    hframeD6->AddFrame(Button_make_plot_v2, new TGLayoutHints(kLHintsCenterX,5,5,3,4));
+
+    Button_make_plot_dNdpT = new TGTextButton(hframeD6, "Make plot dN/dpT",10);
+    Button_make_plot_dNdpT->Connect("Clicked()", "TBlastWaveGUI", this, "MakePlotdNdpT()");
+    hframeD6->AddFrame(Button_make_plot_dNdpT, new TGLayoutHints(kLHintsCenterX,5,5,3,4));
+
+    FrameD ->AddFrame(hframeD6, new TGLayoutHints(kLHintsCenterX,2,2,2,2));
+    //--------------
+
+
 
 
 
@@ -760,8 +815,6 @@ void TBlastWaveGUI::DoSlider()
 
     if(TL_line_base) delete TL_line_base;
     TL_line_base = PlotLine(0.0,15.0,0.0,0.0,kBlack,2,2); // (Double_t x1_val, Double_t x2_val, Double_t y1_val, Double_t y2_val, Int_t Line_Col, Int_t LineWidth, Int_t LineStyle)
-
-    Int_t plot_centrality = 4;
 
     for(Int_t i_mass = 0; i_mass < 8; i_mass++)
     {
@@ -1137,6 +1190,13 @@ void TBlastWaveGUI::DoMinimize_ana()
     double Rho0_BW     = fitpar[1];
     double Rho2_BW     = fitpar[2];
     double RxOverRy_BW = fitpar[3];
+
+    T_BW_fit_ana        = T_BW;
+    Rho0_BW_fit_ana     = Rho0_BW;
+    Rho2_BW_fit_ana     = Rho2_BW;
+    RxOverRy_BW_fit_ana = RxOverRy_BW;
+
+
     double Chi2_ana = result.Chi2();
     double NDF_ana  = result.Ndf();
     cout << "T_BW = " << T_BW << ", Rho0_BW = " << Rho0_BW << ", Rho2_BW = " << Rho2_BW << ", RxOverRy_BW = " << RxOverRy_BW << endl;
@@ -1419,6 +1479,11 @@ void TBlastWaveGUI::TakeParamsFromSet()
     Double_t rhoa = arr_NEntry_ana_params[2]->GetNumberEntry()->GetNumber();
     Double_t Rx   = arr_NEntry_ana_params[3]->GetNumberEntry()->GetNumber();
 
+    T_BW_fit_ana        = Temp;
+    Rho0_BW_fit_ana     = rho0;
+    Rho2_BW_fit_ana     = rhoa;
+    RxOverRy_BW_fit_ana = Rx;
+
     Plot_curves_ana(Temp,rho0,rhoa,Rx);
 }
 
@@ -1440,6 +1505,11 @@ void TBlastWaveGUI::TakeParamsFromMC()
     Double_t rho_a_val  = rho_a_loop_start + i_rho_a*Delta_rho_a;
     Double_t R_x_val    = arr_R_x[i_R_x];
     Double_t fboost_val = arr_f_boost[i_fboost];
+
+    T_BW_fit_ana        = Temp_val;
+    Rho0_BW_fit_ana     = rho_0_val;
+    Rho2_BW_fit_ana     = rho_a_val;
+    RxOverRy_BW_fit_ana = R_x_val;
 
     Plot_curves_ana(Temp_val,rho_0_val,rho_a_val,R_x_val);
 
@@ -1581,6 +1651,273 @@ void TBlastWaveGUI::Plot_curves_ana(Double_t T_BW,Double_t  Rho0_BW,Double_t  Rh
 }
 //______________________________________________________________________________
 
+
+
+//______________________________________________________________________________
+void TBlastWaveGUI::MakePlotv2()
+{
+    printf("TBlastWaveGUI::MakePlotv2() \n");
+
+
+    Int_t i_Temp   = vec_slider[0]->GetPosition();
+    Int_t i_rho_0  = vec_slider[1]->GetPosition();
+    Int_t i_rho_a  = vec_slider[2]->GetPosition();
+    Int_t i_R_x    = vec_slider[3]->GetPosition();
+    Int_t i_fboost = vec_slider[4]->GetPosition();
+
+    //--------------------------------------------------------------------
+    Double_t min_max_pT_range_pid_plot_ana[2][8];
+    min_max_pT_range_pid_plot_ana[0][0] = 0.1; // pi
+    min_max_pT_range_pid_plot_ana[1][0] = 3.5;
+    min_max_pT_range_pid_plot_ana[0][1] = 0.1; // K
+    min_max_pT_range_pid_plot_ana[1][1] = 4.0;
+    min_max_pT_range_pid_plot_ana[0][2] = 0.1; // p
+    min_max_pT_range_pid_plot_ana[1][2] = 5.0;
+    min_max_pT_range_pid_plot_ana[0][3] = 0.1; // phi
+    min_max_pT_range_pid_plot_ana[1][3] = 5.0;
+    min_max_pT_range_pid_plot_ana[0][4] = 0.1; // Omega
+    min_max_pT_range_pid_plot_ana[1][4] = 6.0;
+    min_max_pT_range_pid_plot_ana[0][5] = 0.1; // D0
+    min_max_pT_range_pid_plot_ana[1][5] = 12.5;
+    min_max_pT_range_pid_plot_ana[0][6] = 0.1; // J/Psi
+    min_max_pT_range_pid_plot_ana[1][6] = 15.0;
+    min_max_pT_range_pid_plot_ana[0][7] = 0.1; // Upsilon
+    min_max_pT_range_pid_plot_ana[1][7] = 15.0;
+    //--------------------------------------------------------------------
+
+    Pixel_t green;
+    gClient->GetColorByName("green", green);
+    Button_make_plot_v2->ChangeBackground(green);
+
+
+    //------------------------------------------------------------------------------------------------------------------------------------
+    Double_t x_range_plot[2][2] =
+    {
+        {-0.2,4.3},
+        {-0.2,14.7}
+    };
+
+    Double_t y_range_plot[2][2] =
+    {
+        {-0.12,0.34},
+        {-0.12,0.34}
+    };
+
+    Int_t arr_color_plot[2][4] =
+    {
+        {kBlack,kGreen+1,kBlue+1,kRed+1},
+        {kBlack,kGreen+1,kBlue+1,kRed+1}
+    };
+    Double_t arr_size_plot[2][4] =
+    {
+        {1.2,1.3,1.5,1.4},
+        {1.2,1.3,1.5,1.4}
+    };
+    Int_t arr_marker_styleAB[2][4] =
+    {
+        {25,46,30,28},
+        {25,46,30,28}
+    };
+    Int_t arr_marker_styleAB_x1[2][4] =
+    {
+        {21,47,29,34},
+        {21,47,29,34}
+    };
+    Int_t arr_plot_orderAB[2][4]   =
+    {
+        {0,1,2,4},
+        {3,5,6,7}
+    };
+
+    if(!c_2X1)
+    {
+        c_2X1 = new TCanvas("c_2X1","c_2X1",100,200,1500,620);
+        c_2X1->SetTopMargin(0.02);
+        c_2X1->SetBottomMargin(0.18);
+        c_2X1->SetRightMargin(0.2);
+        c_2X1->SetLeftMargin(0.2);
+
+        c_2X1->SetLogy(0);
+        c_2X1->Divide(2,1,0.0,0.0); // x divide, y divide, x margin, y margin
+    }
+    for(Int_t iPad = 0; iPad < 2; iPad++)
+    {
+        Double_t scaling_factor_2X1 = 0.78;
+        Double_t Label_size_2X1     = 0.08;
+        if(iPad == 0)
+        {
+            scaling_factor_2X1 = 0.78;
+        }
+
+        c_2X1->cd(iPad+1)->SetTicks(1,1);
+        c_2X1->cd(iPad+1)->SetGrid(0,0);
+        c_2X1->cd(iPad+1)->SetFillColor(10);
+        c_2X1->cd(iPad+1)->SetRightMargin(0.01);
+        c_2X1->cd(iPad+1)->SetTopMargin(0.01);
+        HistName = "h_frame_2X1_";
+        HistName += iPad;
+
+        if(h_frame_2X1[iPad]) delete h_frame_2X1[iPad];
+        h_frame_2X1[iPad] = c_2X1->cd(iPad+1)->DrawFrame(x_range_plot[iPad][0],y_range_plot[iPad][0],x_range_plot[iPad][1],y_range_plot[iPad][1],HistName.Data());
+        h_frame_2X1[iPad]->SetStats(0);
+        h_frame_2X1[iPad]->SetTitle("");
+        h_frame_2X1[iPad]->GetXaxis()->SetTitleOffset(0.95/scaling_factor_2X1);
+        h_frame_2X1[iPad]->GetYaxis()->SetTitleOffset(0.95/scaling_factor_2X1);
+        h_frame_2X1[iPad]->GetXaxis()->SetLabelOffset(0.015*scaling_factor_2X1);
+        //if(iPad == 0) h_frame_2X1[iPad]->GetXaxis()->SetLabelOffset(0.0*scaling_factor_2X1);
+        h_frame_2X1[iPad]->GetYaxis()->SetLabelOffset(0.01*scaling_factor_2X1);
+        h_frame_2X1[iPad]->GetXaxis()->SetLabelSize(Label_size_2X1*scaling_factor_2X1);
+        h_frame_2X1[iPad]->GetYaxis()->SetLabelSize(Label_size_2X1*scaling_factor_2X1);
+        h_frame_2X1[iPad]->GetXaxis()->SetTitleSize(Label_size_2X1*scaling_factor_2X1);
+        h_frame_2X1[iPad]->GetYaxis()->SetTitleSize(Label_size_2X1*scaling_factor_2X1);
+        h_frame_2X1[iPad]->GetXaxis()->SetNdivisions(505,'N');
+        h_frame_2X1[iPad]->GetYaxis()->SetNdivisions(505,'N');
+        h_frame_2X1[iPad]->GetXaxis()->CenterTitle();
+        h_frame_2X1[iPad]->GetYaxis()->CenterTitle();
+        h_frame_2X1[iPad]->GetXaxis()->SetTitle("p_{T} (GeV/c)");
+        h_frame_2X1[iPad]->GetYaxis()->SetTitle("v_{2}");
+        h_frame_2X1[iPad]->GetXaxis()->SetRangeUser(x_range_plot[iPad][0],x_range_plot[iPad][1]);
+        h_frame_2X1[iPad]->GetYaxis()->SetRangeUser(y_range_plot[iPad][0],y_range_plot[iPad][1]);
+
+        if(TL_line_base_plot[iPad]) delete TL_line_base_plot[iPad];
+        TL_line_base_plot[iPad] = PlotLine(x_range_plot[iPad][0],x_range_plot[iPad][1],0.0,0.0,kBlack,2,2); // (Double_t x1_val, Double_t x2_val, Double_t y1_val, Double_t y2_val, Int_t Line_Col, Int_t LineWidth, Int_t LineStyle)
+
+        Int_t i_particle_use = 0;
+        for(Int_t i_mass_loop = 0; i_mass_loop < 4; i_mass_loop++)
+        {
+            Int_t i_mass = arr_plot_orderAB[iPad][i_mass_loop];
+            if(fCheckBox_pid[i_mass]->GetState() == kButtonDown)
+            {
+                //printf("Draw i_mass: %d \n", i_mass);
+                tgae_v2_vs_pT_mesons_data_copy[i_mass] ->SetMarkerColor(kGray+1);
+                tgae_v2_vs_pT_mesons_data_copy[i_mass] ->SetMarkerSize(arr_size_plot[iPad][i_mass_loop]*1.4);
+                tgae_v2_vs_pT_mesons_data_copy[i_mass] ->SetMarkerStyle(arr_marker_styleAB_x1[iPad][i_mass_loop]);
+                tgae_v2_vs_pT_mesons_data_copy[i_mass] ->Draw("same P");
+
+                tgae_v2_vs_pT_mesons_data_copyB[i_mass] ->SetMarkerColor(kWhite);
+                tgae_v2_vs_pT_mesons_data_copyB[i_mass] ->SetMarkerSize(arr_size_plot[iPad][i_mass_loop]*1.0);
+                tgae_v2_vs_pT_mesons_data_copyB[i_mass] ->SetMarkerStyle(arr_marker_styleAB_x1[iPad][i_mass_loop]);
+                tgae_v2_vs_pT_mesons_data_copyB[i_mass] ->Draw("same P");
+
+                tgae_v2_vs_pT_mesons_data[i_mass] ->SetMarkerColor(arr_color_plot[iPad][i_mass_loop]);
+                tgae_v2_vs_pT_mesons_data[i_mass] ->SetMarkerSize(arr_size_plot[iPad][i_mass_loop]);
+                tgae_v2_vs_pT_mesons_data[i_mass] ->SetMarkerStyle(arr_marker_styleAB[iPad][i_mass_loop]);
+                tgae_v2_vs_pT_mesons_data[i_mass] ->Draw("same P");
+
+
+                tg_label_plot[0][i_mass] ->SetMarkerColor(kGray+1);
+                tg_label_plot[0][i_mass] ->SetMarkerSize(arr_size_plot[iPad][i_mass_loop]*1.4);
+                tg_label_plot[0][i_mass] ->SetMarkerStyle(arr_marker_styleAB_x1[iPad][i_mass_loop]);
+
+                tg_label_plot[1][i_mass] ->SetMarkerColor(kWhite);
+                tg_label_plot[1][i_mass] ->SetMarkerSize(arr_size_plot[iPad][i_mass_loop]*1.0);
+                tg_label_plot[1][i_mass] ->SetMarkerStyle(arr_marker_styleAB_x1[iPad][i_mass_loop]);
+
+                tg_label_plot[2][i_mass] ->SetMarkerColor(arr_color_plot[iPad][i_mass_loop]);
+                tg_label_plot[2][i_mass] ->SetMarkerSize(arr_size_plot[iPad][i_mass_loop]);
+                tg_label_plot[2][i_mass] ->SetMarkerStyle(arr_marker_styleAB[iPad][i_mass_loop]);
+
+                Double_t x_pos_legend = 0.27 + iPad*0.57;
+                Double_t y_pos_legend = 0.91  - i_particle_use*0.055;
+
+                tg_label_plot[0][i_mass] ->SetPoint(0,0.1+iPad*11.9,0.3-i_particle_use*0.032);
+                tg_label_plot[1][i_mass] ->SetPoint(0,0.1+iPad*11.9,0.3-i_particle_use*0.032);
+                tg_label_plot[2][i_mass] ->SetPoint(0,0.1+iPad*11.9,0.3-i_particle_use*0.032);
+                tg_label_plot[0][i_mass] ->Draw("same P");
+                tg_label_plot[1][i_mass] ->Draw("same P");
+                tg_label_plot[2][i_mass] ->Draw("same P");
+
+                if(TLatex_legend_v2_plot[i_mass]) delete TLatex_legend_v2_plot[i_mass];
+                TLatex_legend_v2_plot[i_mass] = plotTopLegend((char*)label_pid_spectra[i_mass].Data(),x_pos_legend,y_pos_legend,0.055,kBlack,0.0,42,1,1); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
+                i_particle_use++;
+
+                if(fCheckBox_sel[0]->GetState() == kButtonDown)
+                {
+                    tp_v2_vs_pT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->SetLineWidth(3);
+                    tp_v2_vs_pT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->SetLineColor(arr_color_plot[iPad][i_mass_loop]);
+                    tp_v2_vs_pT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->Draw("same L hist");
+                }
+            }
+        }
+
+
+
+        const Int_t N_points_BW_ana = 35;
+        printf("T_BW_fit_ana: %4.3f \n",T_BW_fit_ana);
+        if(T_BW_fit_ana > 0.0)
+        {
+            for(int i_mass_loop = 0; i_mass_loop < 4; ++i_mass_loop)
+            {
+                Int_t i_mass = arr_plot_orderAB[iPad][i_mass_loop];
+                Double_t delta_pT = (Double_t)((min_max_pT_range_pid_plot_ana[1][i_mass] - min_max_pT_range_pid_plot_ana[0][i_mass])/(Double_t)N_points_BW_ana);
+                //Double_t min_pT = arr_NEntry_limits[0][i_mass]->GetNumberEntry()->GetNumber();
+                //Double_t max_pT = arr_NEntry_limits[1][i_mass]->GetNumberEntry()->GetNumber();
+
+
+                if(tg_v2_BW_ana_pid_plot[i_mass]) delete tg_v2_BW_ana_pid_plot[i_mass];
+                tg_v2_BW_ana_pid_plot[i_mass] = new TGraph();
+                for(Int_t i_pT = 0; i_pT < N_points_BW_ana; i_pT++)
+                {
+                    Double_t pt_BW = i_pT*delta_pT + 0.0;
+                    if(pt_BW > min_max_pT_range_pid_plot_ana[0][i_mass] && pt_BW < min_max_pT_range_pid_plot_ana[1][i_mass])
+                    {
+                        Double_t v2_BW = 0;
+                        Double_t inv_yield_BW = 0;
+
+                        blastwave_yield_and_v2(pt_BW, arr_quark_mass_meson[i_mass], T_BW_fit_ana, Rho0_BW_fit_ana, Rho2_BW_fit_ana, RxOverRy_BW_fit_ana, inv_yield_BW, v2_BW);
+                        tg_v2_BW_ana_pid_plot[i_mass] ->SetPoint(i_pT,pt_BW,v2_BW);
+                    }
+                }
+                tg_v2_BW_ana_pid_plot[i_mass] -> SetLineColor(arr_color_plot[iPad][i_mass_loop]);
+                tg_v2_BW_ana_pid_plot[i_mass] -> SetLineWidth(3);
+                tg_v2_BW_ana_pid_plot[i_mass] -> SetLineStyle(9);
+                if((fCheckBox_pid[i_mass]->GetState() == kButtonDown))
+                {
+                    if(fCheckBox_sel[1]->GetState() == kButtonDown) tg_v2_BW_ana_pid_plot[i_mass] -> Draw("same L");
+                }
+            }
+        }
+    }
+
+    c_2X1 ->Modified();
+    c_2X1 ->Update();
+    printf("v2 ana plotted \n");
+    //------------------------------------------------------------------------------------------------------------------------------------
+
+}
+//______________________________________________________________________________
+
+
+//______________________________________________________________________________
+void TBlastWaveGUI::MakePlotdNdpT()
+{
+    printf("TBlastWaveGUI::MakePlotdNdpT() \n");
+
+    Pixel_t green;
+    gClient->GetColorByName("green", green);
+    Button_make_plot_dNdpT->ChangeBackground(green);
+}
+//______________________________________________________________________________
+
+
+//______________________________________________________________________________
+void TBlastWaveGUI::DoSave()
+{
+    printf("TBlastWaveGUI::DoSave() \n");
+
+    Pixel_t green;
+    gClient->GetColorByName("green", green);
+    Button_save->ChangeBackground(green);
+
+    outputfile->cd();
+    if(c_2X1)
+    {
+        c_2X1 ->Write();
+        c_2X1 ->SaveAs("v2_vs_pT_BW_fits.png");
+    }
+
+}
+//______________________________________________________________________________
 
 
 void v2_slider()

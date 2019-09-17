@@ -24,7 +24,6 @@ Int_t v2_boost(Double_t Temp_set = 0.1, Double_t rho_0_set = 0.95, Double_t rho_
     init_pT_spectra_data();
     make_5_60_spectra();
 
-
     //--------------------------------------------------------------------
     TFile* outputfile = new TFile(Form("out_v2_boost_R_x%d_fb%d.root",i_R_x,i_fboost),"RECREATE");
     //--------------------------------------------------------------------
@@ -366,7 +365,7 @@ Int_t v2_boost(Double_t Temp_set = 0.1, Double_t rho_0_set = 0.95, Double_t rho_
 
 #if 0
     printf("Optimize_v2 started");
-    Long64_t N_particles = 100000; // 10000
+    Long64_t N_particles = 1000000; // 10000
     Optimize_v2(rho_0_start, rho_0_stop, delta_rho_0,
                 rho_a_start, rho_a_stop, delta_rho_a,
                 R_x_start, R_x_stop, delta_R_x,
@@ -431,7 +430,8 @@ Int_t v2_boost(Double_t Temp_set = 0.1, Double_t rho_0_set = 0.95, Double_t rho_
 
                 printf("Temp \n");
                 //--------------------------------------------------------------------
-                for(Int_t i_quark_mass = 0; i_quark_mass < N_masses; i_quark_mass++)
+                //for(Int_t i_quark_mass = 0; i_quark_mass < N_masses; i_quark_mass++)
+                for(Int_t i_quark_mass = 0; i_quark_mass < 5; i_quark_mass++)
                 {
                     Double_t quark_mass = arr_quark_mass_meson[i_quark_mass];
                     printf("--------------- i_quark_mass: %d, mass: %4.3f GeV --------------- \n",i_quark_mass,quark_mass);
@@ -461,7 +461,7 @@ Int_t v2_boost(Double_t Temp_set = 0.1, Double_t rho_0_set = 0.95, Double_t rho_
                             //weight = TMath::Power(TMath::Gaus(x_pos_point,0.0,2.5),4.0);
 
                             // Sample z-rapidity
-                            Double_t z_rapidity = (ran.Rndm()-0.5)*8.0; // get bjorken z-rapidity
+                            Double_t z_rapidity = (ran.Rndm()-0.5)*2.0; // get bjorken z-rapidity
                             //Double_t z_rapidity = ran.Gaus(0.0,1.2);
 
                             Double_t beta_z = (TMath::Exp(2.0*z_rapidity) - 1.0)/(TMath::Exp(2.0*z_rapidity) + 1.0); // = TMath::TanH(z_rapidity), z-beta
@@ -506,7 +506,7 @@ Int_t v2_boost(Double_t Temp_set = 0.1, Double_t rho_0_set = 0.95, Double_t rho_
 
                             // boost order is important! -> work in progress
 
-                            /*
+
                              TMatrixD TL_Matrix(4,4);
                              TMatrixD TL_MatrixInv(4,4);
                              TMatrixD TL_MatrixBInv(4,4);
@@ -563,7 +563,7 @@ Int_t v2_boost(Double_t Temp_set = 0.1, Double_t rho_0_set = 0.95, Double_t rho_
                              TL_MatrixInv[3][2] = 0.0;
                              TL_MatrixInv[3][3] = TMath::CosH(Yb);
                              //----------------------------
-                             */
+
 
                             //----------------------------
                             /*
@@ -615,18 +615,49 @@ Int_t v2_boost(Double_t Temp_set = 0.1, Double_t rho_0_set = 0.95, Double_t rho_
                              TL_MatrixMult = TL_MatrixInv*TL_Matrix;
                              //TL_MatrixMult.Print();
 
+
+                             //TVectorD vec_Lprime = TL_Matrix*vec_L;
+                             //TVectorD vec_Lprime = TL_MatrixInv*vec_L;
+                             */
+
                              TVectorD vec_L(4);
                              vec_L[0] = tlv_quark.E();
                              vec_L[1] = tlv_quark.Px();
                              vec_L[2] = tlv_quark.Py();
                              vec_L[3] = tlv_quark.Pz();
-
-                             //TVectorD vec_Lprime = TL_Matrix*vec_L;
                              //TVectorD vec_Lprime = TL_MatrixInv*vec_L;
-                             TVectorD vec_Lprime = TL_MatrixBInv*vec_L;
+
+
+                             Init_Lorentz_Matrices(Yb,phi_b,rhob);
+#if 0
+                             //-------------------------------------------------------
+                             // LR^-1TR * vec
+                             TVectorD vec_Lprime = TL_Matrix_Lambda_R*vec_L;
+                             vec_L = vec_Lprime;
+                             vec_Lprime = TL_Matrix_Lambda_T*vec_L;
+                             vec_L = vec_Lprime;
+                             vec_Lprime = TL_Matrix_Lambda_RInv*vec_L;
+                             vec_L = vec_Lprime;
+                             vec_Lprime = TL_Matrix_Lambda_L*vec_L;
+                             //-------------------------------------------------------
+#endif
+
+
+#if 1
+                             //-------------------------------------------------------
+                             // R^-1TLR * vec
+                             TVectorD vec_Lprime = TL_Matrix_Lambda_R*vec_L;
+                             vec_L = vec_Lprime;
+                             vec_Lprime = TL_Matrix_Lambda_L*vec_L;
+                             vec_L = vec_Lprime;
+                             vec_Lprime = TL_Matrix_Lambda_T*vec_L;
+                             vec_L = vec_Lprime;
+                             vec_Lprime = TL_Matrix_Lambda_RInv*vec_L;
+                             //-------------------------------------------------------
+#endif
 
                              //tlv_quark.SetPxPyPzE(vec_Lprime[1],vec_Lprime[2],vec_Lprime[3],vec_Lprime[0]);
-                             */
+
 
 
 #if 0
@@ -665,7 +696,8 @@ Int_t v2_boost(Double_t Temp_set = 0.1, Double_t rho_0_set = 0.95, Double_t rho_
                              */
 
                             //if(i_quark_mass < 5  && fabs(eta) > 0.1) continue;
-                            if(i_quark_mass < 5  && fabs(rapidity) > 0.5) continue;
+                            //if(i_quark_mass < 5  && fabs(rapidity) > 0.5) continue;
+                            if(i_quark_mass < 5  && fabs(rapidity) > 0.1) continue;
                             //if(i_quark_mass >= 3 && (rapidity < 2.5 || rapidity > 4.0)) continue;
 
                             h2D_cos_theta_vs_pT ->Fill(quark_pT,quark_thermal_cos_theta);
@@ -695,6 +727,7 @@ Int_t v2_boost(Double_t Temp_set = 0.1, Double_t rho_0_set = 0.95, Double_t rho_
                                 h2D_pos_XY_pos_v2  ->Fill(x_pos_point,y_pos_point);
                                 h_pos_XY_pos_v2_pT ->Fill(quark_pT);
                             }
+
                         }
                         //--------------------------------------------------------------------
 
@@ -734,6 +767,35 @@ Int_t v2_boost(Double_t Temp_set = 0.1, Double_t rho_0_set = 0.95, Double_t rho_
         outputfile ->Close();
         return 1;
     }
+
+
+    //------------------------------------------------------------------
+    // Calculate spectra and v2 analytially
+    TGraph* tg_spec = new TGraph();
+    TGraph* tg_v2   = new TGraph();
+    Double_t inv_yield_BW, v2_BW;
+    Double_t integral = 0.0;
+    Double_t bin_width = 0.04;
+    for(Int_t i_pT = 0; i_pT < 200; i_pT++)
+    {
+        Double_t pt_BW = i_pT*bin_width;
+        blastwave_yield_and_v2(pt_BW, arr_quark_mass_meson[4], Temp_set, rho_0_set, rho_a_set, R_x_set, inv_yield_BW, v2_BW);
+        tg_spec ->SetPoint(i_pT,pt_BW,inv_yield_BW*pt_BW);
+        tg_v2   ->SetPoint(i_pT,pt_BW,v2_BW);
+        integral += bin_width*inv_yield_BW*pt_BW;
+    }
+
+    cout << "integral: " << integral << endl;
+
+    for(Int_t i_pT = 0; i_pT < 200; i_pT++)
+    {
+        Double_t pt_BW;
+        tg_spec ->GetPoint(i_pT,pt_BW,inv_yield_BW);
+        tg_spec ->SetPoint(i_pT,pt_BW,inv_yield_BW/integral);
+    }
+    //------------------------------------------------------------------
+
+
 
     h2D_rapidity_vs_eta ->GetXaxis()->SetTitle("#eta");
     h2D_rapidity_vs_eta ->GetYaxis()->SetTitle("y");
@@ -782,15 +844,15 @@ Int_t v2_boost(Double_t Temp_set = 0.1, Double_t rho_0_set = 0.95, Double_t rho_
     //vec_graphs[57] ->Draw("same P"); // Omega
     */
     vec_tge_v2_vs_pT_560_pid[0] ->SetMarkerColor(arr_color_mass[0]);
-    vec_tge_v2_vs_pT_560_pid[0] ->Draw("same P"); // pions
+    //vec_tge_v2_vs_pT_560_pid[0] ->Draw("same P"); // pions
     vec_tge_v2_vs_pT_560_pid[1] ->SetMarkerColor(arr_color_mass[1]);
-    vec_tge_v2_vs_pT_560_pid[1] ->Draw("same P"); // K0s
+    //vec_tge_v2_vs_pT_560_pid[1] ->Draw("same P"); // K0s
     vec_tge_v2_vs_pT_560_pid[2] ->SetMarkerColor(arr_color_mass[2]);
-    vec_tge_v2_vs_pT_560_pid[2] ->Draw("same P"); // protons
+    //vec_tge_v2_vs_pT_560_pid[2] ->Draw("same P"); // protons
 
 
 
-    for(Int_t i_mass = 0; i_mass < 8; i_mass++)
+    for(Int_t i_mass = 0; i_mass < 5; i_mass++)
     {
         //tp_v2_vs_pT_mesons[i_mass] ->Scale(1.6);
         tp_v2_vs_pT_mesons[i_mass] ->SetMarkerColor(arr_color_mass[i_mass]);
@@ -800,14 +862,19 @@ Int_t v2_boost(Double_t Temp_set = 0.1, Double_t rho_0_set = 0.95, Double_t rho_
         tp_v2_vs_pT_mesons[i_mass] ->SetLineWidth(2);
         tp_v2_vs_pT_mesons[i_mass] ->DrawCopy("same P");
 
-        Draw_hist_line((TH1D*)tp_v2_vs_pT_mesons[i_mass],0.0,15.0,-0.07,0.45,
+        Draw_hist_line((TH1D*)tp_v2_vs_pT_mesons[i_mass],0.0,15.0,-0.07,0.7,
                        arr_color_mass[i_mass],4,1,1.0,"ogl");
     }
 
     tg_JPsi_v2_vs_pT    ->SetMarkerColor(arr_color_mass[3]);
-    tg_JPsi_v2_vs_pT    ->Draw("same P");
+    //tg_JPsi_v2_vs_pT    ->Draw("same P");
     tg_Upsilon_v2_vs_pT ->SetMarkerColor(arr_color_mass[4]);
-    tg_Upsilon_v2_vs_pT ->Draw("same P");
+    //tg_Upsilon_v2_vs_pT ->Draw("same P");
+
+    tg_v2 ->SetLineWidth(4);
+    tg_v2 ->SetLineStyle(9);
+    tg_v2 ->SetLineColor(kCyan+1);
+    tg_v2 ->Draw("same");
 
 
     TLegend* leg_v2_vs_pT_A = new TLegend(0.67,0.65,0.77,0.83); // x1,y1,x2,y2
@@ -834,7 +901,7 @@ Int_t v2_boost(Double_t Temp_set = 0.1, Double_t rho_0_set = 0.95, Double_t rho_
 
 
 
-#if 1
+#if 0
     for(Int_t i_mass = 0; i_mass < 5; i_mass++)
     {
         vec_tg_v2_vs_pT_Mathematica[i_mass] ->SetMarkerColor(arr_color_mass[i_mass]);
