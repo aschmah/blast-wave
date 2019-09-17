@@ -105,6 +105,7 @@ private:
     TGraph* tg_dNdpT_BW_ana_pid_min[8];
 
     TGraph* tg_v2_BW_ana_pid_plot[8];
+    TGraph* tg_v2_BW_ana_pid_plot_range[8];
     TGraph* tg_dNdpT_BW_ana_pid_plot[8];
 
 
@@ -220,6 +221,7 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
         tg_dNdpT_BW_ana_pid_min[i_mass] = NULL;
 
         tg_v2_BW_ana_pid_plot[i_mass]    = NULL;
+        tg_v2_BW_ana_pid_plot_range[i_mass]    = NULL;
         tg_dNdpT_BW_ana_pid_plot[i_mass] = NULL;
 
         TLatex_legend_dNdpT[i_mass] = NULL;
@@ -1841,6 +1843,8 @@ void TBlastWaveGUI::MakePlotv2()
         }
 
 
+       
+        //tp_v2_vs_pT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->GetXaxis()->SetRangeUser(min_val_pT,max_val_pT);
 
         const Int_t N_points_BW_ana = 35;
         printf("T_BW_fit_ana: %4.3f \n",T_BW_fit_ana);
@@ -1849,13 +1853,19 @@ void TBlastWaveGUI::MakePlotv2()
             for(int i_mass_loop = 0; i_mass_loop < 4; ++i_mass_loop)
             {
                 Int_t i_mass = arr_plot_orderAB[iPad][i_mass_loop];
+
+                Double_t min_val_pT = arr_NEntry_limits[0][i_mass]->GetNumberEntry()->GetNumber();
+                Double_t max_val_pT = arr_NEntry_limits[1][i_mass]->GetNumberEntry()->GetNumber();
+
                 Double_t delta_pT = (Double_t)((min_max_pT_range_pid_plot_ana[1][i_mass] - min_max_pT_range_pid_plot_ana[0][i_mass])/(Double_t)N_points_BW_ana);
                 //Double_t min_pT = arr_NEntry_limits[0][i_mass]->GetNumberEntry()->GetNumber();
                 //Double_t max_pT = arr_NEntry_limits[1][i_mass]->GetNumberEntry()->GetNumber();
 
 
                 if(tg_v2_BW_ana_pid_plot[i_mass]) delete tg_v2_BW_ana_pid_plot[i_mass];
-                tg_v2_BW_ana_pid_plot[i_mass] = new TGraph();
+                if(tg_v2_BW_ana_pid_plot_range[i_mass]) delete tg_v2_BW_ana_pid_plot_range[i_mass];
+                tg_v2_BW_ana_pid_plot[i_mass]       = new TGraph();
+                tg_v2_BW_ana_pid_plot_range[i_mass] = new TGraph();
                 for(Int_t i_pT = 0; i_pT < N_points_BW_ana; i_pT++)
                 {
                     Double_t pt_BW = i_pT*delta_pT + 0.0;
@@ -1865,15 +1875,27 @@ void TBlastWaveGUI::MakePlotv2()
                         Double_t inv_yield_BW = 0;
 
                         blastwave_yield_and_v2(pt_BW, arr_quark_mass_meson[i_mass], T_BW_fit_ana, Rho0_BW_fit_ana, Rho2_BW_fit_ana, RxOverRy_BW_fit_ana, inv_yield_BW, v2_BW);
-                        tg_v2_BW_ana_pid_plot[i_mass] ->SetPoint(i_pT,pt_BW,v2_BW);
+                        tg_v2_BW_ana_pid_plot[i_mass]       ->SetPoint(i_pT,pt_BW,v2_BW);
+                        if(pt_BW > min_val_pT && pt_BW < max_val_pT)
+                        {
+                            tg_v2_BW_ana_pid_plot_range[i_mass] ->SetPoint(i_pT,pt_BW,v2_BW);
+                        }
                     }
                 }
-                tg_v2_BW_ana_pid_plot[i_mass] -> SetLineColor(arr_color_plot[iPad][i_mass_loop]);
-                tg_v2_BW_ana_pid_plot[i_mass] -> SetLineWidth(3);
+                tg_v2_BW_ana_pid_plot[i_mass] -> SetLineColorAlpha(kGray+1,0.5);
+                tg_v2_BW_ana_pid_plot[i_mass] -> SetLineWidth(2);
                 tg_v2_BW_ana_pid_plot[i_mass] -> SetLineStyle(9);
+
+                tg_v2_BW_ana_pid_plot_range[i_mass] -> SetLineColor(arr_color_plot[iPad][i_mass_loop]);
+                tg_v2_BW_ana_pid_plot_range[i_mass] -> SetLineWidth(3);
+                tg_v2_BW_ana_pid_plot_range[i_mass] -> SetLineStyle(9);
                 if((fCheckBox_pid[i_mass]->GetState() == kButtonDown))
                 {
-                    if(fCheckBox_sel[1]->GetState() == kButtonDown) tg_v2_BW_ana_pid_plot[i_mass] -> Draw("same L");
+                    if(fCheckBox_sel[1]->GetState() == kButtonDown)
+                    {
+                        tg_v2_BW_ana_pid_plot[i_mass]       -> Draw("same L");
+                        tg_v2_BW_ana_pid_plot_range[i_mass] -> Draw("same L");
+                    }
                 }
             }
         }
