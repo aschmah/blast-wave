@@ -47,26 +47,29 @@ double v2_denominator(const double *x, const double *p) {
     double rho = rho0 + rho2 * TMath::Cos(2 * PhiB);          // transverse rapidity
 
     return A * rHat * TMath::BesselI(0, (pt * TMath::SinH(rHat * rho)) / T) *
-           TMath::BesselK(1, (TMath::Sqrt(TMath::Power(m, 2) + TMath::Power(pt, 2)) *
-                              TMath::CosH(rHat * (rho0 + rho2 * TMath::Cos(2 * PhiB)))) /
-                                 T);
+           TMath::BesselK(1, (TMath::Sqrt(TMath::Power(m, 2) + TMath::Power(pt, 2)) * TMath::CosH(rHat * rho)) / T);
 }
 
 void blastwave_yield_and_v2(const double &pt, const double &m, const double &T, const double &rho0, const double &rho2,
                             const double &RxOverRy, double &inv_yield, double &v2) {
 
-    // mass and T dependent scale factor prop. to total yield used to improve numerical stability
-    // of the invariant yield
-    double sf = T * m * m * TMath::BesselK(2, m / T);
-
     // blast wave parameters:
     // the last number (par[6]) is an arbitrary normalization which we will adjust
     // in order to have a good numerical stability for different masses and pt
-    double pars[7] = {pt, m, T, rho0, rho2, RxOverRy, 1. / sf};
+    double pars[7] = {pt, m, T, rho0, rho2, RxOverRy, 1.};
+
+    // determine scale factor which ensures good numerical stability
+    const double xsf[2] = {1., 0.};
+    double sf = v2_denominator(xsf, pars);
+    pars[6] = 1. / sf;
 
     // wrapper functions for v2 numerator and denominator
     ROOT::Math::WrappedParamFunction<> w_v2_num(&v2_numerator, 2, 7);
     ROOT::Math::WrappedParamFunction<> w_v2_den(&v2_denominator, 2, 7);
+
+    // set parameters
+    w_v2_num.SetParameters(pars);
+    w_v2_den.SetParameters(pars);
 
     // define integrator
     ROOT::Math::AdaptiveIntegratorMultiDim ig;
@@ -75,15 +78,6 @@ void blastwave_yield_and_v2(const double &pt, const double &m, const double &T, 
     // integration range
     double xmin[2] = {0., 0.};
     double xmax[2] = {1., 2. * TMath::Pi()};
-
-    // We calculate the invariant yield 1/(2 pi pt) dN/(dpt dy) (with arbitrary constant pre-factor)
-    // and determine the optimal normalization for numerical stability in the v2 calculation
-    w_v2_den.SetParameters(pars);
-    ig.SetFunction(w_v2_den);
-    inv_yield = sf * TMath::Sqrt(m * m + pt * pt) * ig.Integral(xmin, xmax);
-    pars[6] = 1. / inv_yield;
-    w_v2_num.SetParameters(pars);
-    w_v2_den.SetParameters(pars);
 
     // integrate
     ig.SetFunction(w_v2_num);
@@ -102,6 +96,8 @@ void blastwave_yield_and_v2(const double &pt, const double &m, const double &T, 
     } else {
         cout << "WARNING: v2 denominator zero!!!" << endl;
     }
+
+    inv_yield = sf * TMath::Sqrt(m * m + pt * pt) * v2_den;
 }
 
 // main function:
