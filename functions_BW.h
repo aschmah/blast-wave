@@ -53,10 +53,15 @@
 
 static TFile *inputfile_id;
 static TFile *inputfile_JPsi;
+static TFile *inputfile_Upsilon;
 static TFile *inputfile_D;
 static TFile *inputfile_spectra_id;
 static TFile *inputfile_spectra_phi;
 static TFile *inputfile_spectra_Omega;
+static TFile* inputfile_deuterons_low_pT;
+static TFile* inputfile_deuterons_v2;
+static TFile* inputfile_deuterons_high_pT;
+static TFile* inputfile_spectra_Upsilon;
 static TFile *inputfle_D_dNdpT;
 static vector<TString> arr_labels;
 static vector<Int_t>   arr_pid;
@@ -76,19 +81,19 @@ static Double_t arr_pt_low_cut[N_v2_vs_pt_BW+3];
 static Double_t arr_pt_high_cut[N_v2_vs_pt_BW+3];
 static Int_t arr_color[N_v2_vs_pt_BW+3] = {kBlack,kGreen+1,kRed,kMagenta+1,kCyan+1,kOrange,kRed,kGray,kYellow+2,kRed,kMagenta,kGreen+1};
 
-static const Int_t    N_masses         = 8;
+static const Int_t    N_masses         = 9;
 static TH2D* h2D_geometric_shape = NULL;
 static TF1 *f_LevyFitFunc        = NULL;
 static TF1 *f_FitBessel          = NULL;
 static TF1 *f_JetPtFunc          = NULL;
-static Double_t arr_quark_mass_meson[N_masses]         = {0.13957,0.497648,0.938272,1.019460,1.67245,1.86962,3.096916,9.46030};
-static Int_t    arr_color_mass[N_masses]               = {kBlack,kGreen+1,kRed,kMagenta+1,kCyan+1,kOrange,kYellow+2,kAzure-2};
+static Double_t arr_quark_mass_meson[N_masses]         = {0.13957,0.497648,0.938272,1.019460,1.67245,1.86962,3.096916,9.46030,1.875612};
+static Int_t    arr_color_mass[N_masses]               = {kBlack,kGreen+1,kRed,kMagenta+1,kCyan+1,kOrange,kYellow+2,kAzure-2,kOrange+1};
 static const Double_t R_Pb = 5.4946; // fm
 static TH2D* h2D_density_Glauber;
 
 static vector<TGraph*> vec_tg_v2_vs_pT_Mathematica;
 static vector<TGraph*> vec_tg_dNdpT_vs_pT_Mathematica;
-static TGraphErrors* tg_Upsilon_v2_vs_pT;
+static TGraphAsymmErrors* tg_Upsilon_v2_vs_pT;
 static TGraphAsymmErrors* tg_JPsi_v2_vs_pT;
 static TGraphAsymmErrors* tg_D0_v2_vs_pT;
 static vector<TH1F*> h_dN_dpT_mesons;
@@ -96,12 +101,17 @@ static vector< vector<TGraphErrors*> > tge_JPsi_spectra;
 static TGraphErrors* tge_JPsi_forward_spectrum_stat;
 static TGraphErrors* tge_JPsi_forward_spectrum_syst;
 static TGraphAsymmErrors* tge_D_dNdpT;
+static TGraphAsymmErrors* tge_Upsilon_dNdpT;
 static TGraphAsymmErrors* tge_phi_dNdpT;
 static TGraphAsymmErrors* tge_Omega_dNdpT[3];
+static TGraphAsymmErrors* tge_deuteron_dNdpT_low_pT;
+static TGraphAsymmErrors* tge_deuteron_dNdpT_high_pT;
+static TGraphAsymmErrors* tge_deuteron_v2;
+static TGraphAsymmErrors* tge_deuteron_dNdpT;
 static TH1D* h_dNdpT_best = NULL;
 static vector<TGraphErrors*> vec_tge_v2_vs_pT_560_pid;
-static TString label_pid_spectra[8] = {"#pi","K","p","#phi","#Omega","D^{0}","J/#Psi","#Upsilon"};
-static TString label_full_pid_spectra[8] = {"pi","K","p","phi","Omega","D0","J/Psi","Upsilon"};
+static TString label_pid_spectra[N_masses] = {"#pi","K","p","#phi","#Omega","D^{0}","J/#psi","#varUpsilon","d"};
+static TString label_full_pid_spectra[N_masses] = {"pi","K","p","phi","Omega","D0","J/psi","Upsilon","d"};
 static TString label_v2_dNdpT[2] = {"v2","dNdpT"};
 
 static Double_t Temp_loop_start  = 0.08;
@@ -114,10 +124,12 @@ static Double_t arr_R_x[9]       = {0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0};
 static Double_t arr_f_boost[9]   = {0.0,0.05,0.1,0.15,0.2,0.4,0.6,0.8,1.0};
 static Int_t    arr_color_line_mass[8] = {kBlack,kGreen,kRed,kMagenta,kCyan,kOrange,kAzure,kGray};
 
-static TGraphAsymmErrors* tgae_v2_vs_pT_mesons_data[8]; // pi, K, p, phi, Omega, D0, J/Psi, Upsilon
-static TGraphAsymmErrors* tgae_v2_vs_pT_mesons_data_copy[8]; // pi, K, p, phi, Omega, D0, J/Psi, Upsilon
-static TGraphAsymmErrors* tgae_v2_vs_pT_mesons_data_copyB[8]; // pi, K, p, phi, Omega, D0, J/Psi, Upsilon
-static TGraphAsymmErrors* tgae_dN_dpT_mesons_data[8];    // pi, K, p, phi, Omega, D0, J/Psi, Upsilon
+static TGraphAsymmErrors* tgae_v2_vs_pT_mesons_data[N_masses]; // pi, K, p, phi, Omega, D0, J/Psi, Upsilon, d
+static TGraphAsymmErrors* tgae_v2_vs_pT_mesons_data_copy[N_masses]; // pi, K, p, phi, Omega, D0, J/Psi, Upsilon, d
+static TGraphAsymmErrors* tgae_v2_vs_pT_mesons_data_copyB[N_masses]; // pi, K, p, phi, Omega, D0, J/Psi, Upsilon, d
+static TGraphAsymmErrors* tgae_dN_dpT_mesons_data[N_masses] = {NULL};    // pi, K, p, phi, Omega, D0, J/Psi, Upsilon, d
+static TGraphAsymmErrors* tgae_dN_dpT_mesons_data_A[N_masses] = {NULL};    // pi, K, p, phi, Omega, D0, J/Psi, Upsilon, d
+static TGraphAsymmErrors* tgae_dN_dpT_mesons_data_B[N_masses] = {NULL};    // pi, K, p, phi, Omega, D0, J/Psi, Upsilon, d
 
 static Int_t N_calls_BW_ana = 0;
 
@@ -128,6 +140,8 @@ static TMatrixD TL_Matrix_Lambda_RInv(4,4);
 static TMatrixD TL_Matrix_Lambda_T(4,4);
 static TMatrixD TL_Matrix_Lambda_TInv(4,4);
 
+static TGraph* tg_spec;
+
 
 //------------------------------------------------------------------------------------------------------------
 static const Float_t Pi = TMath::Pi();
@@ -135,6 +149,21 @@ static TRandom ran;
 static TString HistName;
 static char NoP[50];
 //------------------------------------------------------------------------------------------------------------
+
+
+
+//------------------------------------------------------------------------------------------------------------
+void get_user_from_NDC(TPad* pad, Double_t x_NDC, Double_t y_NDC, Double_t &x_user, Double_t &y_user)
+{
+    // https://cern.root.narkive.com/JZGll7Fz/root-user-to-ndc-coordinates
+    //x_NDC = (x_user-Pad->GetX1())/(pad->GetX2()-Pad->GetX1());
+    //y_NDC = (y_user-Pad->GetY1())/(pad->GetY2()-Pad->GetY1());
+
+    x_user = x_NDC*(pad->GetX2()-pad->GetX1()) + pad->GetX1();
+    y_user = y_NDC*(pad->GetY2()-pad->GetY1()) + pad->GetY1();
+}
+//------------------------------------------------------------------------------------------------------------
+
 
 
 //------------------------------------------------------------------------------------------------------------
@@ -283,6 +312,265 @@ void Init_Lorentz_Matrices(Double_t y_z, Double_t phis, Double_t y_tp)
 //------------------------------------------------------------------------------------------------------------
 
 
+
+//------------------------------------------------------------------------------------------------------------
+//
+// Implementation of the blast wave v2 formula
+// Klaus Reygers, August 2019
+//
+
+class Tblastwave_yield_and_v2 {
+
+		// function for v2 numerator and denominator
+		// fos = freeze-out surface
+		// fos1: freeze-out time tf in the lab system: tf = sqrt(tau^2 + z^2)
+		// fos2: tf = sqrt(tau_cell^2 + r^2 + z^2)
+		static double v2_fos1_numerator(const double *x, const double *p);
+		static double v2_fos1_denominator(const double *x, const double *p);
+		static double v2_fos2_numerator(const double *x, const double *p);
+		static double v2_fos2_denominator(const double *x, const double *p);
+
+		// wrapper functions for v2 numerator and denominator
+    	ROOT::Math::WrappedParamFunction<> w_v2_fos1_num;
+    	ROOT::Math::WrappedParamFunction<> w_v2_fos1_den;
+    	ROOT::Math::WrappedParamFunction<> w_v2_fos2_num;
+		ROOT::Math::WrappedParamFunction<> w_v2_fos2_den;
+
+    	ROOT::Math::AdaptiveIntegratorMultiDim ig;
+
+      public:
+        Tblastwave_yield_and_v2()
+            : w_v2_fos1_num(&Tblastwave_yield_and_v2::v2_fos1_numerator, 2, 7),
+              w_v2_fos1_den(&Tblastwave_yield_and_v2::v2_fos1_denominator, 2, 7),
+              w_v2_fos2_num(&Tblastwave_yield_and_v2::v2_fos2_numerator, 2, 7),
+              w_v2_fos2_den(&Tblastwave_yield_and_v2::v2_fos2_denominator, 2, 7) {}
+
+        void calc_blastwave_yield_and_v2_fos1(const double &pt, const double &m, const double &T, const double &rho0,
+                                    const double &rho2, const double &RxOverRy, double &inv_yield, double &v2);
+
+        void calc_blastwave_yield_and_v2_fos2(const double &pt, const double &m, const double &T, const double &rho0,
+                                    const double &rho2, const double &RxOverRy, double &inv_yield, double &v2);
+
+        ClassDef(Tblastwave_yield_and_v2, 1)
+};
+
+
+// numerator of the blastwave v2 formula
+double Tblastwave_yield_and_v2::v2_fos1_numerator(const double *x, const double *p) {
+
+    // integration variables
+    double rHat = x[0];
+    double PhiHat = x[1];
+
+    // parameters
+    double pt = p[0];
+    double m = p[1];
+    double T = p[2];
+    double rho0 = p[3];
+    double rho2 = p[4];
+    double RxOverRy = p[5];
+    double A = p[6]; // arbitrary factor, can be adjusted to improve numerical stability
+
+    double PhiB = TMath::ATan(RxOverRy * TMath::Tan(PhiHat)); // boost angle
+    double rho = rho0 + rho2 * TMath::Cos(2 * PhiB);          // transverse rapidity
+
+    return A * rHat * TMath::BesselI(2, (pt * TMath::SinH(rHat * rho)) / T) *
+           TMath::BesselK(1, (TMath::Sqrt(TMath::Power(m, 2) + TMath::Power(pt, 2)) * TMath::CosH(rHat * rho)) / T) *
+           TMath::Cos(2 * PhiB);
+}
+
+// denominator of the blastwave v2 formula
+double Tblastwave_yield_and_v2::v2_fos1_denominator(const double *x, const double *p) {
+
+    // integration variables
+    double rHat = x[0];
+    double PhiHat = x[1];
+
+    // parameters
+    double pt = p[0];
+    double m = p[1];
+    double T = p[2];
+    double rho0 = p[3];
+    double rho2 = p[4];
+    double RxOverRy = p[5];
+    double A = p[6]; // arbitrary factor, can be adjusted to improve numerical stability
+
+    double PhiB = TMath::ATan(RxOverRy * TMath::Tan(PhiHat)); // boost angle
+    double rho = rho0 + rho2 * TMath::Cos(2 * PhiB);          // transverse rapidity
+
+    return A * rHat * TMath::BesselI(0, (pt * TMath::SinH(rHat * rho)) / T) *
+           TMath::BesselK(1, (TMath::Sqrt(TMath::Power(m, 2) + TMath::Power(pt, 2)) * TMath::CosH(rHat * rho)) / T);
+}
+
+
+void Tblastwave_yield_and_v2::calc_blastwave_yield_and_v2_fos1(const double &pt, const double &m, const double &T,
+                                                         const double &rho0, const double &rho2, const double &RxOverRy,
+                                                         double &inv_yield, double &v2) {
+
+    // blast wave parameters:
+    // the last number (par[6]) is an arbitrary normalization which we will adjust
+    // in order to have a good numerical stability for different masses and pt
+    double pars[7] = {pt, m, T, rho0, rho2, RxOverRy, 1.};
+
+    // determine scale factor which ensures good numerical stability
+    const double xsf[2] = {1., 0.};
+    double sf = v2_fos1_denominator(xsf, pars);
+    pars[6] = 1. / sf;
+
+    // set parameters
+    w_v2_fos1_num.SetParameters(pars);
+    w_v2_fos1_den.SetParameters(pars);
+
+    // define integrator
+    // ROOT::Math::AdaptiveIntegratorMultiDim ig;
+    ig.SetRelTolerance(1e-6);
+
+    // integration range
+    double xmin[2] = {0., 0.};
+    double xmax[2] = {1., 2. * TMath::Pi()};
+
+    // integrate
+    ig.SetFunction(w_v2_fos1_num);
+    double v2_num = ig.Integral(xmin, xmax);
+    // if (ig_num.Status() != 0) cout << ig_num.Status() << endl;
+
+    ig.SetFunction(w_v2_fos1_den);
+    double v2_den = ig.Integral(xmin, xmax);
+    // if (ig_den.Status() != 0) cout << ig_den.Status() << endl;
+
+    // cout << pt << " " << v2_den << endl;
+    // cout << pt << " " << inv_yield << endl;
+
+    if (v2_den != 0) {
+        v2 = v2_num / v2_den;
+    } else {
+        cout << "WARNING: v2 denominator zero!!!" << endl;
+    }
+
+    inv_yield = sf * TMath::Sqrt(m * m + pt * pt) * v2_den;
+}
+
+
+// numerator of the blastwave v2 formula
+// tf = sqrt(tau_cell^2 + r^2 + z^2)
+double Tblastwave_yield_and_v2::v2_fos2_numerator(const double *x, const double *p) {
+
+    // integration variables
+    double rHat = x[0];
+    double PhiHat = x[1];
+
+    // parameters
+    double pt = p[0];
+    double m = p[1];
+    double T = p[2];
+    double rho0 = p[3];
+    double rho2 = p[4];
+    double RxOverRy = p[5];
+    double A = p[6]; // arbitrary factor, can be adjusted to improve numerical stability
+
+    double PhiB = TMath::Pi() * TMath::Floor((PhiHat + TMath::Pi() / 2.) / TMath::Pi()) +
+                  TMath::ATan(RxOverRy * TMath::Tan(PhiHat));          // boost angle
+    double rho = rHat * (rho0 + rho2 * TMath::Cos(2 * PhiB));          // transverse rapidity
+	double mt = TMath::Sqrt(m * m + pt * pt);
+    double Rx = RxOverRy;
+    double Ry = 1.;
+   
+    return A * rHat *
+           (TMath::BesselI(2, (pt * TMath::SinH(rho)) / T) *
+                (mt * Rx * Ry * TMath::BesselK(1, (mt * TMath::CosH(rho)) / T) * TMath::Cos(2 * PhiB) *
+                     TMath::CosH(rho) +
+                 2 * T * TMath::BesselK(0, (mt * TMath::CosH(rho)) / T) *
+                     (Ry * TMath::Cos(3 * PhiB) * TMath::Cos(PhiHat) +
+                      Rx * TMath::Sin(3 * PhiB) * TMath::Sin(PhiHat))) -
+            pt * TMath::BesselI(1, (pt * TMath::SinH(rho)) / T) * TMath::BesselK(0, (mt * TMath::CosH(rho)) / T) *
+                TMath::Cos(2 * PhiB) *
+                (Ry * TMath::Cos(PhiB) * TMath::Cos(PhiHat) + Rx * TMath::Sin(PhiB) * TMath::Sin(PhiHat)) *
+                TMath::SinH(rho));
+}
+
+// denominator of the blastwave v2 formula for freeze-out surface (fos) 2
+// tf = sqrt(tau_cell^2 + r^2 + z^2)
+double Tblastwave_yield_and_v2::v2_fos2_denominator(const double *x, const double *p) {
+
+    // integration variables
+    double rHat = x[0];
+    double PhiHat = x[1];
+
+    // parameters
+    double pt = p[0];
+    double m = p[1];
+    double T = p[2];
+    double rho0 = p[3];
+    double rho2 = p[4];
+    double RxOverRy = p[5];
+    double A = p[6]; // arbitrary factor, can be adjusted to improve numerical stability
+ 	double PhiB = TMath::Pi() * TMath::Floor((PhiHat + TMath::Pi() / 2.) / TMath::Pi()) +
+                  TMath::ATan(RxOverRy * TMath::Tan(PhiHat));          // boost angle
+  	double rho = rHat * (rho0 + rho2 * TMath::Cos(2 * PhiB));          // transverse rapidity
+    double mt = TMath::Sqrt(m * m + pt * pt);
+    double Rx = RxOverRy;
+    double Ry = 1.;
+
+    return A * rHat *
+            (mt * Rx * Ry * TMath::BesselI(0, (pt * TMath::SinH(rho)) / T) *
+                 TMath::BesselK(1, (mt * TMath::CosH(rho)) / T) * TMath::CosH(rho) -
+             pt * TMath::BesselI(1, (pt * TMath::SinH(rho)) / T) * TMath::BesselK(0, (mt * TMath::CosH(rho)) / T) *
+                 (Ry * TMath::Cos(PhiB) * TMath::Cos(PhiHat) + Rx * TMath::Sin(PhiB) * TMath::Sin(PhiHat)) *
+                 TMath::SinH(rho));
+}
+
+void Tblastwave_yield_and_v2::calc_blastwave_yield_and_v2_fos2(const double &pt, const double &m, const double &T,
+                                                         const double &rho0, const double &rho2, const double &RxOverRy,
+                                                         double &inv_yield, double &v2) {
+
+    // blast wave parameters:
+    // the last number (par[6]) is an arbitrary normalization which we will adjust
+    // in order to have a good numerical stability for different masses and pt
+    double pars[7] = {pt, m, T, rho0, rho2, RxOverRy, 1.};
+
+    // determine scale factor which ensures good numerical stability
+    const double xsf[2] = {1., 0.};
+    double sf = v2_fos2_denominator(xsf, pars);
+    // cout << "debugging: sf = " << sf << endl;
+	// double tmp = v2_fos2_numerator(xsf, pars);
+    // cout << "debugging: tmp = " << tmp << endl;
+    pars[6] = 1. / sf;
+
+    // set parameters
+    w_v2_fos2_num.SetParameters(pars);
+    w_v2_fos2_den.SetParameters(pars);
+
+    // define integrator
+    // ROOT::Math::AdaptiveIntegratorMultiDim ig;
+    ig.SetRelTolerance(1e-6);
+
+    // integration range
+    double xmin[2] = {0., 0.};
+    double xmax[2] = {1., 2. * TMath::Pi()};
+
+    // integrate
+    ig.SetFunction(w_v2_fos2_num);
+    double v2_num = ig.Integral(xmin, xmax);
+    
+    ig.SetFunction(w_v2_fos2_den);
+    double v2_den = ig.Integral(xmin, xmax);
+    // cout << "v2_den fos2: " << v2_den << endl;
+    
+    // // cout << pt << " " << v2_den << endl;
+    // // cout << pt << " " << inv_yield << endl;
+
+    if (v2_den != 0) {
+        v2 = v2_num / v2_den;
+    } else {
+        cout << "WARNING: v2 denominator zero!!!" << endl;
+    }
+
+    inv_yield = sf * v2_den;
+}
+//------------------------------------------------------------------------------------------------------------
+
+
+
 //------------------------------------------------------------------------------------------------------------
 // numerator of the blastwave v2 formula
 double v2_numerator(const double *x, const double *p) {
@@ -393,7 +681,7 @@ void blastwave_yield_and_v2(const double &pt, const double &m, const double &T, 
 
 
 //------------------------------------------------------------------------------------------------------------
-void Multiply_pT_norm_to_integral_tgae(TGraphAsymmErrors* tgae_in = NULL, Int_t flag_mult_pT = 1)
+void Multiply_pT_norm_to_integral_tgae(TGraphAsymmErrors* tgae_in = NULL, Int_t flag_mult_pT = 1, Int_t flag_normalize = 1)
 {
     // Modify a TGraphAsymmErrors by multiplying each value with pT
     // In a second step the spectrum is normalized to its integral
@@ -403,16 +691,20 @@ void Multiply_pT_norm_to_integral_tgae(TGraphAsymmErrors* tgae_in = NULL, Int_t 
     {
         Double_t pT,y_val,err_X_high,err_X_low,err_Y_high,err_Y_low;
         tgae_in ->GetPoint(i_point,pT,y_val);
-        err_X_high = tgae_in ->GetErrorXhigh(i_point);
-        err_X_low  = tgae_in ->GetErrorXlow(i_point);
-        err_Y_high = tgae_in ->GetErrorYhigh(i_point);
-        err_Y_low  = tgae_in ->GetErrorYlow(i_point);
+        err_X_high = fabs(tgae_in ->GetErrorXhigh(i_point));
+        err_X_low  = fabs(tgae_in ->GetErrorXlow(i_point));
+        err_Y_high = fabs(tgae_in ->GetErrorYhigh(i_point));
+        err_Y_low  = fabs(tgae_in ->GetErrorYlow(i_point));
+
+        //printf("err_X: {%4.3f, %4.3f} \n",err_X_low,err_X_high);
 
         if(flag_mult_pT)
         {
             tgae_in ->SetPoint(i_point,pT,y_val*pT);
             tgae_in ->SetPointEYhigh(i_point,err_Y_high*pT);
             tgae_in ->SetPointEYlow(i_point,err_Y_low*pT);
+            tgae_in ->SetPointEXhigh(i_point,err_X_high);
+            tgae_in ->SetPointEXlow(i_point,err_X_low);
             integral += y_val*pT*(err_X_low + err_X_high); // bin content * bin width
         }
         else
@@ -420,26 +712,36 @@ void Multiply_pT_norm_to_integral_tgae(TGraphAsymmErrors* tgae_in = NULL, Int_t 
             tgae_in ->SetPoint(i_point,pT,y_val);
             tgae_in ->SetPointEYhigh(i_point,err_Y_high);
             tgae_in ->SetPointEYlow(i_point,err_Y_low);
+            tgae_in ->SetPointEXhigh(i_point,err_X_high);
+            tgae_in ->SetPointEXlow(i_point,err_X_low);
             integral += y_val*(err_X_low + err_X_high); // bin content * bin width
         }
 
+        //printf("i_point: %d, y_val: %4.5f, integral: %4.3f, bin_width: %4.3f \n",i_point,y_val,integral,err_X_low + err_X_high);
+
     }
 
-    if(integral >= 0.0)
+    //printf("integral: %4.3f \n",integral);
+
+    if(integral >= 0.0 && flag_normalize)
     {
         // Normalize to integral
         for(Int_t i_point = 0; i_point < tgae_in ->GetN(); i_point++)
         {
             Double_t pT,y_val,err_X_high,err_X_low,err_Y_high,err_Y_low;
             tgae_in ->GetPoint(i_point,pT,y_val);
-            err_X_high = tgae_in ->GetErrorXhigh(i_point);
-            err_X_low  = tgae_in ->GetErrorXlow(i_point);
+            err_X_high = fabs(tgae_in ->GetErrorXhigh(i_point));
+            err_X_low  = fabs(tgae_in ->GetErrorXlow(i_point));
             err_Y_high = tgae_in ->GetErrorYhigh(i_point);
             err_Y_low  = tgae_in ->GetErrorYlow(i_point);
 
             tgae_in ->SetPoint(i_point,pT,y_val/integral);
             tgae_in ->SetPointEYhigh(i_point,err_Y_high/integral);
             tgae_in ->SetPointEYlow(i_point,err_Y_low/integral);
+            tgae_in ->SetPointEXhigh(i_point,err_X_high);
+            tgae_in ->SetPointEXlow(i_point,err_X_low);
+
+            //printf("i_point: %d, y_val: %4.5f, integral: %4.3f \n",i_point,y_val,integral);
         }
     }
 }
@@ -448,7 +750,7 @@ void Multiply_pT_norm_to_integral_tgae(TGraphAsymmErrors* tgae_in = NULL, Int_t 
 
 
 //------------------------------------------------------------------------------------------------------------
-TGraphAsymmErrors* Add_tgae(TGraphAsymmErrors* tgae_inA = NULL, TGraphAsymmErrors* tgae_inB = NULL)
+TGraphAsymmErrors* Add_tgae_identical(TGraphAsymmErrors* tgae_inA = NULL, TGraphAsymmErrors* tgae_inB = NULL)
 {
     // Add two TGraphAsymmErrors with identical number of points and positions
 
@@ -485,6 +787,46 @@ TGraphAsymmErrors* Add_tgae(TGraphAsymmErrors* tgae_inA = NULL, TGraphAsymmError
 
 
 
+//------------------------------------------------------------------------------------------------------------
+TGraphAsymmErrors* Add_tgae(TGraphAsymmErrors* tgae_inA = NULL, TGraphAsymmErrors* tgae_inB = NULL,
+                            Double_t scale_facA = 1.0, Double_t scale_facB = 1.0)
+{
+    // Add two TGraphAsymmErrors
+
+    TGraphAsymmErrors* tgae_inAB[2] = {tgae_inA,tgae_inB};
+    TGraphAsymmErrors* tgae_out = new TGraphAsymmErrors();
+    Double_t scale_factors[2] = {scale_facA,scale_facB};
+
+    Int_t i_point_new = 0;
+    for(Int_t in_AB = 0; in_AB < 2; in_AB++)
+    {
+        for(Int_t i_point = 0; i_point < tgae_inAB[in_AB] ->GetN(); i_point++)
+        {
+            Double_t pT[2],y_val[2],err_X_high[2],err_X_low[2],err_Y_high[2],err_Y_low[2];
+
+            tgae_inAB[in_AB] ->GetPoint(i_point,pT[in_AB],y_val[in_AB]);
+            err_X_high[in_AB] = tgae_inAB[in_AB] ->GetErrorXhigh(i_point);
+            err_X_low[in_AB]  = tgae_inAB[in_AB] ->GetErrorXlow(i_point);
+            err_Y_high[in_AB] = tgae_inAB[in_AB] ->GetErrorYhigh(i_point);
+            err_Y_low[in_AB]  = tgae_inAB[in_AB] ->GetErrorYlow(i_point);
+
+            Double_t new_y_val = y_val[in_AB]*scale_factors[in_AB];
+            tgae_out ->SetPoint(i_point_new,pT[in_AB],new_y_val);
+            tgae_out ->SetPointEYhigh(i_point_new,err_Y_high[in_AB]*scale_factors[in_AB]);
+            tgae_out ->SetPointEYlow(i_point_new,err_Y_low[in_AB]*scale_factors[in_AB]);
+            tgae_out ->SetPointEXhigh(i_point_new,err_X_high[in_AB]);
+            tgae_out ->SetPointEXlow(i_point_new,err_X_low[in_AB]);
+
+            i_point_new++;
+        }
+    }
+
+    return tgae_out;
+}
+//------------------------------------------------------------------------------------------------------------
+
+
+
 //----------------------------------------------------------------------------------------
 Double_t PtFitBessel(Double_t* x_val, Double_t* par)
 {
@@ -506,23 +848,44 @@ void init_pT_spectra_data()
 {
     f_FitBessel = new TF1("f_FitBessel",PtFitBessel,0.0,10.0,4);
 
-    // https://www.hepdata.net/record/ins1377750
     printf("Initialize pT spectra data \n");
 
-    inputfle_D_dNdpT        = TFile::Open("./Data/HEPData-ins1394580-v1-root.root"); // https://www.hepdata.net/record/ins1394580;
-    inputfile_spectra_id    = TFile::Open("./Data/HEP_ALICE_PID_pT_spectra.root"); // pi, K, p
-    inputfile_spectra_phi   = TFile::Open("./Data/HEPData-ins1511864-v1-root_phi_KStar_dNdpT_2.76TeV.root"); // phi
-    inputfile_spectra_Omega = TFile::Open("./Data/HEPData-ins1243865-v1-root_omegas_dNdpT_2.76TeV.root"); // Omega
+    inputfle_D_dNdpT            = TFile::Open("./Data/HEPData-ins1394580-v1-root.root"); // https://www.hepdata.net/record/ins1394580;
+    inputfile_spectra_id        = TFile::Open("./Data/HEP_ALICE_PID_pT_spectra.root"); // pi, K, p, https://www.hepdata.net/record/ins1377750
+    inputfile_spectra_phi       = TFile::Open("./Data/HEPData-ins1511864-v1-root_phi_KStar_dNdpT_2.76TeV.root"); // phi
+    inputfile_spectra_Omega     = TFile::Open("./Data/HEPData-ins1243865-v1-root_omegas_dNdpT_2.76TeV.root"); // Omega
+    inputfile_deuterons_low_pT  = TFile::Open("./Data/HEPData-ins1380491-v2-root.root"); // deuterons, low pT, https://www.hepdata.net/record/ins1380491  1/pt
+    inputfile_deuterons_high_pT = TFile::Open("./Data/HEPData-ins1611301-v1-root.root"); // deuterons, high pT, https://www.hepdata.net/record/ins1611301
+    inputfile_spectra_Upsilon   = TFile::Open("./Data/HEPData-ins1495866-v2-root.root"); // Upsilon, https://www.hepdata.net/record/ins1495866, https://arxiv.org/pdf/1611.01510.pdf, 2.76 TeV, Pb+Pb, 0-100%, |y| < 2.4
 
 
     tge_D_dNdpT        = (TGraphAsymmErrors*)inputfle_D_dNdpT        ->Get(Form("Table %d/Graph1D_y%d",4,1)); // 30-50%
     tge_phi_dNdpT      = (TGraphAsymmErrors*)inputfile_spectra_phi   ->Get(Form("Table %d/Graph1D_y%d",13,1)); // 30-40%
     tge_Omega_dNdpT[0] = (TGraphAsymmErrors*)inputfile_spectra_Omega ->Get(Form("Table %d/Graph1D_y%d",8,1)); // 20-40%, Omega-
     tge_Omega_dNdpT[1] = (TGraphAsymmErrors*)inputfile_spectra_Omega ->Get(Form("Table %d/Graph1D_y%d",8,2)); // 20-40%, Omega+
+    tge_Omega_dNdpT[2] = Add_tgae_identical(tge_Omega_dNdpT[0],tge_Omega_dNdpT[1]);
 
-    tge_Omega_dNdpT[2] = Add_tgae(tge_Omega_dNdpT[0],tge_Omega_dNdpT[1]);
+    tge_Upsilon_dNdpT = (TGraphAsymmErrors*)inputfile_spectra_Upsilon        ->Get(Form("Table %d/Graph1D_y%d",4,1)); // 0-100%
 
-    Multiply_pT_norm_to_integral_tgae(tge_Omega_dNdpT[2],0);
+    printf("Upsilons \n");
+    Multiply_pT_norm_to_integral_tgae(tge_Upsilon_dNdpT,0,1); // normalize
+    printf("End of Upsilons \n");
+
+
+    tge_deuteron_dNdpT_low_pT  = (TGraphAsymmErrors*)inputfile_deuterons_low_pT  ->Get(Form("Table %d/Graph1D_y%d",4,3)); // 20-40% 1/pt
+    tge_deuteron_dNdpT_high_pT = (TGraphAsymmErrors*)inputfile_deuterons_high_pT ->Get(Form("Table %d/Graph1D_y%d",1,3)); // 20-40%
+
+    Multiply_pT_norm_to_integral_tgae(tge_deuteron_dNdpT_low_pT,1,0); // multiply with pT, don't normalize
+    tge_deuteron_dNdpT = Add_tgae(tge_deuteron_dNdpT_low_pT,tge_deuteron_dNdpT_high_pT,2.0*TMath::Pi()/1000.0,1.0);
+    printf("deuterons \n");
+    Multiply_pT_norm_to_integral_tgae(tge_deuteron_dNdpT,0,1); // normalize
+
+//    static TGraphAsymmErrors* tge_deuteron_dNdpT_low_pT;
+//    static TGraphAsymmErrors* tge_deuteron_dNdpT_high_pT;
+//    static TGraphAsymmErrors* tge_deuteron_dNdpT;
+
+    Multiply_pT_norm_to_integral_tgae(tge_Omega_dNdpT[2],0,1);
+
 
     const Int_t arr_centrality_low[11]        = {0,5,10,20,40,60,20,30,40,50,5};
     const Int_t arr_centrality_high[11]       = {5,10,20,40,60,80,30,40,50,60,60};
@@ -574,6 +937,7 @@ void init_pT_spectra_data()
         }
     }
 
+    /*
     // Make 50-60%
     for(Int_t i_pid = 0; i_pid < 3; i_pid++)
     {
@@ -632,21 +996,21 @@ void init_pT_spectra_data()
             vec_tgae_pT_spectra[i_pid][i]       ->SetPoint(i_pT,x_val,y_val);
         }
     }
-
+    */
 
     //----------------------------------------------------------------------
     for(Int_t i_pid = 0; i_pid < 3; i_pid++)
     {
-        for(Int_t i = 0; i < 11; i++)
+        for(Int_t i = 0; i < 9; i++)
         {
-            Multiply_pT_norm_to_integral_tgae(vec_tgae_pT_spectra[i_pid][i],1);
+            Multiply_pT_norm_to_integral_tgae(vec_tgae_pT_spectra[i_pid][i],1,1);
         }
     }
     //----------------------------------------------------------------------
 
     //----------------------------------------------------------------------
     // phi mesons 2.76 TeV
-    Multiply_pT_norm_to_integral_tgae(tge_phi_dNdpT,1);
+    Multiply_pT_norm_to_integral_tgae(tge_phi_dNdpT,1,1);
     //----------------------------------------------------------------------
 
 
@@ -887,14 +1251,23 @@ void init_pT_spectra_data()
 
 
 
-    tgae_dN_dpT_mesons_data[0] = (TGraphAsymmErrors*)vec_tgae_pT_spectra[0][7];    // pi, K, p, phi, Omega, D0, J/Psi, Upsilon
-    tgae_dN_dpT_mesons_data[1] = (TGraphAsymmErrors*)vec_tgae_pT_spectra[1][7];    // pi, K, p, phi, Omega, D0, J/Psi, Upsilon
-    tgae_dN_dpT_mesons_data[2] = (TGraphAsymmErrors*)vec_tgae_pT_spectra[2][7];    // pi, K, p, phi, Omega, D0, J/Psi, Upsilon
-    tgae_dN_dpT_mesons_data[3] = (TGraphAsymmErrors*)tge_phi_dNdpT;    // pi, K, p, phi, Omega, D0, J/Psi, Upsilon
-    tgae_dN_dpT_mesons_data[4] = (TGraphAsymmErrors*)tge_Omega_dNdpT[2];    // pi, K, p, phi, Omega, D0, J/Psi, Upsilon
-    tgae_dN_dpT_mesons_data[5] = (TGraphAsymmErrors*)tge_D_dNdpT;    // pi, K, p, phi, Omega, D0, J/Psi, Upsilon
-    tgae_dN_dpT_mesons_data[6] = (TGraphAsymmErrors*)tge_JPsi_spectra[1][0]; // pi, K, p, phi, Omega, D0, J/Psi, Upsilon
-    tgae_dN_dpT_mesons_data[7] = (TGraphAsymmErrors*)tge_D_dNdpT;    // pi, K, p, phi, Omega, D0, J/Psi, Upsilon
+    tgae_dN_dpT_mesons_data[0] = (TGraphAsymmErrors*)vec_tgae_pT_spectra[0][7];    // pi, K, p, phi, Omega, D0, J/Psi, Upsilon, d
+    tgae_dN_dpT_mesons_data[1] = (TGraphAsymmErrors*)vec_tgae_pT_spectra[1][7];    // pi, K, p, phi, Omega, D0, J/Psi, Upsilon, d
+    tgae_dN_dpT_mesons_data[2] = (TGraphAsymmErrors*)vec_tgae_pT_spectra[2][7];    // pi, K, p, phi, Omega, D0, J/Psi, Upsilon, d
+    tgae_dN_dpT_mesons_data[3] = (TGraphAsymmErrors*)tge_phi_dNdpT;    // pi, K, p, phi, Omega, D0, J/Psi, Upsilon, d
+    tgae_dN_dpT_mesons_data[4] = (TGraphAsymmErrors*)tge_Omega_dNdpT[2];    // pi, K, p, phi, Omega, D0, J/Psi, Upsilon, d
+    tgae_dN_dpT_mesons_data[5] = (TGraphAsymmErrors*)tge_D_dNdpT;    // pi, K, p, phi, Omega, D0, J/Psi, Upsilon, d
+    tgae_dN_dpT_mesons_data[6] = (TGraphAsymmErrors*)tge_JPsi_spectra[1][0]; // |y| < 0.9, 5.02 TeV, 20-40%
+    tgae_dN_dpT_mesons_data[7] = (TGraphAsymmErrors*)tge_Upsilon_dNdpT;    // pi, K, p, phi, Omega, D0, J/Psi, Upsilon, d
+    tgae_dN_dpT_mesons_data[8] = (TGraphAsymmErrors*)tge_deuteron_dNdpT;    // pi, K, p, phi, Omega, D0, J/Psi, Upsilon, d
+
+
+    // For plotting the markers
+    for(Int_t i_mass = 0; i_mass < N_masses; i_mass++)
+    {
+        tgae_dN_dpT_mesons_data_A[i_mass] = (TGraphAsymmErrors*)tgae_dN_dpT_mesons_data[i_mass]->Clone();
+        tgae_dN_dpT_mesons_data_B[i_mass] = (TGraphAsymmErrors*)tgae_dN_dpT_mesons_data[i_mass]->Clone();
+    }
 }
 //------------------------------------------------------------------------------------------------------------
 
@@ -905,9 +1278,15 @@ void init_data()
 {
     printf("Initialize data \n");
     // https://arxiv.org/pdf/1405.4632.pdf
-    inputfile_id   = TFile::Open("./Data/HEPData-ins1297103-v1-root.root"); // https://www.hepdata.net/record/ins1297103
-    inputfile_JPsi = TFile::Open("./Data/HEPData-ins1225273-v1-Table_1.root");
-    inputfile_D    = TFile::Open("./Data/HEPData-ins1233087-v1-root.root");
+    inputfile_id      = TFile::Open("./Data/HEPData-ins1297103-v1-root.root"); // https://www.hepdata.net/record/ins1297103
+    inputfile_JPsi    = TFile::Open("./Data/HEPData-ins1225273-v1-Table_1.root"); // https://www.hepdata.net/record/ins1225273, J/Psi v2 vs. pT, 2.5 < y < 4, 20-40%, 2.76 TeV, Pb+Pb
+    inputfile_D       = TFile::Open("./Data/HEPData-ins1233087-v1-root.root");
+    inputfile_Upsilon = TFile::Open("./Data/HEPData-ins1742764-v1-root.root"); // https://www.hepdata.net/record/ins1742764, Upsilon v2 vs. pT, 2.5 < y < 4, 5-60%, 5.02 TeV, Pb+Pb
+    inputfile_deuterons_v2  = TFile::Open("./Data/HEPData-ins1611301-v1-root.root"); // deuterons, high pT, https://www.hepdata.net/record/ins1611301
+
+
+    tge_deuteron_v2 = (TGraphAsymmErrors*)inputfile_deuterons_v2 ->Get(Form("Table %d/Graph1D_y%d",3,5)); // 30-40%
+
 
     // pi, K+/-, K0s, <K>, p, phi, Lambda, Xi, Omega
 
@@ -985,6 +1364,7 @@ void init_data()
     }
 
 
+    /*
     tg_Upsilon_v2_vs_pT = new TGraphErrors();
     tg_Upsilon_v2_vs_pT ->SetPoint(0,1.88571,0.0129693);
     tg_Upsilon_v2_vs_pT ->SetPoint(1,4.42286,	-0.0109215);
@@ -996,6 +1376,9 @@ void init_data()
     tg_Upsilon_v2_vs_pT ->SetMarkerStyle(20);
     tg_Upsilon_v2_vs_pT ->SetMarkerSize(0.8);
     tg_Upsilon_v2_vs_pT ->SetMarkerColor(kBlack);
+    */
+    tg_Upsilon_v2_vs_pT = (TGraphAsymmErrors*)inputfile_Upsilon->Get(Form("Table %d/Graph1D_y1",2));
+
 
     tg_JPsi_v2_vs_pT = (TGraphAsymmErrors*)inputfile_JPsi->Get("Table 1/Graph1D_y1");
     tg_JPsi_v2_vs_pT ->SetMarkerStyle(20);
@@ -1016,8 +1399,9 @@ void init_data()
     tgae_v2_vs_pT_mesons_data[5] = (TGraphAsymmErrors*)tg_D0_v2_vs_pT->Clone(); // D0
     tgae_v2_vs_pT_mesons_data[6] = (TGraphAsymmErrors*)tg_JPsi_v2_vs_pT->Clone(); // J/Psi
     tgae_v2_vs_pT_mesons_data[7] = (TGraphAsymmErrors*)tg_Upsilon_v2_vs_pT->Clone(); // Upsilon
+    tgae_v2_vs_pT_mesons_data[8] = (TGraphAsymmErrors*)tge_deuteron_v2->Clone(); // d
 
-    for(Int_t i_mass = 0; i_mass < 8; i_mass++)
+    for(Int_t i_mass = 0; i_mass < N_masses; i_mass++)
     {
         tgae_v2_vs_pT_mesons_data_copy[i_mass]  = (TGraphAsymmErrors*)tgae_v2_vs_pT_mesons_data[i_mass] ->Clone();
         tgae_v2_vs_pT_mesons_data_copyB[i_mass] = (TGraphAsymmErrors*)tgae_v2_vs_pT_mesons_data[i_mass] ->Clone();
@@ -1144,6 +1528,12 @@ TLatex* plotTopLegend(char* label,Float_t x=-1,Float_t y=-1,Float_t size=0.06,In
     // plots the string label in position x and y in NDC coordinates
     // size is the text size
     // color is the text color
+
+    // Text alignment: https://root.cern.ch/doc/master/classTAttText.html#T1
+    // align = 10*HorizontalAlign + VerticalAlign
+    // horizontal: 1=left adjusted, 2=centered, 3=right adjusted
+    // vertical: 1=bottom adjusted, 2=centered, 3=top adjusted
+
 
     if((x<0||y<0) && NDC == 1)
     {   // defaults
@@ -1629,18 +2019,26 @@ TVector3 get_boost_vector(Double_t R_scale, Double_t x_fac, Double_t y_fac,
                           Double_t rho_0, Double_t rho_a
                          )
 {
+
+    //double rho = rho0 + rho2 * TMath::Cos(2 * PhiB);          // transverse rapidity
+
     Double_t R_x   = R_scale*x_fac;
     Double_t R_y   = R_scale*y_fac;
     Double_t r     = TMath::Sqrt(x_pos*x_pos + y_pos*y_pos);
     Double_t phi_s = TMath::ATan2(y_pos,x_pos); // [-Pi,Pi]
     Double_t r_s   = TMath::Sqrt(TMath::Power(r*TMath::Cos(phi_s)/R_x,2.0) + TMath::Power(r*TMath::Sin(phi_s)/R_y,2.0));
+
+    //double PhiB = TMath::ATan(RxOverRy * TMath::Tan(PhiHat)); // boost angle
     Double_t phi_b = TMath::ATan(TMath::Tan(phi_s)/TMath::Power(R_y/R_x,2.0));
+
+    //printf("phi_s: %4.3f, phi_b: %4.3f \n",phi_s*TMath::RadToDeg(),phi_b*TMath::RadToDeg());
     //Double_t phi_b = TMath::ATan(TMath::Tan(phi_s));
     Double_t phi_b_mod = phi_b;
-    //if(fabs(phi_s) > TMath::Pi()/2.0) phi_b_mod += TMath::Pi(); ???
-    if(fabs(phi_b_mod) > TMath::Pi()/2.0) phi_b_mod += TMath::Pi();
-    if(phi_b_mod > TMath::Pi()) phi_b_mod -= 2.0*TMath::Pi();
-    if(phi_b_mod < -TMath::Pi()) phi_b_mod += 2.0*TMath::Pi();
+    //printf("phi_s: %4.3f, phi_b_mod: %4.3f \n",phi_s*TMath::RadToDeg(),phi_b_mod*TMath::RadToDeg());
+    if(fabs(phi_s) > TMath::Pi()/2.0) phi_b_mod += TMath::Pi(); // ???
+    //if(fabs(phi_b_mod) > TMath::Pi()/2.0) phi_b_mod += TMath::Pi();
+    if(phi_b_mod > 2.0*TMath::Pi()) phi_b_mod -= 2.0*TMath::Pi();
+    if(phi_b_mod < -2.0*TMath::Pi()) phi_b_mod += 2.0*TMath::Pi();
 
 
     //printf("pos: {%4.3f, %4.3f}, r: %4.3f, phi_s: %4.3f, r_s: %4.3f, phi_b: %4.3f, phi_b_mod: %4.3f \n",x_pos,y_pos,r,phi_s,r_s,phi_b,phi_b_mod);
@@ -2295,7 +2693,7 @@ void plot_spectra()
     can_dNdpT_vs_pT ->Divide(3,2);
     for(Int_t iPad = 1; iPad <= 6; iPad++)
     {
-        can_dNdpT_vs_pT ->cd(iPad)->SetLogy(1);
+        can_dNdpT_vs_pT ->cd(iPad)->SetLogy(0);
         can_dNdpT_vs_pT ->cd(iPad);
     }
 
@@ -2321,7 +2719,11 @@ void plot_spectra()
     can_dNdpT_vs_pT ->cd(1);
     vec_tgae_pT_spectra[0][10] ->Draw("AP");
     h_dN_dpT_mesons[0] ->DrawCopy("same");
-    vec_tg_dNdpT_vs_pT_Mathematica[0] ->Draw("same P");
+    tg_spec ->SetLineWidth(2);
+    tg_spec ->SetLineStyle(9);
+    tg_spec ->SetLineColor(kCyan+1);
+    tg_spec ->Draw("same");
+    //vec_tg_dNdpT_vs_pT_Mathematica[0] ->Draw("same P");
 
 
     for(Int_t i_par = 0; i_par < 4; i_par++)
@@ -2339,9 +2741,9 @@ void plot_spectra()
     f_FitBessel ->SetLineColor(kRed);
     f_FitBessel ->SetLineStyle(1);
     f_FitBessel ->SetLineWidth(3);
-    f_FitBessel ->DrawCopy("same");
+    //f_FitBessel ->DrawCopy("same");
 
-
+    /*
     // Kaons
     can_dNdpT_vs_pT ->cd(2);
     vec_tgae_pT_spectra[1][10] ->Draw("AP");
@@ -2417,7 +2819,8 @@ void plot_spectra()
         can_dNdpT_vs_pT ->cd(iPad);
         plotTopLegend((char*)label_pid_spectra[iPad-1].Data(),0.75,0.83,0.06,kBlack,0.0,42,1,1); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
         plotTopLegend((char*)"|y|<0.5",0.75,0.77,0.06,kBlack,0.0,42,1,1); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
-    }
+        }
+        */
 }
 //----------------------------------------------------------------------------------------
 

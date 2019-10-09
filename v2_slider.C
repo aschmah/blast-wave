@@ -11,6 +11,8 @@
 
 #include "./functions_BW.h"
 
+ClassImp(Tblastwave_yield_and_v2)
+
 enum ETestCommandIdentifiers {
     HId1,
     HId1a,
@@ -34,10 +36,11 @@ private:
     TGHSlider           *hslider;
     TGTextEntry         *fTeh1, *fTeh2, *fTeh3;
     TGTextBuffer        *fTbh1, *fTbh1a, *fTbh2, *fTbh3;
+    TGGroupFrame        *fGroupFrames[7];
 
-    TProfile* tp_v2_vs_pT_mesons[8][9][9][9][9][9]; // [i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a]
-    TH1F*     h_dN_dpT_mesons[8][9][9][9][9][9]; // [i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a]
-    TList* arr_list[9][9];
+    TProfile* tp_v2_vs_pT_mesons[N_masses][9][9][9][9][9] = {NULL}; // [i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a]
+    TH1F*     h_dN_dpT_mesons[N_masses][9][9][9][9][9]    = {NULL}; // [i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a]
+    TList* arr_lists[2][9][9];
     vector<TGHorizontalFrame*>  vec_Hframe;
     vector<TGHSlider*>          vec_slider;
     vector<TGLayoutHints*>      vec_LayoutHints;
@@ -83,30 +86,32 @@ private:
     TGTransientFrame* frame_TGTransientB;
     TGTextButton      *Button_take_params_MC_to_ana;
     TGTextButton      *Button_take_params_Set_to_ana;
+    TGComboBox          *fCombo;
 
     TGCheckButton* fCheckBox_sel[2];
-    TGCheckButton* fCheckBox_pid[8];
+    TGCheckButton* fCheckBox_pid[N_masses];
     TGCheckButton* fCheckBox_v2_dNdpT[2];
     TGLayoutHints* fLCheckBox;
     TString label_checkbox[2] = {"Plot MC","Plot Ana"};
 
-    TGHorizontalFrame* arr_HFrame_NEntry_limits[8];
+    TGHorizontalFrame* arr_HFrame_NEntry_limits[N_masses];
     TGVerticalFrame* arr_VFrame_NEntry_limits[2];
-    TGLabel*           arr_Label_NEntry_limits[2][8];
-    TGNumberEntry*     arr_NEntry_limits[2][8];
+    TGLabel*           arr_Label_NEntry_limits[2][N_masses];
+    TGNumberEntry*     arr_NEntry_limits[2][N_masses];
     TGNumberEntry*     arr_NEntry_ana_params[4];
     TGLabel*           arr_Label_NEntry_ana_params[4];
     TGLayoutHints* arr_fL1[2];
-    Double_t min_max_pT_range_pid[2][8];
-    TGraph* tg_v2_BW_ana_pid[8];
-    TGraph* tg_dNdpT_BW_ana_pid[8];
+    Double_t min_max_pT_range_pid[2][N_masses];
+    TGraph* tg_v2_BW_ana_pid[N_masses];
+    TGraph* tg_dNdpT_BW_ana_pid[N_masses];
 
-    TGraph* tg_v2_BW_ana_pid_min[8];
-    TGraph* tg_dNdpT_BW_ana_pid_min[8];
+    TGraph* tg_v2_BW_ana_pid_min[N_masses];
+    TGraph* tg_dNdpT_BW_ana_pid_min[N_masses];
 
-    TGraph* tg_v2_BW_ana_pid_plot[8];
-    TGraph* tg_v2_BW_ana_pid_plot_range[8];
-    TGraph* tg_dNdpT_BW_ana_pid_plot[8];
+    TGraph* tg_v2_BW_ana_pid_plot[N_masses];
+    TGraph* tg_v2_BW_ana_pid_plot_range[N_masses];
+    TGraph* tg_dNdpT_BW_ana_pid_plot[N_masses];
+    TGraph* tg_dNdpT_BW_ana_pid_plot_range[N_masses];
 
 
     Double_t var_test = 5.2;
@@ -120,15 +125,16 @@ private:
     TGTextButton *Button_make_plot_v2;
     TGTextButton *Button_make_plot_dNdpT;
 
-    TFile* inputfile;
+    TFile* inputfiles[2];
     TH1D* h_dummy;
-    TH1D* h_dummy_plot_v2[2] = {NULL,NULL};
+    TH1D* h_dummy_plot_v2[3] = {NULL};
     TH1D* h_dummy_dNdpT;
     TLegend* leg_v2_vs_pT_A = NULL;
     TLegend* leg_v2_vs_pT_B = NULL;
+    TLegend* leg_dNdpT_vs_pT = NULL;
     Int_t flag_stop_minimize = 0;
     Int_t flag_minimization_ana = 0;
-    Double_t integration_range_pid[8][2] = {0.0};
+    Double_t integration_range_pid[N_masses][2] = {0.0};
 
     Double_t chi2_min;
     Double_t chi2_ndf_dNdpT_min;
@@ -141,11 +147,12 @@ private:
     TLatex* TLatex_chi2_MC = NULL;
     TLatex* TLatex_chi2_ana = NULL;
     TLatex* TLatex_legend_system[4] = {NULL,NULL,NULL,NULL};
-    TLatex* TLatex_legend_dNdpT[8];
-    TLatex* TLatex_legend_v2_plot[8];
+    TLatex* TLatex_legend_dNdpT[N_masses] = {NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+    TLatex* TLatex_legend_v2_plot[N_masses] = {NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+    TLatex* TLatex_legend_dNdpT_plot[N_masses] = {NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
     TLine* TL_line_base = NULL;
-    TLine* TL_line_base_plot[2] = {NULL,NULL};
+    TLine* TL_line_base_plot[3] = {NULL};
 
     Double_t T_BW_fit_ana        = -1.0;
     Double_t Rho0_BW_fit_ana     = -1.0;
@@ -153,9 +160,18 @@ private:
     Double_t RxOverRy_BW_fit_ana = -1.0;
 
     TH1F* h_frame_2X1[2] = {NULL,NULL};
+    TH1F* h_frame_3X1[3] = {NULL};
+    TH1F* h_frame_2X4[8] = {NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+    TH1F* h_frame_3X3[9] = {NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
     TCanvas* c_2X1 = NULL;
-    TGraph* tg_label_plot[3][8];
+    TCanvas* c_3X1 = NULL;
+    TCanvas* c_2X4 = NULL;
+    TCanvas* c_3X3 = NULL;
+    TCanvas* c_single_pid = NULL;
+    TH1F* h_frame_single_pid = NULL;
+    TGraph* tg_label_plot[3][N_masses];
 
+    Tblastwave_yield_and_v2 bw_ana;
     TFile* outputfile;
 
 public:
@@ -194,21 +210,23 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
 
     //--------------------------------------------------------------------
     min_max_pT_range_pid[0][0] = 0.1; // pi
-    min_max_pT_range_pid[1][0] = 1.6;
-    min_max_pT_range_pid[0][1] = 0.1; // K
-    min_max_pT_range_pid[1][1] = 1.9;
-    min_max_pT_range_pid[0][2] = 0.1; // p
-    min_max_pT_range_pid[1][2] = 2.2;
-    min_max_pT_range_pid[0][3] = 0.1; // phi
-    min_max_pT_range_pid[1][3] = 2.2;
-    min_max_pT_range_pid[0][4] = 0.1; // Omega
-    min_max_pT_range_pid[1][4] = 4.0;
-    min_max_pT_range_pid[0][5] = 0.1; // D0
-    min_max_pT_range_pid[1][5] = 8.5;
-    min_max_pT_range_pid[0][6] = 0.1; // J/Psi
-    min_max_pT_range_pid[1][6] = 15.0;
+    min_max_pT_range_pid[1][0] = 1.0;
+    min_max_pT_range_pid[0][1] = 0.15; // K
+    min_max_pT_range_pid[1][1] = 1.5;
+    min_max_pT_range_pid[0][2] = 0.22; // p
+    min_max_pT_range_pid[1][2] = 1.8;
+    min_max_pT_range_pid[0][3] = 0.5; // phi
+    min_max_pT_range_pid[1][3] = 1.8;
+    min_max_pT_range_pid[0][4] = 1.1; // Omega
+    min_max_pT_range_pid[1][4] = 2.6;
+    min_max_pT_range_pid[0][5] = 0.92; // D0
+    min_max_pT_range_pid[1][5] = 3.6;
+    min_max_pT_range_pid[0][6] = 0.22; // J/Psi
+    min_max_pT_range_pid[1][6] = 5.0;
     min_max_pT_range_pid[0][7] = 0.1; // Upsilon
-    min_max_pT_range_pid[1][7] = 15.0;
+    min_max_pT_range_pid[1][7] = 10.0;
+    min_max_pT_range_pid[0][8] = 0.5; // d
+    min_max_pT_range_pid[1][8] = 2.6;
     //--------------------------------------------------------------------
 
 
@@ -223,9 +241,10 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
         tg_v2_BW_ana_pid_plot[i_mass]    = NULL;
         tg_v2_BW_ana_pid_plot_range[i_mass]    = NULL;
         tg_dNdpT_BW_ana_pid_plot[i_mass] = NULL;
+        tg_dNdpT_BW_ana_pid_plot_range[i_mass] = NULL;
 
         TLatex_legend_dNdpT[i_mass] = NULL;
-        TLatex_legend_v2_plot[i_mass] = NULL;
+        TLatex_legend_dNdpT_plot[i_mass] = NULL;
 
         tg_label_plot[0][i_mass] = new TGraph();
         tg_label_plot[1][i_mass] = new TGraph();
@@ -280,24 +299,29 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
 
     init_data();
     init_pT_spectra_data();
-    make_5_60_spectra();
+    //make_5_60_spectra();
     Init_v2_Mathematica();
 
 
-    inputfile = TFile::Open("./Data/merge_out_v2_boost.root");
+    inputfiles[0] = TFile::Open("./Data/merge_out_v2_boost.root");
+    inputfiles[1] = TFile::Open("./Data/Merge_v2_dNdpT_pT_d.root"); // deuterons
 
-    for(Int_t i_R_x = 0; i_R_x < 9; i_R_x++)
+    for(Int_t i_file = 0; i_file < 2; i_file++)
     {
-        for(Int_t i_fboost = 0; i_fboost < 9; i_fboost++)
+        for(Int_t i_R_x = 0; i_R_x < 9; i_R_x++)
         {
-            printf("i_R_x: %d, i_fboost: %d \n",i_R_x,i_fboost);
-            arr_list[i_R_x][i_fboost] = (TList*)inputfile->Get(Form("list_BW_Rx%d_fb%d",i_R_x,i_fboost));
+            for(Int_t i_fboost = 0; i_fboost < 9; i_fboost++)
+            {
+                printf("i_R_x: %d, i_fboost: %d \n",i_R_x,i_fboost);
+                arr_lists[i_file][i_R_x][i_fboost] = (TList*)inputfiles[i_file]->Get(Form("list_BW_Rx%d_fb%d",i_R_x,i_fboost));
+            }
         }
     }
 
 
     // Determine integration range of dNdpT for data
-    for(Int_t i_mass = 0; i_mass < 8; i_mass++)
+    printf("Determine integration range of dNdpT for data \n");
+    for(Int_t i_mass = 0; i_mass < N_masses; i_mass++)
     {
         Double_t x_val_data_first, y_val_data_first, x_val_data_last, y_val_data_last, x_err_low_data, x_err_high_data;
         tgae_dN_dpT_mesons_data[i_mass] ->GetPoint(0,x_val_data_first,y_val_data_first);
@@ -310,39 +334,47 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
     }
 
 
-    for(Int_t i_R_x = 0; i_R_x < 9; i_R_x++)
+    Int_t N_masses_A[2] = {8,1};
+    for(Int_t i_file = 0; i_file < 2; i_file++)
     {
-        printf("i_R_x: %d \n",i_R_x);
-        for(Int_t i_fboost = 0; i_fboost < 9; i_fboost++)
+        for(Int_t i_R_x = 0; i_R_x < 9; i_R_x++)
         {
-            for(Int_t i_Temp = 0; i_Temp < 9; i_Temp++)
+            printf("i_R_x: %d \n",i_R_x);
+            for(Int_t i_fboost = 0; i_fboost < 9; i_fboost++)
             {
-                //printf("i_Temp: %d \n",i_Temp);
-                for(Int_t i_rho_0 = 0; i_rho_0 < 9; i_rho_0++)
+                for(Int_t i_Temp = 0; i_Temp < 9; i_Temp++)
                 {
-                    //printf("i_rho_0: %d \n",i_rho_0);
-                    for(Int_t i_rho_a = 0; i_rho_a < 9; i_rho_a++)
+                    //printf("i_Temp: %d \n",i_Temp);
+                    for(Int_t i_rho_0 = 0; i_rho_0 < 9; i_rho_0++)
                     {
-                        for(Int_t i_mass = 0; i_mass < 8; i_mass++)
+                        //printf("i_rho_0: %d \n",i_rho_0);
+                        for(Int_t i_rho_a = 0; i_rho_a < 9; i_rho_a++)
                         {
-                            Int_t i_N = i_mass + 8*i_rho_a + 8*9*i_rho_0 + 8*9*9*i_Temp;
-                            Int_t i_pos_v2    = i_N*2;
-                            Int_t i_pos_dNdpT = i_N*2 + 1;
-                            tp_v2_vs_pT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] = (TProfile*)arr_list[i_R_x][i_fboost] ->At(i_pos_v2);
-                            h_dN_dpT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a]    = (TH1F*)arr_list[i_R_x][i_fboost]     ->At(i_pos_dNdpT);
+                            for(Int_t i_mass = 0; i_mass < N_masses_A[i_file]; i_mass++)
+                            {
+                                Int_t i_mass_use = i_mass;
+                                if(i_file > 0) i_mass_use = i_mass + N_masses_A[i_file-1];
+                                Int_t i_N = i_mass + N_masses_A[i_file]*i_rho_a + N_masses_A[i_file]*9*i_rho_0 + N_masses_A[i_file]*9*9*i_Temp;
+                                Int_t i_pos_v2    = i_N*2;
+                                Int_t i_pos_dNdpT = i_N*2 + 1;
+                                tp_v2_vs_pT_mesons[i_mass_use][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] = (TProfile*)arr_lists[i_file][i_R_x][i_fboost] ->At(i_pos_v2);
+                                h_dN_dpT_mesons[i_mass_use][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a]    = (TH1F*)arr_lists[i_file][i_R_x][i_fboost]     ->At(i_pos_dNdpT);
 
-                            // integrate only in range of available data
-                            Int_t start_integrate_bin = h_dN_dpT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->FindBin(integration_range_pid[i_mass][0]);
-                            Int_t stop_integrate_bin  = h_dN_dpT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->FindBin(integration_range_pid[i_mass][1]);
-                            Double_t integral = h_dN_dpT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->Integral(start_integrate_bin,stop_integrate_bin,"width");
-                            if(integral <= 0.0) continue;
-                            h_dN_dpT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->Scale(1.0/integral);
+                                // integrate only in range of available data
+                                Int_t start_integrate_bin = h_dN_dpT_mesons[i_mass_use][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->FindBin(integration_range_pid[i_mass_use][0]);
+                                Int_t stop_integrate_bin  = h_dN_dpT_mesons[i_mass_use][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->FindBin(integration_range_pid[i_mass_use][1]);
+                                Double_t integral = h_dN_dpT_mesons[i_mass_use][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->Integral(start_integrate_bin,stop_integrate_bin,"width");
+                                //Double_t integral = h_dN_dpT_mesons[i_mass_use][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->Integral(1,-1,"width");
+                                if(integral <= 0.0) continue;
+                                h_dN_dpT_mesons[i_mass_use][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->Scale(1.0/integral);
+                            }
                         }
                     }
                 }
             }
         }
     }
+    printf("All spectra normalized \n");
 
     char buf[32];
     SetCleanup(kDeepCleanup);
@@ -431,8 +463,8 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
     fCanvasB = new TRootEmbeddedCanvas("CanvasB", FrameB, 1200, 700);
     fLcanC = new TGLayoutHints(kLHintsExpandX | kLHintsExpandY, 10, 10, 10, 10);
     FrameB ->AddFrame(fCanvasB, fLcanC);
-    fCanvasB->GetCanvas()->Divide(4,2);
-    for(Int_t iPad = 1; iPad <= 8; iPad++)
+    fCanvasB->GetCanvas()->Divide(3,3);
+    for(Int_t iPad = 1; iPad <= N_masses; iPad++)
     {
          fCanvasB->GetCanvas()->cd(iPad)->SetLogy(1);
          fCanvasB->GetCanvas()->cd(iPad);
@@ -459,7 +491,7 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
     FrameB->MapWindow();
     FrameB ->Move(400,10);
 
-    for(Int_t iPad = 1; iPad <= 8; iPad++)
+    for(Int_t iPad = 1; iPad <= N_masses; iPad++)
     {
         fCanvasB ->GetCanvas()->cd(iPad);
         h_dummy  ->Draw();
@@ -478,18 +510,19 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
 
     //--------------
     // A horizontal frame
-    hframeD1  = new TGHorizontalFrame(FrameD,200,100);
+    //hframeD1  = new TGHorizontalFrame(FrameD,200,100);
+    fGroupFrames[0] = new TGGroupFrame(FrameD, new TGString("Basics"),kHorizontalFrame|kRaisedFrame);
 
     // exit button
-    Button_exit = new TGTextButton(hframeD1, "&Exit ","gApplication->Terminate(0)");
-    hframeD1->AddFrame(Button_exit, new TGLayoutHints(kLHintsCenterX,5,5,3,4));
+    Button_exit = new TGTextButton(fGroupFrames[0], "&Exit ","gApplication->Terminate(0)");
+    fGroupFrames[0]->AddFrame(Button_exit, new TGLayoutHints(kLHintsCenterX,5,5,3,4));
 
     // save button
-    Button_save = new TGTextButton(hframeD1, "&Save ",10);
+    Button_save = new TGTextButton(fGroupFrames[0], "&Save ",10);
     Button_save->Connect("Clicked()", "TBlastWaveGUI", this, "DoSave()");
-    hframeD1->AddFrame(Button_save, new TGLayoutHints(kLHintsCenterX,5,5,3,4));
+    fGroupFrames[0]->AddFrame(Button_save, new TGLayoutHints(kLHintsCenterX,5,5,3,4));
 
-    FrameD ->AddFrame(hframeD1, new TGLayoutHints(kLHintsCenterX,2,2,2,2));
+    FrameD ->AddFrame(fGroupFrames[0], new TGLayoutHints(kLHintsCenterX,2,2,2,2));
     //--------------
 
 
@@ -509,6 +542,7 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
 
     //--------------
     // A horizontal frame
+    printf("Add minmize buttons \n");
     hframeD2  = new TGHorizontalFrame(FrameD,200,100);
 
     // exit button
@@ -534,6 +568,7 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
 
     //--------------
     // A horizontal frame
+    printf("Add progress bar \n");
     hVframeD4  = new TGVerticalFrame(FrameD,200,100);
     fHProg2 = new TGHProgressBar(hVframeD4, 400);
 
@@ -565,6 +600,13 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
     Button_stop_minimize_ana->Connect("Clicked()", "TBlastWaveGUI", this, "StopMinimize()");
     hframeD2b->AddFrame(Button_stop_minimize_ana, new TGLayoutHints(kLHintsCenterX,5,5,3,4));
 
+    fCombo = new TGComboBox(hframeD2b, 88);
+    hframeD2b->AddFrame(fCombo, new TGLayoutHints(kLHintsCenterX,5,5,3,4));
+    fCombo->AddEntry("fos1", 1);
+    fCombo->AddEntry("fos2", 2);
+    fCombo->Resize(150, 20);
+    fCombo->Select(1);
+
 
     FrameD ->AddFrame(hframeD2b, new TGLayoutHints(kLHintsCenterX,2,2,2,2));
     //--------------
@@ -572,46 +614,50 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
 
 
     //--------------
-    hframeD3  = new TGHorizontalFrame(FrameD,200,100);
+    printf("Add particle check boxes \n");
+    //hframeD3  = new TGHorizontalFrame(FrameD,200,100);
+    fGroupFrames[1] = new TGGroupFrame(FrameD, new TGString("PID"),kHorizontalFrame|kRaisedFrame);
     fLCheckBox = new TGLayoutHints(kLHintsTop | kLHintsLeft,0, 0, 5, 0);
-    for(Int_t i_particle = 0; i_particle < 8; i_particle++)
+    for(Int_t i_particle = 0; i_particle < N_masses; i_particle++)
     {
-        fCheckBox_pid[i_particle]  = new TGCheckButton(hframeD3, new TGHotString(label_full_pid_spectra[i_particle].Data()), -1);
+        fCheckBox_pid[i_particle]  = new TGCheckButton(fGroupFrames[1], new TGHotString(label_full_pid_spectra[i_particle].Data()), -1);
         fCheckBox_pid[i_particle] ->SetState(kButtonDown);
         fCheckBox_pid[i_particle] ->Connect("Clicked()", "TBlastWaveGUI", this, "DoSlider()");
-        hframeD3->AddFrame(fCheckBox_pid[i_particle], fLCheckBox);
+        fGroupFrames[1]->AddFrame(fCheckBox_pid[i_particle], fLCheckBox);
     }
-    FrameD ->AddFrame(hframeD3, new TGLayoutHints(kLHintsCenterX,2,2,2,2));
+    FrameD ->AddFrame(fGroupFrames[1], new TGLayoutHints(kLHintsCenterX,2,2,2,2));
     //--------------
 
 
 
     //--------------
-    hframeD4  = new TGHorizontalFrame(FrameD,200,100);
+    //hframeD4  = new TGHorizontalFrame(FrameD,200,100);
+    fGroupFrames[2] = new TGGroupFrame(FrameD, new TGString("Fit and plot"),kHorizontalFrame|kRaisedFrame);
     for(Int_t i_v2_dNdpT = 0; i_v2_dNdpT < 2; i_v2_dNdpT++)
     {
-        fCheckBox_v2_dNdpT[i_v2_dNdpT]  = new TGCheckButton(hframeD4, new TGHotString(label_v2_dNdpT[i_v2_dNdpT].Data()), -1);
+        fCheckBox_v2_dNdpT[i_v2_dNdpT]  = new TGCheckButton(fGroupFrames[2], new TGHotString(label_v2_dNdpT[i_v2_dNdpT].Data()), -1);
         fCheckBox_v2_dNdpT[i_v2_dNdpT] ->SetState(kButtonDown);
-        hframeD4->AddFrame(fCheckBox_v2_dNdpT[i_v2_dNdpT], fLCheckBox);
+        fGroupFrames[2]->AddFrame(fCheckBox_v2_dNdpT[i_v2_dNdpT], fLCheckBox);
     }
     for(Int_t i_cb = 0; i_cb < 2; i_cb++)
     {
-        fCheckBox_sel[i_cb]  = new TGCheckButton(hframeD4, new TGHotString(label_checkbox[i_cb].Data()), -1);
+        fCheckBox_sel[i_cb]  = new TGCheckButton(fGroupFrames[2], new TGHotString(label_checkbox[i_cb].Data()), -1);
         fCheckBox_sel[i_cb] ->SetState(kButtonDown);
         fCheckBox_sel[i_cb] ->Connect("Clicked()", "TBlastWaveGUI", this, "DoSlider()");
-        hframeD4->AddFrame(fCheckBox_sel[i_cb], fLCheckBox);
+        fGroupFrames[2]->AddFrame(fCheckBox_sel[i_cb], fLCheckBox);
     }
-    FrameD ->AddFrame(hframeD4, new TGLayoutHints(kLHintsCenterX,2,2,2,2));
+    FrameD ->AddFrame(fGroupFrames[2], new TGLayoutHints(kLHintsCenterX,2,2,2,2));
     //--------------
 
 
 
     //--------------
     TString arr_label_params_ana[4] = {"SET T","SET rho0","SET rhoa","SET Rx"};
-    hframeD5a  = new TGHorizontalFrame(FrameD,200,100);
+    //hframeD5a  = new TGHorizontalFrame(FrameD,200,100);
+    fGroupFrames[3] = new TGGroupFrame(FrameD, new TGString("SET parameters"),kHorizontalFrame|kRaisedFrame);
     for(Int_t i_param = 0; i_param < 4; i_param++)
     {
-        hVframeD5a[i_param] = new TGVerticalFrame(hframeD5a, 200,200);
+        hVframeD5a[i_param] = new TGVerticalFrame(fGroupFrames[3], 200,200);
         arr_NEntry_ana_params[i_param] = new TGNumberEntry(hVframeD5a[i_param], 0.0, 12,(TGNumberFormat::EStyle) 2);
         arr_NEntry_ana_params[i_param] ->SetNumStyle( TGNumberFormat::kNESRealTwo); // https://root.cern.ch/doc/master/classTGNumberFormat.html#a8a0f81aac8ac12d0461aef554c6271ad
         hVframeD5a[i_param]->AddFrame(arr_NEntry_ana_params[i_param], new TGLayoutHints(kLHintsCenterX,2,2,2,2));
@@ -619,9 +665,9 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
         TString label_entry = arr_label_params_ana[i_param];
         arr_Label_NEntry_ana_params[i_param] = new TGLabel(hVframeD5a[i_param], label_entry.Data(), myGC(), myfont->GetFontStruct());
         hVframeD5a[i_param]->AddFrame(arr_Label_NEntry_ana_params[i_param], new TGLayoutHints(kLHintsCenterX,2,2,2,2));
-        hframeD5a->AddFrame(hVframeD5a[i_param], new TGLayoutHints(kLHintsCenterX,2,2,2,2));
+        fGroupFrames[3]->AddFrame(hVframeD5a[i_param], new TGLayoutHints(kLHintsCenterX,2,2,2,2));
     }
-    FrameD ->AddFrame(hframeD5a, new TGLayoutHints(kLHintsCenterX,2,2,2,2));
+    FrameD ->AddFrame(fGroupFrames[3], new TGLayoutHints(kLHintsCenterX,2,2,2,2));
     //--------------
 
 
@@ -663,15 +709,16 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
 
     FrameD ->MapSubwindows();
     FrameD ->MapWindow();
-    FrameD ->Resize(450,400); // size of frame
-    FrameD ->Move(1250,750); // position of frame
+    FrameD ->Resize(550,550); // size of frame
+    FrameD ->Move(1250,650); // position of frame
 
 
 
     //--------------
+    printf("Add limits widget \n");
     LHintsD4a = new TGLayoutHints(kLHintsCenterX,5,5,3,4);
 
-    TString arr_label_pid[8]     = {"pi","K","p","phi","Omega","D0","J/Psi","Y"};
+    TString arr_label_pid[N_masses]     = {"pi","K","p","phi","Omega","D0","J/psi","Y","d"};
     TString arr_label_min_max[2] = {"min","max"};
 
     arr_fL1[0] = new TGLayoutHints(kLHintsTop | kLHintsLeft, 2, 2, 2, 2);
@@ -689,7 +736,7 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
         arr_VFrame_NEntry_limits[i_min_max] = new TGVerticalFrame(frame_TGTransient, 200, max_val_VF[i_min_max]);
         frame_TGTransient->AddFrame(arr_VFrame_NEntry_limits[i_min_max], arr_fL1[i_min_max]);
 
-        for(Int_t i_pid = 0; i_pid < 8; i_pid++)
+        for(Int_t i_pid = 0; i_pid < N_masses; i_pid++)
         {
             arr_NEntry_limits[i_min_max][i_pid] = new TGNumberEntry(arr_VFrame_NEntry_limits[i_min_max], min_max_pT_range_pid[i_min_max][i_pid], 12,(TGNumberFormat::EStyle) 1);
             arr_NEntry_limits[i_min_max][i_pid] ->Connect("ValueSet(Long_t)", "TBlastWaveGUI", this, "DoSlider()");
@@ -706,7 +753,7 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
     frame_TGTransient->CenterOnParent();
     frame_TGTransient->SetWindowName("pT limits");
     frame_TGTransient->MapWindow();
-    frame_TGTransient ->Move(1250,250); // position of frame
+    frame_TGTransient->Move(950,650); // position of frame
     //--------------
 
 
@@ -763,7 +810,7 @@ void TBlastWaveGUI::DoText(const char * /*text*/)
 //______________________________________________________________________________
 void TBlastWaveGUI::DoSlider()
 {
-    //cout << "DoSlider started" << endl;
+    cout << "DoSlider started" << endl;
 
     Double_t number_entry = arr_NEntry_limits[0][0]->GetNumberEntry()->GetNumber();
     //printf("number_entry: %4.1f \n",number_entry);
@@ -782,8 +829,9 @@ void TBlastWaveGUI::DoSlider()
 
     Double_t arr_param_val[5] = {Temp_val,rho_0_val,rho_a_val,R_x_val,fboost_val};
 
-    for(Int_t i_mass = 0; i_mass < 8; i_mass++)
+    for(Int_t i_mass = 0; i_mass < N_masses; i_mass++)
     {
+        if(!tp_v2_vs_pT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a]) continue;
         tp_v2_vs_pT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->SetLineWidth(3);
         tp_v2_vs_pT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->SetLineColor(arr_color_line_mass[i_mass]);
         tp_v2_vs_pT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->SetLineStyle(1);
@@ -815,25 +863,34 @@ void TBlastWaveGUI::DoSlider()
     fCanvas ->GetCanvas() ->cd();
     h_dummy ->Draw();
 
+    printf("Draw v2 \n");
+
     if(TL_line_base) delete TL_line_base;
     TL_line_base = PlotLine(0.0,15.0,0.0,0.0,kBlack,2,2); // (Double_t x1_val, Double_t x2_val, Double_t y1_val, Double_t y2_val, Int_t Line_Col, Int_t LineWidth, Int_t LineStyle)
 
-    for(Int_t i_mass = 0; i_mass < 8; i_mass++)
+    for(Int_t i_mass = 0; i_mass < N_masses; i_mass++)
     {
+        //cout << "Test A, i_mass: " << i_mass << endl;
         if(fCheckBox_pid[i_mass]->GetState() == kButtonDown)
         {
             //printf("Draw i_mass: %d \n", i_mass);
             tgae_v2_vs_pT_mesons_data[i_mass] ->SetMarkerColor(arr_color_mass[i_mass]);
+            tgae_v2_vs_pT_mesons_data[i_mass] ->SetLineColor(kGray);
+            tgae_v2_vs_pT_mesons_data[i_mass] ->SetMarkerSize(0.8);
+            tgae_v2_vs_pT_mesons_data[i_mass] ->SetMarkerStyle(20);
             tgae_v2_vs_pT_mesons_data[i_mass] ->Draw("same P");
 
             if(fCheckBox_sel[0]->GetState() == kButtonDown)
             {
+                if(!tp_v2_vs_pT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a]) continue;
                 tp_v2_vs_pT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->SetLineWidth(4);
                 tp_v2_vs_pT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->SetLineColor(arr_color_mass[i_mass]);
                 tp_v2_vs_pT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->Draw("same L hist");
+
             }
         }
     }
+    printf("v2 plotted \n");
 
     if(fCheckBox_sel[1]->GetState() == kButtonDown && flag_minimization_ana)
     {
@@ -861,8 +918,8 @@ void TBlastWaveGUI::DoSlider()
     leg_v2_vs_pT_B->SetBorderSize(0);
     leg_v2_vs_pT_B->SetFillColor(0);
     leg_v2_vs_pT_B->SetTextSize(0.045);
-    leg_v2_vs_pT_B->AddEntry((TGraphAsymmErrors*)tgae_v2_vs_pT_mesons_data[6]->Clone(),"J/#Psi","p");
-    leg_v2_vs_pT_B->AddEntry((TGraphAsymmErrors*)tgae_v2_vs_pT_mesons_data[7]->Clone(),"#Upsilon","p");
+    leg_v2_vs_pT_B->AddEntry((TGraphAsymmErrors*)tgae_v2_vs_pT_mesons_data[6]->Clone(),"J/#psi","p");
+    leg_v2_vs_pT_B->AddEntry((TGraphAsymmErrors*)tgae_v2_vs_pT_mesons_data[7]->Clone(),"#varUpsilon","p");
     leg_v2_vs_pT_B->Draw();
 
     if(TLatex_legend_system[0]) delete TLatex_legend_system[0];
@@ -892,10 +949,10 @@ void TBlastWaveGUI::DoSlider()
 
 
     //-------------------------------------
-    Double_t x_range_dNdpT[8] = {3.5,4.1,4.5,5.0,5.0,5.0,8.5,15.0};
-    Double_t y_range_dNdpT[8] = {2.2,1.4,1.1,1.0,1.0,1.0,0.45,0.35};
+    Double_t x_range_dNdpT[N_masses] = {3.5,4.1,4.5,5.0,5.0,5.0,8.5,15.0,10.0};
+    Double_t y_range_dNdpT[N_masses] = {2.2,1.4,1.1,1.0,1.0,1.0,0.45,0.35,0.5};
 
-    for(Int_t i_mass = 0; i_mass < 8; i_mass++)
+    for(Int_t i_mass = 0; i_mass < N_masses; i_mass++)
     {
         fCanvasB ->GetCanvas()->cd(i_mass + 1);
         h_dummy_dNdpT ->GetXaxis()->SetRangeUser(0.0,x_range_dNdpT[i_mass]);
@@ -907,6 +964,7 @@ void TBlastWaveGUI::DoSlider()
         tgae_dN_dpT_mesons_data[i_mass] ->SetMarkerSize(1.0);
         tgae_dN_dpT_mesons_data[i_mass] ->Draw("same P");
 
+        if(!h_dN_dpT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a]) continue;
         h_dN_dpT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->SetLineColor(kRed); // blast wave MC
         h_dN_dpT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->SetLineWidth(5); // blast wave MC
         h_dN_dpT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->DrawCopy("same hist L"); // blast wave MC
@@ -954,6 +1012,9 @@ void TBlastWaveGUI::DoMinimize_ana()
 {
     cout << "DoMinimize_ana started" << endl;
     N_calls_BW_ana = 0;
+
+    Int_t id_bw_hypersurface = fCombo ->GetSelected();
+    printf("id_bw_hypersurface: %d \n",id_bw_hypersurface);
 
     fHProg2 ->Reset();
 
@@ -1014,7 +1075,9 @@ void TBlastWaveGUI::DoMinimize_ana()
                         // blast wave parameters
                         const double pt_BW = pt_data;         // in GeV
 
-                        blastwave_yield_and_v2(pt_BW, m, T, rho0, rho2, RxOverRy, inv_yield_BW, v2_BW);
+                        if(id_bw_hypersurface == 1) bw_ana.calc_blastwave_yield_and_v2_fos1(pt_BW, m, T, rho0, rho2, RxOverRy, inv_yield_BW, v2_BW);
+                        if(id_bw_hypersurface == 2) bw_ana.calc_blastwave_yield_and_v2_fos2(pt_BW, m, T, rho0, rho2, RxOverRy, inv_yield_BW, v2_BW);
+                        //blastwave_yield_and_v2(pt_BW, m, T, rho0, rho2, RxOverRy, inv_yield_BW, v2_BW);
 
                         tg_v2_BW_ana_pid_min[i_mass] ->SetPoint(i_point_ana,pt_BW,v2_BW);
 
@@ -1036,65 +1099,63 @@ void TBlastWaveGUI::DoMinimize_ana()
                 Double_t integral_ana = 0.0;
                 vector< vector<Double_t> > vec_data_BW;
                 vec_data_BW.resize(4); // data, BW, err, pT
-                if(i_mass != 7) // Upsilon spectra do not exist
+                // First the integral of BW needs to be calculated to do a shape comparison to the data
+                for(int i_point = 0; i_point < tgae_dN_dpT_mesons_data[i_mass]->GetN(); ++i_point)
                 {
-                    // First the integral of BW needs to be calculated to do a shape comparison to the data
-                    for(int i_point = 0; i_point < tgae_dN_dpT_mesons_data[i_mass]->GetN(); ++i_point)
+                    double dNdpT_data = 0.0;
+                    double pt_data    = 0.0;
+
+                    tgae_dN_dpT_mesons_data[i_mass]->GetPoint(i_point,pt_data,dNdpT_data);
+                    double dNdpT_err = tgae_dN_dpT_mesons_data[i_mass]->GetErrorYhigh(i_point);
+
+                    Double_t x_err_low_data  = fabs(tgae_dN_dpT_mesons_data[i_mass] ->GetErrorXlow(i_point));
+                    Double_t x_err_high_data = fabs(tgae_dN_dpT_mesons_data[i_mass] ->GetErrorXhigh(i_point));
+                    Double_t bin_width = x_err_low_data + x_err_high_data;
+
+                    // cout << "i_point = " << i_point << ", pt_data = " << pt_data << "v2 = " << dNdpT_data << " +/- " << dNdpT_err << endl;
+
+                    //if(pt_data > max_val_pT) break;
+
+                    //if(pt_data > min_val_pT)
                     {
-                        double dNdpT_data = 0.0;
-                        double pt_data    = 0.0;
+                        double v2_BW = 0;
+                        double inv_yield_BW = 0;
 
-                        tgae_dN_dpT_mesons_data[i_mass]->GetPoint(i_point,pt_data,dNdpT_data);
-                        double dNdpT_err = tgae_dN_dpT_mesons_data[i_mass]->GetErrorYhigh(i_point);
+                        // blast wave parameters
+                        const double pt_BW = pt_data;         // in GeV
 
-                        Double_t x_err_low_data  = tgae_dN_dpT_mesons_data[i_mass] ->GetErrorXlow(i_point);
-                        Double_t x_err_high_data = tgae_dN_dpT_mesons_data[i_mass] ->GetErrorXhigh(i_point);
-                        Double_t bin_width = x_err_low_data + x_err_high_data;
+                        if(id_bw_hypersurface == 1) bw_ana.calc_blastwave_yield_and_v2_fos1(pt_BW, m, T, rho0, rho2, RxOverRy, inv_yield_BW, v2_BW); // invariant yield: (1/pT) (dN/dpT)
+                        if(id_bw_hypersurface == 2) bw_ana.calc_blastwave_yield_and_v2_fos2(pt_BW, m, T, rho0, rho2, RxOverRy, inv_yield_BW, v2_BW); // invariant yield: (1/pT) (dN/dpT)
+                        vec_data_BW[0].push_back(dNdpT_data);
+                        vec_data_BW[1].push_back(inv_yield_BW*pt_BW);
+                        vec_data_BW[2].push_back(dNdpT_err);
+                        vec_data_BW[3].push_back(pt_BW);
 
-                        // cout << "i_point = " << i_point << ", pt_data = " << pt_data << "v2 = " << dNdpT_data << " +/- " << dNdpT_err << endl;
-
-                        //if(pt_data > max_val_pT) break;
-
-                        //if(pt_data > min_val_pT)
-                        {
-                            double v2_BW = 0;
-                            double inv_yield_BW = 0;
-
-                            // blast wave parameters
-                            const double pt_BW = pt_data;         // in GeV
-
-                            blastwave_yield_and_v2(pt_BW, m, T, rho0, rho2, RxOverRy, inv_yield_BW, v2_BW); // invariant yield: (1/pT) (dN/dpT)
-                            vec_data_BW[0].push_back(dNdpT_data);
-                            vec_data_BW[1].push_back(inv_yield_BW*pt_BW);
-                            vec_data_BW[2].push_back(dNdpT_err);
-                            vec_data_BW[3].push_back(pt_BW);
-
-                            integral_ana += inv_yield_BW*bin_width*pt_BW;
-                            // cout << "i_point = " << i_point << ", pt_BW = " << pt_BW << ", v2_BW = " << v2_BW << endl;
-                            //double diff   = (dNdpT_data - inv_yield_BW)/dNdpT_err;
-                            //double diff_yield = (inv_yield_BW - inv_yield_data)/yield_err;
-                            //chi2 += diff*diff;
-                        }
+                        integral_ana += inv_yield_BW*bin_width*pt_BW;
+                        // cout << "i_point = " << i_point << ", pt_BW = " << pt_BW << ", v2_BW = " << v2_BW << endl;
+                        //double diff   = (dNdpT_data - inv_yield_BW)/dNdpT_err;
+                        //double diff_yield = (inv_yield_BW - inv_yield_data)/yield_err;
+                        //chi2 += diff*diff;
                     }
+                }
 
 
-                    // Calculate chi2 for dNdpT
-                    if(integral_ana > 0.0)
+                // Calculate chi2 for dNdpT
+                if(integral_ana > 0.0)
+                {
+                    Int_t i_point_ana = 0;
+                    for(Int_t i_point = 0; i_point < (Int_t)vec_data_BW[0].size(); i_point++)
                     {
-                        Int_t i_point_ana = 0;
-                        for(Int_t i_point = 0; i_point < (Int_t)vec_data_BW[0].size(); i_point++)
-                        {
-                            Double_t pt_data = vec_data_BW[3][i_point];
-                            if(pt_data > max_val_pT) break;
+                        Double_t pt_data = vec_data_BW[3][i_point];
+                        if(pt_data > max_val_pT) break;
 
-                            if(pt_data > min_val_pT)
-                            {
-                                // Normalize BW to integral within range of data
-                                double diff   = (vec_data_BW[0][i_point] - (vec_data_BW[1][i_point]/integral_ana))/vec_data_BW[2][i_point];
-                                chi2 += diff*diff;
-                                tg_dNdpT_BW_ana_pid_min[i_mass] ->SetPoint(i_point_ana,pt_data,vec_data_BW[1][i_point]/integral_ana);
-                                i_point_ana++;
-                            }
+                        if(pt_data > min_val_pT)
+                        {
+                            // Normalize BW to integral within range of data
+                            double diff   = (vec_data_BW[0][i_point] - (vec_data_BW[1][i_point]/integral_ana))/vec_data_BW[2][i_point];
+                            chi2 += diff*diff;
+                            tg_dNdpT_BW_ana_pid_min[i_mass] ->SetPoint(i_point_ana,pt_data,vec_data_BW[1][i_point]/integral_ana);
+                            i_point_ana++;
                         }
                     }
                 }
@@ -1232,7 +1293,7 @@ void TBlastWaveGUI::DoMinimize()
     // Set pT min max values to those entered
     for(Int_t i_min_max = 0; i_min_max < 2; i_min_max++)
     {
-        for(Int_t i_pid = 0; i_pid < 8; i_pid++)
+        for(Int_t i_pid = 0; i_pid < N_masses; i_pid++)
         {
             Double_t number_entry = arr_NEntry_limits[i_min_max][i_pid]->GetNumberEntry()->GetNumber();
             min_max_pT_range_pid[i_min_max][i_pid] = number_entry;
@@ -1302,7 +1363,7 @@ void TBlastWaveGUI::DoMinimize()
                         chi2_ndf_dNdpT = 0;
 
 
-                        for(Int_t i_mass = 0; i_mass < 8; i_mass++) //
+                        for(Int_t i_mass = 0; i_mass < N_masses; i_mass++) //
 
                             // dNdpT chi2 separately: pi good, K good, p very good,
                             //phi ~159, Omega very bad ~100000, D0 ~2000, J/Psi ~159, Upsilon (in fact in function_BW it's D again) ~697
@@ -1353,8 +1414,9 @@ void TBlastWaveGUI::DoMinimize()
                             Double_t dNdpT_err_pid;
                             Double_t dNdpT_bw_pid;
 
-                            if(i_mass != 7) // Upsilon spectra do not exist
+                            //if(i_mass != 7) // Upsilon spectra do not exist
                             {
+                                if(!h_dN_dpT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a]) continue;
                                 if((fCheckBox_v2_dNdpT[1]->GetState() == kButtonDown))
                                 {
                                     for(Int_t i_pT = 0; i_pT < n_arr_dNdpT; i_pT++) // pT loop for dNdpT
@@ -1537,9 +1599,11 @@ void TBlastWaveGUI::Plot_curves_ana(Double_t T_BW,Double_t  Rho0_BW,Double_t  Rh
     printf("TBlastWaveGUI::Plot_curves_ana() \n");
     flag_minimization_ana = 1;
 
+    Int_t id_bw_hypersurface = fCombo ->GetSelected();
+    printf("id_bw_hypersurface: %d \n",id_bw_hypersurface);
 
     //--------------------------------------------------------------------
-    Double_t min_max_pT_range_pid_plot_ana[2][8];
+    Double_t min_max_pT_range_pid_plot_ana[2][N_masses];
     min_max_pT_range_pid_plot_ana[0][0] = 0.1; // pi
     min_max_pT_range_pid_plot_ana[1][0] = 3.5;
     min_max_pT_range_pid_plot_ana[0][1] = 0.1; // K
@@ -1556,6 +1620,8 @@ void TBlastWaveGUI::Plot_curves_ana(Double_t T_BW,Double_t  Rho0_BW,Double_t  Rh
     min_max_pT_range_pid_plot_ana[1][6] = 15.0;
     min_max_pT_range_pid_plot_ana[0][7] = 0.1; // Upsilon
     min_max_pT_range_pid_plot_ana[1][7] = 15.0;
+    min_max_pT_range_pid_plot_ana[0][8] = 0.1; // d
+    min_max_pT_range_pid_plot_ana[1][8] = 15.0;
     //--------------------------------------------------------------------
 
 
@@ -1580,7 +1646,8 @@ void TBlastWaveGUI::Plot_curves_ana(Double_t T_BW,Double_t  Rho0_BW,Double_t  Rh
             {
                 Double_t v2_BW = 0;
                 Double_t inv_yield_BW = 0;
-                blastwave_yield_and_v2(pt_BW, arr_quark_mass_meson[i_mass], T_BW, Rho0_BW, Rho2_BW, RxOverRy_BW, inv_yield_BW, v2_BW);
+                if(id_bw_hypersurface == 1) bw_ana.calc_blastwave_yield_and_v2_fos1(pt_BW, arr_quark_mass_meson[i_mass], T_BW, Rho0_BW, Rho2_BW, RxOverRy_BW, inv_yield_BW, v2_BW);
+                if(id_bw_hypersurface == 2) bw_ana.calc_blastwave_yield_and_v2_fos2(pt_BW, arr_quark_mass_meson[i_mass], T_BW, Rho0_BW, Rho2_BW, RxOverRy_BW, inv_yield_BW, v2_BW);
                 tg_v2_BW_ana_pid[i_mass] ->SetPoint(i_pT,pt_BW,v2_BW);
             }
         }
@@ -1618,7 +1685,8 @@ void TBlastWaveGUI::Plot_curves_ana(Double_t T_BW,Double_t  Rho0_BW,Double_t  Rh
             Double_t pt_BW = i_pT*delta_pT + 0.0;
             Double_t v2_BW = 0;
             Double_t inv_yield_BW = 0;
-            blastwave_yield_and_v2(pt_BW, arr_quark_mass_meson[i_mass], T_BW, Rho0_BW, Rho2_BW, RxOverRy_BW, inv_yield_BW, v2_BW);
+            if(id_bw_hypersurface == 1) bw_ana.calc_blastwave_yield_and_v2_fos1(pt_BW, arr_quark_mass_meson[i_mass], T_BW, Rho0_BW, Rho2_BW, RxOverRy_BW, inv_yield_BW, v2_BW);
+            if(id_bw_hypersurface == 2) bw_ana.calc_blastwave_yield_and_v2_fos2(pt_BW, arr_quark_mass_meson[i_mass], T_BW, Rho0_BW, Rho2_BW, RxOverRy_BW, inv_yield_BW, v2_BW);
             inv_yield_BW *= pt_BW;
             tg_dNdpT_BW_ana_pid[i_mass] ->SetPoint(i_pT,pt_BW,inv_yield_BW);
 
@@ -1660,6 +1728,8 @@ void TBlastWaveGUI::MakePlotv2()
 {
     printf("TBlastWaveGUI::MakePlotv2() \n");
 
+    Int_t id_bw_hypersurface = fCombo ->GetSelected();
+    printf("id_bw_hypersurface: %d \n",id_bw_hypersurface);
 
     Int_t i_Temp   = vec_slider[0]->GetPosition();
     Int_t i_rho_0  = vec_slider[1]->GetPosition();
@@ -1668,7 +1738,7 @@ void TBlastWaveGUI::MakePlotv2()
     Int_t i_fboost = vec_slider[4]->GetPosition();
 
     //--------------------------------------------------------------------
-    Double_t min_max_pT_range_pid_plot_ana[2][8];
+    Double_t min_max_pT_range_pid_plot_ana[2][N_masses];
     min_max_pT_range_pid_plot_ana[0][0] = 0.1; // pi
     min_max_pT_range_pid_plot_ana[1][0] = 3.5;
     min_max_pT_range_pid_plot_ana[0][1] = 0.1; // K
@@ -1685,6 +1755,8 @@ void TBlastWaveGUI::MakePlotv2()
     min_max_pT_range_pid_plot_ana[1][6] = 15.0;
     min_max_pT_range_pid_plot_ana[0][7] = 0.1; // Upsilon
     min_max_pT_range_pid_plot_ana[1][7] = 15.0;
+    min_max_pT_range_pid_plot_ana[0][8] = 0.1; // d
+    min_max_pT_range_pid_plot_ana[1][8] = 10.0;
     //--------------------------------------------------------------------
 
     Pixel_t green;
@@ -1693,118 +1765,136 @@ void TBlastWaveGUI::MakePlotv2()
 
 
     //------------------------------------------------------------------------------------------------------------------------------------
-    Double_t x_range_plot[2][2] =
+    Double_t x_range_plot[3][2] =
     {
-        {-0.2,4.3},
-        {-0.2,14.7}
+        {-0.35,4.3},
+        {-0.35,8.2},
+        {-0.35,10.7}
     };
 
-    Double_t y_range_plot[2][2] =
+    Double_t y_range_plot[3][2] =
     {
-        {-0.12,0.34},
-        {-0.12,0.34}
+        {-0.05,0.34},
+        {-0.05,0.34},
+        {-0.05,0.34}
     };
 
-    Int_t arr_color_plot[2][4] =
+    Int_t arr_color_plot[3][4] =
     {
-        {kBlack,kGreen+1,kBlue+1,kRed+1},
-        {kBlack,kGreen+1,kBlue+1,kRed+1}
+        {kBlack,kBlue+1,kGreen+2,kGreen+2},
+        {kBlack,kBlue+1,kGreen+2,kGreen+2},
+        {kGreen+2,kRed,kBlue+1,kGreen+2}
     };
-    Double_t arr_size_plot[2][4] =
+    Double_t arr_size_plot[3][4] =
     {
-        {1.2,1.3,1.5,1.4},
+        {1.2,1.3,1.7,1.4},
+        {1.2,1.3,1.7,1.4},
         {1.2,1.3,1.5,1.4}
     };
-    Int_t arr_marker_styleAB[2][4] =
+    Int_t arr_marker_styleAB[3][4] =
     {
-        {25,46,30,28},
-        {25,46,30,28}
+        {25,46,29,28},
+        {25,46,29,28},
+        {21,47,30,28}
     };
-    Int_t arr_marker_styleAB_x1[2][4] =
+    Int_t arr_marker_styleAB_x1[3][4] =
     {
+        {21,47,29,34},
         {21,47,29,34},
         {21,47,29,34}
     };
-    Int_t arr_plot_orderAB[2][4]   =
+
+    // pi, K, p, phi, Omega, D0, J/Psi, Upsilon, d
+    Int_t arr_plot_orderAB[3][3] = // [pad][particle]
     {
-        {0,1,2,4},
-        {3,5,6,7}
+        {0,8,3}, // pi, d, phi
+        {2,4,6}, // p, Omega, J/Psi
+        {5,7,1}  // D0, Upsilon, K
     };
 
-    if(!c_2X1)
+    if(!c_3X1)
     {
-        c_2X1 = new TCanvas("c_2X1","c_2X1",100,200,1500,620);
-        c_2X1->SetTopMargin(0.02);
-        c_2X1->SetBottomMargin(0.18);
-        c_2X1->SetRightMargin(0.2);
-        c_2X1->SetLeftMargin(0.2);
-
-        c_2X1->SetLogy(0);
-        c_2X1->Divide(2,1,0.0,0.0); // x divide, y divide, x margin, y margin
+        c_3X1 = new TCanvas("c_3X1","c_3X1",100,200,1400,600);
+        c_3X1->SetFillColor(10);
+        c_3X1->SetTopMargin(0.05);
+        c_3X1->SetBottomMargin(0.22);
+        c_3X1->SetRightMargin(0.05);
+        c_3X1->SetLeftMargin(0.22);
+        c_3X1->SetLogy(0);
+        c_3X1->Divide(3,1,0.0,0.0,10);
     }
-    for(Int_t iPad = 0; iPad < 2; iPad++)
+
+
+    for(Int_t iPad = 0; iPad < 3; iPad++)
     {
-        Double_t scaling_factor_2X1 = 0.78;
-        Double_t Label_size_2X1     = 0.08;
+        Double_t scaling_factor_3X1 = 1.0;
+        Double_t Label_size_3X1     = 0.07;
         if(iPad == 0)
         {
-            scaling_factor_2X1 = 0.78;
+            scaling_factor_3X1 = 0.78;
         }
+        c_3X1->cd(iPad+1)->SetTicks(1,1);
+        c_3X1->cd(iPad+1)->SetGrid(0,0);
+        c_3X1->cd(iPad+1)->SetFillColor(10);
+        c_3X1->cd(iPad+1)->SetRightMargin(0.01);
+        c_3X1->cd(iPad+1)->SetTopMargin(0.01);
 
-        c_2X1->cd(iPad+1)->SetTicks(1,1);
-        c_2X1->cd(iPad+1)->SetGrid(0,0);
-        c_2X1->cd(iPad+1)->SetFillColor(10);
-        c_2X1->cd(iPad+1)->SetRightMargin(0.01);
-        c_2X1->cd(iPad+1)->SetTopMargin(0.01);
-        HistName = "h_frame_2X1_";
+        HistName = "h_frame_3X1_";
         HistName += iPad;
 
-        if(h_frame_2X1[iPad]) delete h_frame_2X1[iPad];
-        h_frame_2X1[iPad] = c_2X1->cd(iPad+1)->DrawFrame(x_range_plot[iPad][0],y_range_plot[iPad][0],x_range_plot[iPad][1],y_range_plot[iPad][1],HistName.Data());
-        h_frame_2X1[iPad]->SetStats(0);
-        h_frame_2X1[iPad]->SetTitle("");
-        h_frame_2X1[iPad]->GetXaxis()->SetTitleOffset(0.95/scaling_factor_2X1);
-        h_frame_2X1[iPad]->GetYaxis()->SetTitleOffset(0.95/scaling_factor_2X1);
-        h_frame_2X1[iPad]->GetXaxis()->SetLabelOffset(0.015*scaling_factor_2X1);
-        //if(iPad == 0) h_frame_2X1[iPad]->GetXaxis()->SetLabelOffset(0.0*scaling_factor_2X1);
-        h_frame_2X1[iPad]->GetYaxis()->SetLabelOffset(0.01*scaling_factor_2X1);
-        h_frame_2X1[iPad]->GetXaxis()->SetLabelSize(Label_size_2X1*scaling_factor_2X1);
-        h_frame_2X1[iPad]->GetYaxis()->SetLabelSize(Label_size_2X1*scaling_factor_2X1);
-        h_frame_2X1[iPad]->GetXaxis()->SetTitleSize(Label_size_2X1*scaling_factor_2X1);
-        h_frame_2X1[iPad]->GetYaxis()->SetTitleSize(Label_size_2X1*scaling_factor_2X1);
-        h_frame_2X1[iPad]->GetXaxis()->SetNdivisions(505,'N');
-        h_frame_2X1[iPad]->GetYaxis()->SetNdivisions(505,'N');
-        h_frame_2X1[iPad]->GetXaxis()->CenterTitle();
-        h_frame_2X1[iPad]->GetYaxis()->CenterTitle();
-        h_frame_2X1[iPad]->GetXaxis()->SetTitle("p_{T} (GeV/c)");
-        h_frame_2X1[iPad]->GetYaxis()->SetTitle("v_{2}");
-        h_frame_2X1[iPad]->GetXaxis()->SetRangeUser(x_range_plot[iPad][0],x_range_plot[iPad][1]);
-        h_frame_2X1[iPad]->GetYaxis()->SetRangeUser(y_range_plot[iPad][0],y_range_plot[iPad][1]);
+        if(h_frame_3X1[iPad]) delete h_frame_3X1[iPad];
+        h_frame_3X1[iPad] = c_3X1->cd(iPad+1)->DrawFrame(x_range_plot[iPad][0],y_range_plot[iPad][0],x_range_plot[iPad][1],y_range_plot[iPad][1],HistName.Data());
+        h_frame_3X1[iPad]->SetStats(0);
+        h_frame_3X1[iPad]->SetTitle("");
+        h_frame_3X1[iPad]->GetXaxis()->SetTitleOffset(0.95/scaling_factor_3X1);
+        h_frame_3X1[iPad]->GetYaxis()->SetTitleOffset(1.6);
+        h_frame_3X1[iPad]->GetXaxis()->SetLabelOffset(0.0);
+        if(iPad == 0) h_frame_3X1[iPad]->GetXaxis()->SetLabelOffset(0.014);
+        //if(iPad == 0) h_frame_3X1[iPad]->GetXaxis()->SetLabelOffset(0.0*scaling_factor_3X1);
+        h_frame_3X1[iPad]->GetYaxis()->SetLabelOffset(0.01*scaling_factor_3X1);
+        h_frame_3X1[iPad]->GetXaxis()->SetLabelSize(Label_size_3X1*scaling_factor_3X1);
+        h_frame_3X1[iPad]->GetYaxis()->SetLabelSize(Label_size_3X1*scaling_factor_3X1);
+        h_frame_3X1[iPad]->GetXaxis()->SetTitleSize(Label_size_3X1*scaling_factor_3X1);
+        h_frame_3X1[iPad]->GetYaxis()->SetTitleSize(Label_size_3X1*scaling_factor_3X1);
+        h_frame_3X1[iPad]->GetXaxis()->SetNdivisions(505,'N');
+        h_frame_3X1[iPad]->GetYaxis()->SetNdivisions(505,'N');
+        h_frame_3X1[iPad]->GetXaxis()->CenterTitle();
+        h_frame_3X1[iPad]->GetYaxis()->CenterTitle();
+        if(iPad == 1) h_frame_3X1[iPad]->GetXaxis()->SetTitle("p_{T} (GeV/c)");
+        else h_frame_3X1[iPad]->GetXaxis()->SetTitle("");
+        h_frame_3X1[iPad]->GetYaxis()->SetTitle("v_{2}");
+        h_frame_3X1[iPad]->GetXaxis()->SetRangeUser(x_range_plot[iPad][0],x_range_plot[iPad][1]);
+        h_frame_3X1[iPad]->GetYaxis()->SetRangeUser(y_range_plot[iPad][0],y_range_plot[iPad][1]);
 
         if(TL_line_base_plot[iPad]) delete TL_line_base_plot[iPad];
         TL_line_base_plot[iPad] = PlotLine(x_range_plot[iPad][0],x_range_plot[iPad][1],0.0,0.0,kBlack,2,2); // (Double_t x1_val, Double_t x2_val, Double_t y1_val, Double_t y2_val, Int_t Line_Col, Int_t LineWidth, Int_t LineStyle)
 
+
         Int_t i_particle_use = 0;
-        for(Int_t i_mass_loop = 0; i_mass_loop < 4; i_mass_loop++)
+        for(Int_t i_mass_loop = 0; i_mass_loop < 3; i_mass_loop++)
         {
             Int_t i_mass = arr_plot_orderAB[iPad][i_mass_loop];
             if(fCheckBox_pid[i_mass]->GetState() == kButtonDown)
             {
                 //printf("Draw i_mass: %d \n", i_mass);
                 tgae_v2_vs_pT_mesons_data_copy[i_mass] ->SetMarkerColor(kGray+1);
+                tgae_v2_vs_pT_mesons_data_copy[i_mass] ->SetLineColor(kGray);
                 tgae_v2_vs_pT_mesons_data_copy[i_mass] ->SetMarkerSize(arr_size_plot[iPad][i_mass_loop]*1.4);
                 tgae_v2_vs_pT_mesons_data_copy[i_mass] ->SetMarkerStyle(arr_marker_styleAB_x1[iPad][i_mass_loop]);
                 tgae_v2_vs_pT_mesons_data_copy[i_mass] ->Draw("same P");
 
                 tgae_v2_vs_pT_mesons_data_copyB[i_mass] ->SetMarkerColor(kWhite);
+                tgae_v2_vs_pT_mesons_data_copyB[i_mass] ->SetLineColor(kGray);
                 tgae_v2_vs_pT_mesons_data_copyB[i_mass] ->SetMarkerSize(arr_size_plot[iPad][i_mass_loop]*1.0);
                 tgae_v2_vs_pT_mesons_data_copyB[i_mass] ->SetMarkerStyle(arr_marker_styleAB_x1[iPad][i_mass_loop]);
                 tgae_v2_vs_pT_mesons_data_copyB[i_mass] ->Draw("same P");
 
                 tgae_v2_vs_pT_mesons_data[i_mass] ->SetMarkerColor(arr_color_plot[iPad][i_mass_loop]);
+                tgae_v2_vs_pT_mesons_data[i_mass] ->SetLineColor(kGray);
                 tgae_v2_vs_pT_mesons_data[i_mass] ->SetMarkerSize(arr_size_plot[iPad][i_mass_loop]);
                 tgae_v2_vs_pT_mesons_data[i_mass] ->SetMarkerStyle(arr_marker_styleAB[iPad][i_mass_loop]);
                 tgae_v2_vs_pT_mesons_data[i_mass] ->Draw("same P");
+                // OK
 
 
                 tg_label_plot[0][i_mass] ->SetMarkerColor(kGray+1);
@@ -1819,19 +1909,31 @@ void TBlastWaveGUI::MakePlotv2()
                 tg_label_plot[2][i_mass] ->SetMarkerSize(arr_size_plot[iPad][i_mass_loop]);
                 tg_label_plot[2][i_mass] ->SetMarkerStyle(arr_marker_styleAB[iPad][i_mass_loop]);
 
-                Double_t x_pos_legend = 0.27 + iPad*0.57;
-                Double_t y_pos_legend = 0.91  - i_particle_use*0.055;
+                Double_t offset_x_pad[3] = {0.36,0.84,0.84};
+                Double_t offset_y_pad[3] = {0.91,0.91,0.91};
 
-                tg_label_plot[0][i_mass] ->SetPoint(0,0.1+iPad*11.9,0.3-i_particle_use*0.032);
-                tg_label_plot[1][i_mass] ->SetPoint(0,0.1+iPad*11.9,0.3-i_particle_use*0.032);
-                tg_label_plot[2][i_mass] ->SetPoint(0,0.1+iPad*11.9,0.3-i_particle_use*0.032);
+                Double_t x_pos_legend = offset_x_pad[iPad];
+                Double_t y_pos_legend = offset_y_pad[iPad]  - i_particle_use*0.055;
+
+                Double_t x_user, y_user;
+                Double_t x_NDC = offset_x_pad[iPad];
+                Double_t y_NDC = offset_y_pad[iPad]  - i_particle_use*0.055;
+                get_user_from_NDC((TPad*)c_3X1->cd(iPad+1),x_NDC-0.026,y_NDC+0.013,x_user,y_user);
+                printf("iPad: %d, (x,y): {%4.3f, %4.3f} \n",iPad,x_user,y_user);
+
+                tg_label_plot[0][i_mass] ->SetPoint(0,x_user,y_user);
+                tg_label_plot[1][i_mass] ->SetPoint(0,x_user,y_user);
+                tg_label_plot[2][i_mass] ->SetPoint(0,x_user,y_user);
                 tg_label_plot[0][i_mass] ->Draw("same P");
                 tg_label_plot[1][i_mass] ->Draw("same P");
                 tg_label_plot[2][i_mass] ->Draw("same P");
 
+
+
                 if(TLatex_legend_v2_plot[i_mass]) delete TLatex_legend_v2_plot[i_mass];
-                TLatex_legend_v2_plot[i_mass] = plotTopLegend((char*)label_pid_spectra[i_mass].Data(),x_pos_legend,y_pos_legend,0.055,kBlack,0.0,42,1,1); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
+                TLatex_legend_v2_plot[i_mass] = plotTopLegend((char*)label_pid_spectra[i_mass].Data(),x_pos_legend,y_pos_legend,0.065*scaling_factor_3X1,kBlack,0.0,42,1,1); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
                 i_particle_use++;
+
 
                 if(fCheckBox_sel[0]->GetState() == kButtonDown)
                 {
@@ -1839,18 +1941,20 @@ void TBlastWaveGUI::MakePlotv2()
                     tp_v2_vs_pT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->SetLineColor(arr_color_plot[iPad][i_mass_loop]);
                     tp_v2_vs_pT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->Draw("same L hist");
                 }
+
             }
         }
 
 
-       
+
         //tp_v2_vs_pT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->GetXaxis()->SetRangeUser(min_val_pT,max_val_pT);
+
 
         const Int_t N_points_BW_ana = 35;
         printf("T_BW_fit_ana: %4.3f \n",T_BW_fit_ana);
         if(T_BW_fit_ana > 0.0)
         {
-            for(int i_mass_loop = 0; i_mass_loop < 4; ++i_mass_loop)
+            for(int i_mass_loop = 0; i_mass_loop < 3; ++i_mass_loop)
             {
                 Int_t i_mass = arr_plot_orderAB[iPad][i_mass_loop];
 
@@ -1874,7 +1978,8 @@ void TBlastWaveGUI::MakePlotv2()
                         Double_t v2_BW = 0;
                         Double_t inv_yield_BW = 0;
 
-                        blastwave_yield_and_v2(pt_BW, arr_quark_mass_meson[i_mass], T_BW_fit_ana, Rho0_BW_fit_ana, Rho2_BW_fit_ana, RxOverRy_BW_fit_ana, inv_yield_BW, v2_BW);
+                        if(id_bw_hypersurface == 1) bw_ana.calc_blastwave_yield_and_v2_fos1(pt_BW, arr_quark_mass_meson[i_mass], T_BW_fit_ana, Rho0_BW_fit_ana, Rho2_BW_fit_ana, RxOverRy_BW_fit_ana, inv_yield_BW, v2_BW);
+                        if(id_bw_hypersurface == 2) bw_ana.calc_blastwave_yield_and_v2_fos2(pt_BW, arr_quark_mass_meson[i_mass], T_BW_fit_ana, Rho0_BW_fit_ana, Rho2_BW_fit_ana, RxOverRy_BW_fit_ana, inv_yield_BW, v2_BW);
                         tg_v2_BW_ana_pid_plot[i_mass]       ->SetPoint(i_pT,pt_BW,v2_BW);
                         if(pt_BW > min_val_pT && pt_BW < max_val_pT)
                         {
@@ -1899,15 +2004,17 @@ void TBlastWaveGUI::MakePlotv2()
                 }
             }
         }
-    }
 
-    c_2X1 ->Modified();
-    c_2X1 ->Update();
-    printf("v2 ana plotted \n");
+    } // end of iPad loop
+
+    c_3X1 ->Modified();
+    c_3X1 ->Update();
+    printf("v2 plotted \n");
     //------------------------------------------------------------------------------------------------------------------------------------
 
 }
 //______________________________________________________________________________
+
 
 
 //______________________________________________________________________________
@@ -1915,11 +2022,358 @@ void TBlastWaveGUI::MakePlotdNdpT()
 {
     printf("TBlastWaveGUI::MakePlotdNdpT() \n");
 
+    Int_t id_bw_hypersurface = fCombo ->GetSelected();
+    printf("id_bw_hypersurface: %d \n",id_bw_hypersurface);
+
     Pixel_t green;
     gClient->GetColorByName("green", green);
     Button_make_plot_dNdpT->ChangeBackground(green);
+
+    Int_t i_Temp   = vec_slider[0]->GetPosition();
+    Int_t i_rho_0  = vec_slider[1]->GetPosition();
+    Int_t i_rho_a  = vec_slider[2]->GetPosition();
+    Int_t i_R_x    = vec_slider[3]->GetPosition();
+    Int_t i_fboost = vec_slider[4]->GetPosition();
+
+    //--------------------------------------------------------------------
+    Double_t min_max_pT_range_pid_plot_ana[2][N_masses];
+    min_max_pT_range_pid_plot_ana[0][0] = 0.1; // pi
+    min_max_pT_range_pid_plot_ana[1][0] = 4.5;
+    min_max_pT_range_pid_plot_ana[0][1] = 0.1; // K
+    min_max_pT_range_pid_plot_ana[1][1] = 4.4;
+    min_max_pT_range_pid_plot_ana[0][2] = 0.1; // p
+    min_max_pT_range_pid_plot_ana[1][2] = 4.5;
+    min_max_pT_range_pid_plot_ana[0][3] = 0.1; // phi
+    min_max_pT_range_pid_plot_ana[1][3] = 4.5;
+    min_max_pT_range_pid_plot_ana[0][4] = 0.1; // Omega
+    min_max_pT_range_pid_plot_ana[1][4] = 13.5;
+    min_max_pT_range_pid_plot_ana[0][5] = 0.1; // D0
+    min_max_pT_range_pid_plot_ana[1][5] = 13.5;
+    min_max_pT_range_pid_plot_ana[0][6] = 0.1; // J/Psi
+    min_max_pT_range_pid_plot_ana[1][6] = 13.5;
+    min_max_pT_range_pid_plot_ana[0][7] = 0.1; // Upsilon
+    min_max_pT_range_pid_plot_ana[1][7] = 13.5;
+    min_max_pT_range_pid_plot_ana[0][8] = 0.1; // Upsilon
+    min_max_pT_range_pid_plot_ana[1][8] = 13.5;
+    //--------------------------------------------------------------------
+
+    if(!c_3X3)
+    {
+        c_3X3 = new TCanvas("c_3X3","c_3X3",500,20,950,900);
+        c_3X3->SetTopMargin(0.15);
+        c_3X3->SetBottomMargin(0.25);
+        c_3X3->SetRightMargin(0.15);
+        c_3X3->SetLeftMargin(0.25);
+
+        c_3X3->SetLogy(0);
+        c_3X3->Divide(3,3,0.0,0.0); // x divide, y divide, x margin, y margin
+      }
+
+    const Int_t N_points_BW_ana = 55;
+    // 0   1   2  3    4      5    6      7      8
+    // pi, K, p, phi, Omega, D0, J/Psi, Upsilon, d
+    Int_t arr_plot_order[9] = {0,3,8,1,4,6,2,5,7};
+    Double_t x_axis_range[9] = {3.5,5.5,10.5,3.5,5.5,10.5,3.5,5.5,17.5};
+
+    Double_t y_max_plot = 2.2;
+    Double_t Label_size_3X3     = 0.1;
+
+    for(Int_t iPad = 0; iPad < N_masses; iPad++)
+    {
+        Int_t i_mass = arr_plot_order[iPad];
+
+        if(h_frame_3X3[iPad]) delete h_frame_3X3[iPad];
+
+        Double_t scaling_factor_3X3 = 1.0;
+        Double_t offset_3X3         = 0.0;
+        Double_t Label_size_2X4     = 0.1;
+        if(iPad == 6)
+        {
+            scaling_factor_3X3 = 0.77;
+            offset_3X3         = 0.015;
+        }
+        if(iPad > 6)
+        {
+            scaling_factor_3X3 = 0.88;
+            offset_3X3         = 0.005;
+        }
+
+
+        c_3X3->cd(iPad+1)->SetTicks(1,1);
+        c_3X3->cd(iPad+1)->SetGrid(0,0);
+        c_3X3->cd(iPad+1)->SetFillColor(10);
+        c_3X3->cd(iPad+1)->SetRightMargin(0.01);
+        c_3X3->cd(iPad+1)->SetTopMargin(0.01);
+        HistName = "h_frame_3X3_";
+        HistName += iPad;
+        //h_frame_3X3[iPad] = c_3X3->cd(iPad+1)->DrawFrame(-0.1,-0.1,min_max_pT_range_pid_plot_ana[1][i_mass],y_max_plot,HistName.Data());
+        h_frame_3X3[iPad] = c_3X3->cd(iPad+1)->DrawFrame(-0.5,-0.1,x_axis_range[iPad],y_max_plot,HistName.Data());
+        h_frame_3X3[iPad]->SetStats(0);
+        h_frame_3X3[iPad]->SetTitle("");
+        h_frame_3X3[iPad]->SetTickLength(0.04,"X");
+        h_frame_3X3[iPad]->SetTickLength(0.04,"Y");
+        h_frame_3X3[iPad]->GetXaxis()->SetTitleOffset(0.9/scaling_factor_3X3);
+        h_frame_3X3[iPad]->GetYaxis()->SetTitleOffset(1.2);
+        h_frame_3X3[iPad]->GetXaxis()->SetLabelOffset(0.0*scaling_factor_3X3 + offset_3X3);
+        if(iPad == 0) h_frame_3X3[iPad]->GetXaxis()->SetLabelOffset(0.0*scaling_factor_3X3);
+        h_frame_3X3[iPad]->GetYaxis()->SetLabelOffset(0.01*scaling_factor_3X3);
+        h_frame_3X3[iPad]->GetXaxis()->SetLabelSize(Label_size_3X3*scaling_factor_3X3);
+        h_frame_3X3[iPad]->GetYaxis()->SetLabelSize(Label_size_3X3*scaling_factor_3X3);
+        h_frame_3X3[iPad]->GetXaxis()->SetTitleSize(Label_size_3X3*scaling_factor_3X3);
+        h_frame_3X3[iPad]->GetYaxis()->SetTitleSize(Label_size_3X3*scaling_factor_3X3);
+        h_frame_3X3[iPad]->GetXaxis()->SetNdivisions(505,'N');
+        h_frame_3X3[iPad]->GetYaxis()->SetNdivisions(505,'N');
+        h_frame_3X3[iPad]->GetXaxis()->CenterTitle();
+        h_frame_3X3[iPad]->GetYaxis()->CenterTitle();
+        if(iPad == 7) h_frame_3X3[iPad]->GetXaxis()->SetTitle("p_{T} (GeV/c)");
+        else h_frame_3X3[iPad]->GetXaxis()->SetTitle("");
+        if(iPad == 3) h_frame_3X3[iPad]->GetYaxis()->SetTitle("dN/dp_{T} (GeV/c)^{-1}");
+        else h_frame_3X3[iPad]->GetYaxis()->SetTitle("");
+        if(iPad < 3) h_frame_3X3[iPad]->GetYaxis()->SetRangeUser(-0.1,2.2);
+        if(iPad >= 3 && iPad < 6) h_frame_3X3[iPad]->GetYaxis()->SetRangeUser(-0.05,1.2);
+        if(iPad >= 6) h_frame_3X3[iPad]->GetYaxis()->SetRangeUser(-0.04,0.85);
+
+        if(tg_dNdpT_BW_ana_pid_plot[i_mass]) delete tg_dNdpT_BW_ana_pid_plot[i_mass];
+        tg_dNdpT_BW_ana_pid_plot[i_mass] = new TGraph();
+        if(tg_dNdpT_BW_ana_pid_plot_range[i_mass]) delete tg_dNdpT_BW_ana_pid_plot_range[i_mass];
+        tg_dNdpT_BW_ana_pid_plot_range[i_mass] = new TGraph();
+        Double_t integral_BW = 0.0;
+
+        Double_t min_val_pT = arr_NEntry_limits[0][i_mass]->GetNumberEntry()->GetNumber();
+        Double_t max_val_pT = arr_NEntry_limits[1][i_mass]->GetNumberEntry()->GetNumber();
+
+        tgae_dN_dpT_mesons_data_A[i_mass] ->SetMarkerColor(kBlack);
+        tgae_dN_dpT_mesons_data_A[i_mass] ->SetMarkerStyle(20);
+        tgae_dN_dpT_mesons_data_A[i_mass] ->SetLineColor(kGray);
+        tgae_dN_dpT_mesons_data_A[i_mass] ->SetMarkerSize(1.15);
+
+        tgae_dN_dpT_mesons_data_B[i_mass] ->SetMarkerColor(kWhite);
+        tgae_dN_dpT_mesons_data_B[i_mass] ->SetMarkerStyle(20);
+        tgae_dN_dpT_mesons_data_B[i_mass] ->SetLineColor(kGray);
+        tgae_dN_dpT_mesons_data_B[i_mass] ->SetMarkerSize(0.9);
+
+        tgae_dN_dpT_mesons_data[i_mass] ->SetMarkerColor(kGray);
+        tgae_dN_dpT_mesons_data[i_mass] ->SetMarkerStyle(20);
+        tgae_dN_dpT_mesons_data[i_mass] ->SetLineColor(kGray);
+        tgae_dN_dpT_mesons_data[i_mass] ->SetMarkerSize(0.9);
+
+        if(tgae_dN_dpT_mesons_data[i_mass])
+        {
+            tgae_dN_dpT_mesons_data_A[i_mass] ->Draw("same P");
+            tgae_dN_dpT_mesons_data_B[i_mass] ->Draw("same P");
+            tgae_dN_dpT_mesons_data[i_mass] ->Draw("same P");
+        }
+
+        if(fCheckBox_sel[0]->GetState() == kButtonDown
+           && h_dN_dpT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a]
+          )
+        {
+            h_dN_dpT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->SetLineColor(kRed); // blast wave MC
+            h_dN_dpT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->SetLineWidth(5); // blast wave MC
+            h_dN_dpT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->DrawCopy("same hist L"); // blast wave MC
+        }
+
+        if(T_BW_fit_ana > 0.0)
+        {
+            Double_t delta_pT = (Double_t)((min_max_pT_range_pid_plot_ana[1][i_mass] - min_max_pT_range_pid_plot_ana[0][i_mass])/(Double_t)N_points_BW_ana);
+
+            Double_t min_val_pT = arr_NEntry_limits[0][i_mass]->GetNumberEntry()->GetNumber();
+            Double_t max_val_pT = arr_NEntry_limits[1][i_mass]->GetNumberEntry()->GetNumber();
+
+            Int_t i_pT_range = 0;
+            for(Int_t i_pT = 0; i_pT < N_points_BW_ana; i_pT++)
+            {
+                Double_t pt_BW = i_pT*delta_pT + 0.0;
+                Double_t v2_BW = 0;
+                Double_t inv_yield_BW = 0;
+                if(id_bw_hypersurface == 1) bw_ana.calc_blastwave_yield_and_v2_fos1(pt_BW, arr_quark_mass_meson[i_mass], T_BW_fit_ana, Rho0_BW_fit_ana, Rho2_BW_fit_ana, RxOverRy_BW_fit_ana, inv_yield_BW, v2_BW);
+                if(id_bw_hypersurface == 2) bw_ana.calc_blastwave_yield_and_v2_fos2(pt_BW, arr_quark_mass_meson[i_mass], T_BW_fit_ana, Rho0_BW_fit_ana, Rho2_BW_fit_ana, RxOverRy_BW_fit_ana, inv_yield_BW, v2_BW);
+                inv_yield_BW *= pt_BW;
+                tg_dNdpT_BW_ana_pid_plot[i_mass] ->SetPoint(i_pT,pt_BW,inv_yield_BW);
+
+                if(pt_BW >= min_val_pT && pt_BW <= max_val_pT)
+                {
+                    tg_dNdpT_BW_ana_pid_plot_range[i_mass] ->SetPoint(i_pT_range,pt_BW,inv_yield_BW);
+                    i_pT_range++;
+                }
+
+                if(pt_BW > integration_range_pid[i_mass][0] && pt_BW < integration_range_pid[i_mass][1])
+                {
+                    integral_BW += inv_yield_BW*delta_pT;
+                }
+            }
+            if(integral_BW > 0.0)
+            {
+                for(Int_t i_pT = 0; i_pT < tg_dNdpT_BW_ana_pid_plot[i_mass]->GetN(); i_pT++)
+                {
+                    Double_t pt_BW, y_val_BW;
+                    tg_dNdpT_BW_ana_pid_plot[i_mass] ->GetPoint(i_pT,pt_BW,y_val_BW);
+                    tg_dNdpT_BW_ana_pid_plot[i_mass] ->SetPoint(i_pT,pt_BW,y_val_BW/integral_BW);
+                }
+                for(Int_t i_pT = 0; i_pT < tg_dNdpT_BW_ana_pid_plot_range[i_mass]->GetN(); i_pT++)
+                {
+                    Double_t pt_BW, y_val_BW;
+                    tg_dNdpT_BW_ana_pid_plot_range[i_mass] ->GetPoint(i_pT,pt_BW,y_val_BW);
+                    tg_dNdpT_BW_ana_pid_plot_range[i_mass] ->SetPoint(i_pT,pt_BW,y_val_BW/integral_BW);
+                }
+            }
+
+
+
+            tg_dNdpT_BW_ana_pid_plot[i_mass] ->SetLineColor(kBlack);
+            tg_dNdpT_BW_ana_pid_plot[i_mass] ->SetLineWidth(5);
+            tg_dNdpT_BW_ana_pid_plot[i_mass] ->SetLineStyle(9);
+
+            tg_dNdpT_BW_ana_pid_plot_range[i_mass] ->SetLineColor(kRed);
+            tg_dNdpT_BW_ana_pid_plot_range[i_mass] ->SetLineWidth(5);
+            tg_dNdpT_BW_ana_pid_plot_range[i_mass] ->SetLineStyle(1);
+
+            //if(!(fCheckBox_pid[i_mass]->GetState() == kButtonDown)) tg_dNdpT_BW_ana_pid_plot[i_mass] -> SetLineStyle(9);
+            if(fCheckBox_sel[1]->GetState() == kButtonDown)
+            {
+                tg_dNdpT_BW_ana_pid_plot[i_mass]       ->DrawClone("same L");
+                if((fCheckBox_pid[i_mass]->GetState() == kButtonDown))
+                {
+                    tg_dNdpT_BW_ana_pid_plot_range[i_mass] ->DrawClone("same L");
+                }
+            }
+        }
+
+        Double_t x_pos_offset = -0.05;
+        if(iPad%3 == 0) x_pos_offset = -0.01;
+        Double_t x_pos_legend = 0.92 + x_pos_offset;
+        Double_t y_pos_legend = 0.88;
+        if(TLatex_legend_dNdpT_plot[i_mass]) delete TLatex_legend_dNdpT_plot[i_mass];
+        TLatex_legend_dNdpT_plot[i_mass] = plotTopLegend((char*)label_pid_spectra[i_mass].Data(),x_pos_legend,y_pos_legend,0.1*scaling_factor_3X3,kBlack,0.0,42,1,32); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
+
+
+        Double_t legend_text_size = 0.08;
+        if(iPad == 0) // pi
+        {
+            plotTopLegend((char*)"30-40%",x_pos_legend,y_pos_legend-0.08*scaling_factor_3X3,legend_text_size*scaling_factor_3X3,kBlack,0.0,42,1,32); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
+            plotTopLegend((char*)"2.74 TeV",x_pos_legend,y_pos_legend-0.16*scaling_factor_3X3,legend_text_size*scaling_factor_3X3,kBlack,0.0,42,1,32); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
+            plotTopLegend((char*)"|y| < 0.5",x_pos_legend,y_pos_legend-0.24*scaling_factor_3X3,legend_text_size*scaling_factor_3X3,kBlack,0.0,42,1,32); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
+        }
+        if(iPad == 1) // phi
+        {
+            plotTopLegend((char*)"30-40%",x_pos_legend,y_pos_legend-0.08*scaling_factor_3X3,legend_text_size*scaling_factor_3X3,kBlack,0.0,42,1,32); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
+            plotTopLegend((char*)"2.74 TeV",x_pos_legend,y_pos_legend-0.16*scaling_factor_3X3,legend_text_size*scaling_factor_3X3,kBlack,0.0,42,1,32); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
+            plotTopLegend((char*)"|y| < 0.5",x_pos_legend,y_pos_legend-0.24*scaling_factor_3X3,legend_text_size*scaling_factor_3X3,kBlack,0.0,42,1,32); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
+
+            leg_dNdpT_vs_pT = new TLegend(0.15,0.63,0.5,0.82); // x1,y1,x2,y2
+            leg_dNdpT_vs_pT->SetBorderSize(0);
+            leg_dNdpT_vs_pT->SetFillColor(0);
+            leg_dNdpT_vs_pT->SetTextSize(legend_text_size*scaling_factor_3X3);
+            leg_dNdpT_vs_pT->AddEntry((TGraphAsymmErrors*)tg_dNdpT_BW_ana_pid_plot_range[i_mass]->Clone(),"fit","l");
+            leg_dNdpT_vs_pT->AddEntry((TGraphAsymmErrors*)tg_dNdpT_BW_ana_pid_plot[i_mass]->Clone(),"prediction","l");
+            leg_dNdpT_vs_pT->Draw();
+        }
+        if(iPad == 2) // d
+        {
+            plotTopLegend((char*)"20-40%",x_pos_legend,y_pos_legend-0.08*scaling_factor_3X3,legend_text_size*scaling_factor_3X3,kBlack,0.0,42,1,32); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
+            plotTopLegend((char*)"2.74 TeV",x_pos_legend,y_pos_legend-0.16*scaling_factor_3X3,legend_text_size*scaling_factor_3X3,kBlack,0.0,42,1,32); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
+            plotTopLegend((char*)"|y| < 0.5",x_pos_legend,y_pos_legend-0.24*scaling_factor_3X3,legend_text_size*scaling_factor_3X3,kBlack,0.0,42,1,32); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
+        }
+        if(iPad == 3) // K
+        {
+            plotTopLegend((char*)"30-40%",x_pos_legend,y_pos_legend-0.08*scaling_factor_3X3,legend_text_size*scaling_factor_3X3,kBlack,0.0,42,1,32); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
+            plotTopLegend((char*)"2.74 TeV",x_pos_legend,y_pos_legend-0.16*scaling_factor_3X3,legend_text_size*scaling_factor_3X3,kBlack,0.0,42,1,32); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
+            plotTopLegend((char*)"|y| < 0.5",x_pos_legend,y_pos_legend-0.24*scaling_factor_3X3,legend_text_size*scaling_factor_3X3,kBlack,0.0,42,1,32); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
+        }
+        if(iPad == 4) // Omega
+        {
+            plotTopLegend((char*)"20-40%",x_pos_legend,y_pos_legend-0.08*scaling_factor_3X3,legend_text_size*scaling_factor_3X3,kBlack,0.0,42,1,32); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
+            plotTopLegend((char*)"2.74 TeV",x_pos_legend,y_pos_legend-0.16*scaling_factor_3X3,legend_text_size*scaling_factor_3X3,kBlack,0.0,42,1,32); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
+            plotTopLegend((char*)"|y| < 0.5",x_pos_legend,y_pos_legend-0.24*scaling_factor_3X3,legend_text_size*scaling_factor_3X3,kBlack,0.0,42,1,32); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
+        }
+        if(iPad == 5) // J/Psi
+        {
+            plotTopLegend((char*)"20-40%",x_pos_legend,y_pos_legend-0.08*scaling_factor_3X3,legend_text_size*scaling_factor_3X3,kBlack,0.0,42,1,32); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
+            plotTopLegend((char*)"5.02 TeV",x_pos_legend,y_pos_legend-0.16*scaling_factor_3X3,legend_text_size*scaling_factor_3X3,kBlack,0.0,42,1,32); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
+            plotTopLegend((char*)"|y| < 0.9",x_pos_legend,y_pos_legend-0.24*scaling_factor_3X3,legend_text_size*scaling_factor_3X3,kBlack,0.0,42,1,32); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
+        }
+        if(iPad == 6) // p
+        {
+            plotTopLegend((char*)"30-40%",x_pos_legend,y_pos_legend-0.08*scaling_factor_3X3,legend_text_size*scaling_factor_3X3,kBlack,0.0,42,1,32); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
+            plotTopLegend((char*)"2.74 TeV",x_pos_legend,y_pos_legend-0.16*scaling_factor_3X3,legend_text_size*scaling_factor_3X3,kBlack,0.0,42,1,32); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
+            plotTopLegend((char*)"|y| < 0.5",x_pos_legend,y_pos_legend-0.24*scaling_factor_3X3,legend_text_size*scaling_factor_3X3,kBlack,0.0,42,1,32); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
+        }
+        if(iPad == 7) // D0
+        {
+            plotTopLegend((char*)"30-50%",x_pos_legend,y_pos_legend-0.08*scaling_factor_3X3,legend_text_size*scaling_factor_3X3,kBlack,0.0,42,1,32); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
+            plotTopLegend((char*)"2.74 TeV",x_pos_legend,y_pos_legend-0.16*scaling_factor_3X3,legend_text_size*scaling_factor_3X3,kBlack,0.0,42,1,32); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
+            plotTopLegend((char*)"|y| < 0.5",x_pos_legend,y_pos_legend-0.24*scaling_factor_3X3,legend_text_size*scaling_factor_3X3,kBlack,0.0,42,1,32); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
+        }
+        if(iPad == 8) // Upsilon
+        {
+            plotTopLegend((char*)"0-100%",x_pos_legend,y_pos_legend-0.08*scaling_factor_3X3,legend_text_size*scaling_factor_3X3,kBlack,0.0,42,1,32); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
+            plotTopLegend((char*)"2.74 TeV",x_pos_legend,y_pos_legend-0.16*scaling_factor_3X3,legend_text_size*scaling_factor_3X3,kBlack,0.0,42,1,32); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
+            plotTopLegend((char*)"|y| < 2.4",x_pos_legend,y_pos_legend-0.24*scaling_factor_3X3,legend_text_size*scaling_factor_3X3,kBlack,0.0,42,1,32); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
+        }
+
+
+    }
+
+    c_3X3 ->Modified();
+    c_3X3 ->Update();
+    printf("dN/dpT plotted \n");
+
+#if 0
+    // Check single particle centrality dependence
+    if(!c_single_pid)
+    {
+        c_single_pid = new TCanvas("c_single_pid","c_single_pid",500,20,950,900);
+        c_single_pid->SetTopMargin(0.15);
+        c_single_pid->SetBottomMargin(0.25);
+        c_single_pid->SetRightMargin(0.15);
+        c_single_pid->SetLeftMargin(0.25);
+        c_single_pid->SetLogy(0);
+        c_single_pid->SetTicks(1,1);
+        c_single_pid->SetGrid(0,0);
+        c_single_pid->SetFillColor(10);
+    }
+
+    if(h_frame_single_pid) delete h_frame_single_pid;
+
+
+    HistName = "h_frame_single_pid";
+    h_frame_single_pid = c_single_pid->cd()->DrawFrame(-0.5,-0.1,5.0,2.2,HistName.Data());
+    h_frame_single_pid->SetStats(0);
+    h_frame_single_pid->SetTitle("");
+    h_frame_single_pid->SetTickLength(0.04,"X");
+    h_frame_single_pid->SetTickLength(0.04,"Y");
+    h_frame_single_pid->GetXaxis()->SetTitleOffset(0.9);
+    h_frame_single_pid->GetYaxis()->SetTitleOffset(1.2);
+    h_frame_single_pid->GetXaxis()->SetLabelOffset(0.0);
+    h_frame_single_pid->GetYaxis()->SetLabelOffset(0.01);
+    h_frame_single_pid->GetXaxis()->SetLabelSize(0.08);
+    h_frame_single_pid->GetYaxis()->SetLabelSize(0.08);
+    h_frame_single_pid->GetXaxis()->SetTitleSize(0.08);
+    h_frame_single_pid->GetYaxis()->SetTitleSize(0.08);
+    h_frame_single_pid->GetXaxis()->SetNdivisions(505,'N');
+    h_frame_single_pid->GetYaxis()->SetNdivisions(505,'N');
+    h_frame_single_pid->GetXaxis()->CenterTitle();
+    h_frame_single_pid->GetYaxis()->CenterTitle();
+    h_frame_single_pid->GetXaxis()->SetTitle("p_{T} (GeV/c)");
+    h_frame_single_pid->GetYaxis()->SetTitle("dN/dp_{T} (GeV/c)^{-1}");
+    //h_frame_single_pid->GetYaxis()->SetRangeUser(-0.1,2.2);
+
+
+    for(Int_t i = 0; i < 6; i++)
+    {
+        vec_tgae_pT_spectra[1][i] ->SetMarkerColor(i+1);
+        vec_tgae_pT_spectra[1][i] ->SetMarkerStyle(20);
+        vec_tgae_pT_spectra[1][i] ->SetMarkerSize(0.5);
+        vec_tgae_pT_spectra[1][i] ->Draw("same P");
+    }
+
+    c_single_pid ->Modified();
+    c_single_pid ->Update();
+    printf("dN/dpT single plotted \n");
+#endif
 }
 //______________________________________________________________________________
+
 
 
 //______________________________________________________________________________
@@ -1932,10 +2386,12 @@ void TBlastWaveGUI::DoSave()
     Button_save->ChangeBackground(green);
 
     outputfile->cd();
-    if(c_2X1)
+    if(c_3X1)
     {
-        c_2X1 ->Write();
-        c_2X1 ->SaveAs("v2_vs_pT_BW_fits.png");
+        c_3X1 ->Write();
+        c_3X1 ->SaveAs("v2_vs_pT_BW_fits.png");
+        c_3X3 ->Write();
+        c_3X3 ->SaveAs("dNdpT_vs_pT_BW_fits.png");
     }
 
 }
