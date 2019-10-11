@@ -604,6 +604,7 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
     hframeD2b->AddFrame(fCombo, new TGLayoutHints(kLHintsCenterX,5,5,3,4));
     fCombo->AddEntry("fos1", 1);
     fCombo->AddEntry("fos2", 2);
+    fCombo->AddEntry("fos3", 3);
     fCombo->Resize(150, 20);
     fCombo->Select(1);
 
@@ -1077,6 +1078,7 @@ void TBlastWaveGUI::DoMinimize_ana()
 
                         if(id_bw_hypersurface == 1) bw_ana.calc_blastwave_yield_and_v2_fos1(pt_BW, m, T, rho0, rho2, RxOverRy, inv_yield_BW, v2_BW);
                         if(id_bw_hypersurface == 2) bw_ana.calc_blastwave_yield_and_v2_fos2(pt_BW, m, T, rho0, rho2, RxOverRy, inv_yield_BW, v2_BW);
+                        if(id_bw_hypersurface == 3) bw_ana.calc_blastwave_yield_and_v2_fos3(pt_BW, m, T, rho0, rho2, RxOverRy, inv_yield_BW, v2_BW);
                         //blastwave_yield_and_v2(pt_BW, m, T, rho0, rho2, RxOverRy, inv_yield_BW, v2_BW);
 
                         tg_v2_BW_ana_pid_min[i_mass] ->SetPoint(i_point_ana,pt_BW,v2_BW);
@@ -1126,6 +1128,7 @@ void TBlastWaveGUI::DoMinimize_ana()
 
                         if(id_bw_hypersurface == 1) bw_ana.calc_blastwave_yield_and_v2_fos1(pt_BW, m, T, rho0, rho2, RxOverRy, inv_yield_BW, v2_BW); // invariant yield: (1/pT) (dN/dpT)
                         if(id_bw_hypersurface == 2) bw_ana.calc_blastwave_yield_and_v2_fos2(pt_BW, m, T, rho0, rho2, RxOverRy, inv_yield_BW, v2_BW); // invariant yield: (1/pT) (dN/dpT)
+                        if(id_bw_hypersurface == 3) bw_ana.calc_blastwave_yield_and_v2_fos3(pt_BW, m, T, rho0, rho2, RxOverRy, inv_yield_BW, v2_BW); // invariant yield: (1/pT) (dN/dpT)
                         vec_data_BW[0].push_back(dNdpT_data);
                         vec_data_BW[1].push_back(inv_yield_BW*pt_BW);
                         vec_data_BW[2].push_back(dNdpT_err);
@@ -1648,6 +1651,7 @@ void TBlastWaveGUI::Plot_curves_ana(Double_t T_BW,Double_t  Rho0_BW,Double_t  Rh
                 Double_t inv_yield_BW = 0;
                 if(id_bw_hypersurface == 1) bw_ana.calc_blastwave_yield_and_v2_fos1(pt_BW, arr_quark_mass_meson[i_mass], T_BW, Rho0_BW, Rho2_BW, RxOverRy_BW, inv_yield_BW, v2_BW);
                 if(id_bw_hypersurface == 2) bw_ana.calc_blastwave_yield_and_v2_fos2(pt_BW, arr_quark_mass_meson[i_mass], T_BW, Rho0_BW, Rho2_BW, RxOverRy_BW, inv_yield_BW, v2_BW);
+                if(id_bw_hypersurface == 3) bw_ana.calc_blastwave_yield_and_v2_fos3(pt_BW, arr_quark_mass_meson[i_mass], T_BW, Rho0_BW, Rho2_BW, RxOverRy_BW, inv_yield_BW, v2_BW);
                 tg_v2_BW_ana_pid[i_mass] ->SetPoint(i_pT,pt_BW,v2_BW);
             }
         }
@@ -1687,6 +1691,7 @@ void TBlastWaveGUI::Plot_curves_ana(Double_t T_BW,Double_t  Rho0_BW,Double_t  Rh
             Double_t inv_yield_BW = 0;
             if(id_bw_hypersurface == 1) bw_ana.calc_blastwave_yield_and_v2_fos1(pt_BW, arr_quark_mass_meson[i_mass], T_BW, Rho0_BW, Rho2_BW, RxOverRy_BW, inv_yield_BW, v2_BW);
             if(id_bw_hypersurface == 2) bw_ana.calc_blastwave_yield_and_v2_fos2(pt_BW, arr_quark_mass_meson[i_mass], T_BW, Rho0_BW, Rho2_BW, RxOverRy_BW, inv_yield_BW, v2_BW);
+            if(id_bw_hypersurface == 3) bw_ana.calc_blastwave_yield_and_v2_fos3(pt_BW, arr_quark_mass_meson[i_mass], T_BW, Rho0_BW, Rho2_BW, RxOverRy_BW, inv_yield_BW, v2_BW);
             inv_yield_BW *= pt_BW;
             tg_dNdpT_BW_ana_pid[i_mass] ->SetPoint(i_pT,pt_BW,inv_yield_BW);
 
@@ -1980,6 +1985,7 @@ void TBlastWaveGUI::MakePlotv2()
 
                         if(id_bw_hypersurface == 1) bw_ana.calc_blastwave_yield_and_v2_fos1(pt_BW, arr_quark_mass_meson[i_mass], T_BW_fit_ana, Rho0_BW_fit_ana, Rho2_BW_fit_ana, RxOverRy_BW_fit_ana, inv_yield_BW, v2_BW);
                         if(id_bw_hypersurface == 2) bw_ana.calc_blastwave_yield_and_v2_fos2(pt_BW, arr_quark_mass_meson[i_mass], T_BW_fit_ana, Rho0_BW_fit_ana, Rho2_BW_fit_ana, RxOverRy_BW_fit_ana, inv_yield_BW, v2_BW);
+                        if(id_bw_hypersurface == 3) bw_ana.calc_blastwave_yield_and_v2_fos3(pt_BW, arr_quark_mass_meson[i_mass], T_BW_fit_ana, Rho0_BW_fit_ana, Rho2_BW_fit_ana, RxOverRy_BW_fit_ana, inv_yield_BW, v2_BW);
                         tg_v2_BW_ana_pid_plot[i_mass]       ->SetPoint(i_pT,pt_BW,v2_BW);
                         if(pt_BW > min_val_pT && pt_BW < max_val_pT)
                         {
@@ -2168,7 +2174,7 @@ void TBlastWaveGUI::MakePlotdNdpT()
            && h_dN_dpT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a]
           )
         {
-            h_dN_dpT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->SetLineColor(kRed); // blast wave MC
+            h_dN_dpT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->SetLineColor(kBlue); // blast wave MC
             h_dN_dpT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->SetLineWidth(5); // blast wave MC
             h_dN_dpT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->DrawCopy("same hist L"); // blast wave MC
         }
@@ -2188,6 +2194,7 @@ void TBlastWaveGUI::MakePlotdNdpT()
                 Double_t inv_yield_BW = 0;
                 if(id_bw_hypersurface == 1) bw_ana.calc_blastwave_yield_and_v2_fos1(pt_BW, arr_quark_mass_meson[i_mass], T_BW_fit_ana, Rho0_BW_fit_ana, Rho2_BW_fit_ana, RxOverRy_BW_fit_ana, inv_yield_BW, v2_BW);
                 if(id_bw_hypersurface == 2) bw_ana.calc_blastwave_yield_and_v2_fos2(pt_BW, arr_quark_mass_meson[i_mass], T_BW_fit_ana, Rho0_BW_fit_ana, Rho2_BW_fit_ana, RxOverRy_BW_fit_ana, inv_yield_BW, v2_BW);
+                if(id_bw_hypersurface == 3) bw_ana.calc_blastwave_yield_and_v2_fos3(pt_BW, arr_quark_mass_meson[i_mass], T_BW_fit_ana, Rho0_BW_fit_ana, Rho2_BW_fit_ana, RxOverRy_BW_fit_ana, inv_yield_BW, v2_BW);
                 inv_yield_BW *= pt_BW;
                 tg_dNdpT_BW_ana_pid_plot[i_mass] ->SetPoint(i_pT,pt_BW,inv_yield_BW);
 
