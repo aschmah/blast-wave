@@ -636,8 +636,11 @@ double Tblastwave_yield_and_v2::v2_fos3_denominator(const double *x, const doubl
     double xip = pt * TMath::SinH(rho) / T;
 	double xim = mt * TMath::CosH(rho) / T;
 
-        return A * rHat * mt * TMath::BesselI(0, xip) * TMath::BesselK(1, xim) * TMath::CosH(rho) -
-               pt * TMath::BesselI(1, xip) * TMath::BesselK(0, xim) * TMath::SinH(rho);
+        return A * rHat * (mt * TMath::BesselI(0, xip) * TMath::BesselK(1, xim) * TMath::CosH(rho) -
+               pt * TMath::BesselI(1, xip) * TMath::BesselK(0, xim) * TMath::SinH(rho));
+
+        //return A * rHat * mt * TMath::BesselI(0, xip) * TMath::BesselK(1, xim) * TMath::CosH(rho) -
+        //       pt * TMath::BesselI(1, xip) * TMath::BesselK(0, xim) * TMath::SinH(rho);
 }
 //------------------------------------------------------------------------------------------------------------
 

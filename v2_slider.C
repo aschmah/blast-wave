@@ -88,11 +88,11 @@ private:
     TGTextButton      *Button_take_params_Set_to_ana;
     TGComboBox          *fCombo;
 
-    TGCheckButton* fCheckBox_sel[2];
+    TGCheckButton* fCheckBox_sel[3];
     TGCheckButton* fCheckBox_pid[N_masses];
     TGCheckButton* fCheckBox_v2_dNdpT[2];
     TGLayoutHints* fLCheckBox;
-    TString label_checkbox[2] = {"Plot MC","Plot Ana"};
+    TString label_checkbox[3] = {"Plot MC","Plot Ana","Plot chi^2"};
 
     TGHorizontalFrame* arr_HFrame_NEntry_limits[N_masses];
     TGVerticalFrame* arr_VFrame_NEntry_limits[2];
@@ -135,6 +135,9 @@ private:
     Int_t flag_stop_minimize = 0;
     Int_t flag_minimization_ana = 0;
     Double_t integration_range_pid[N_masses][2] = {0.0};
+    Double_t individual_chi2_ana[N_masses][2] = {0.0};
+    Double_t best_individual_chi2_per_point_ana[N_masses][2] = {0.0};
+    Double_t N_individual_chi2_ana[N_masses][2] = {0.0};
 
     Double_t chi2_min;
     Double_t chi2_ndf_dNdpT_min;
@@ -222,7 +225,7 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
     min_max_pT_range_pid[0][5] = 0.92; // D0
     min_max_pT_range_pid[1][5] = 3.6;
     min_max_pT_range_pid[0][6] = 0.22; // J/Psi
-    min_max_pT_range_pid[1][6] = 5.0;
+    min_max_pT_range_pid[1][6] = 4.0;
     min_max_pT_range_pid[0][7] = 0.1; // Upsilon
     min_max_pT_range_pid[1][7] = 10.0;
     min_max_pT_range_pid[0][8] = 0.5; // d
@@ -603,8 +606,8 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
     fCombo = new TGComboBox(hframeD2b, 88);
     hframeD2b->AddFrame(fCombo, new TGLayoutHints(kLHintsCenterX,5,5,3,4));
     fCombo->AddEntry("fos1", 1);
-    fCombo->AddEntry("fos2", 2);
-    fCombo->AddEntry("fos3", 3);
+    fCombo->AddEntry("don't use", 2);
+    fCombo->AddEntry("boost", 3);
     fCombo->Resize(150, 20);
     fCombo->Select(1);
 
@@ -640,7 +643,7 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
         fCheckBox_v2_dNdpT[i_v2_dNdpT] ->SetState(kButtonDown);
         fGroupFrames[2]->AddFrame(fCheckBox_v2_dNdpT[i_v2_dNdpT], fLCheckBox);
     }
-    for(Int_t i_cb = 0; i_cb < 2; i_cb++)
+    for(Int_t i_cb = 0; i_cb < 3; i_cb++)
     {
         fCheckBox_sel[i_cb]  = new TGCheckButton(fGroupFrames[2], new TGHotString(label_checkbox[i_cb].Data()), -1);
         fCheckBox_sel[i_cb] ->SetState(kButtonDown);
@@ -1044,6 +1047,11 @@ void TBlastWaveGUI::DoMinimize_ana()
             Double_t min_val_pT = arr_NEntry_limits[0][i_mass]->GetNumberEntry()->GetNumber();
             Double_t max_val_pT = arr_NEntry_limits[1][i_mass]->GetNumberEntry()->GetNumber();
 
+            individual_chi2_ana[i_mass][0]   = 0.0; // v2
+            individual_chi2_ana[i_mass][1]   = 0.0; // dN/dpT
+            N_individual_chi2_ana[i_mass][0] = 0.0; // v2
+            N_individual_chi2_ana[i_mass][1] = 0.0; // dN/dpT
+
             const double m = arr_quark_mass_meson[i_mass];       // in GeV
 
             if(tg_v2_BW_ana_pid_min[i_mass])    delete tg_v2_BW_ana_pid_min[i_mass];
@@ -1087,6 +1095,8 @@ void TBlastWaveGUI::DoMinimize_ana()
                         double diff   = (v2_data - v2_BW)/v2_err;
                         //double diff_yield = (inv_yield_BW - inv_yield_data)/yield_err;
                         chi2 += diff*diff;
+                        individual_chi2_ana[i_mass][0]   += diff*diff;
+                        N_individual_chi2_ana[i_mass][0] += 1.0;
                         i_point_ana++;
                     }
                 }
@@ -1157,6 +1167,8 @@ void TBlastWaveGUI::DoMinimize_ana()
                             // Normalize BW to integral within range of data
                             double diff   = (vec_data_BW[0][i_point] - (vec_data_BW[1][i_point]/integral_ana))/vec_data_BW[2][i_point];
                             chi2 += diff*diff;
+                            individual_chi2_ana[i_mass][1]   += diff*diff;
+                            N_individual_chi2_ana[i_mass][1] += 1.0;
                             tg_dNdpT_BW_ana_pid_min[i_mass] ->SetPoint(i_point_ana,pt_data,vec_data_BW[1][i_point]/integral_ana);
                             i_point_ana++;
                         }
@@ -1208,7 +1220,23 @@ void TBlastWaveGUI::DoMinimize_ana()
         gSystem->Sleep(100);
         gSystem->ProcessEvents();
 
-        if(chi2 < chi2_final_min_ana) chi2_final_min_ana = chi2;
+        if(chi2 < chi2_final_min_ana)
+        {
+            chi2_final_min_ana = chi2;
+            for(int i_mass = 0; i_mass < N_masses; ++i_mass)
+            {
+                if(N_individual_chi2_ana[i_mass][0] > 0.0)
+                {
+                    best_individual_chi2_per_point_ana[i_mass][0] = individual_chi2_ana[i_mass][0]/N_individual_chi2_ana[i_mass][0];
+                }
+                else best_individual_chi2_per_point_ana[i_mass][0] = -1.0;
+                if(N_individual_chi2_ana[i_mass][1] > 0.0)
+                {
+                    best_individual_chi2_per_point_ana[i_mass][1] = individual_chi2_ana[i_mass][1]/N_individual_chi2_ana[i_mass][1];
+                }
+                else best_individual_chi2_per_point_ana[i_mass][1] = -1.0;
+            }
+        }
 
         return chi2;
     };
@@ -1874,6 +1902,8 @@ void TBlastWaveGUI::MakePlotv2()
         if(TL_line_base_plot[iPad]) delete TL_line_base_plot[iPad];
         TL_line_base_plot[iPad] = PlotLine(x_range_plot[iPad][0],x_range_plot[iPad][1],0.0,0.0,kBlack,2,2); // (Double_t x1_val, Double_t x2_val, Double_t y1_val, Double_t y2_val, Int_t Line_Col, Int_t LineWidth, Int_t LineStyle)
 
+        const Int_t N_points_BW_ana = 35;
+        printf("T_BW_fit_ana: %4.3f \n",T_BW_fit_ana);
 
         Int_t i_particle_use = 0;
         for(Int_t i_mass_loop = 0; i_mass_loop < 3; i_mass_loop++)
@@ -1934,10 +1964,91 @@ void TBlastWaveGUI::MakePlotv2()
                 tg_label_plot[2][i_mass] ->Draw("same P");
 
 
-
                 if(TLatex_legend_v2_plot[i_mass]) delete TLatex_legend_v2_plot[i_mass];
                 TLatex_legend_v2_plot[i_mass] = plotTopLegend((char*)label_pid_spectra[i_mass].Data(),x_pos_legend,y_pos_legend,0.065*scaling_factor_3X1,kBlack,0.0,42,1,1); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
                 i_particle_use++;
+
+
+                //-----------------------------
+                Double_t min_val_pT = arr_NEntry_limits[0][i_mass]->GetNumberEntry()->GetNumber();
+                Double_t max_val_pT = arr_NEntry_limits[1][i_mass]->GetNumberEntry()->GetNumber();
+
+                Double_t delta_pT = (Double_t)((min_max_pT_range_pid_plot_ana[1][i_mass] - min_max_pT_range_pid_plot_ana[0][i_mass])/(Double_t)N_points_BW_ana);
+                //Double_t min_pT = arr_NEntry_limits[0][i_mass]->GetNumberEntry()->GetNumber();
+                //Double_t max_pT = arr_NEntry_limits[1][i_mass]->GetNumberEntry()->GetNumber();
+
+
+                if(tg_v2_BW_ana_pid_plot[i_mass]) delete tg_v2_BW_ana_pid_plot[i_mass];
+                if(tg_v2_BW_ana_pid_plot_range[i_mass]) delete tg_v2_BW_ana_pid_plot_range[i_mass];
+                tg_v2_BW_ana_pid_plot[i_mass]       = new TGraph();
+                tg_v2_BW_ana_pid_plot_range[i_mass] = new TGraph();
+                for(Int_t i_pT = 0; i_pT < N_points_BW_ana; i_pT++)
+                {
+                    Double_t pt_BW = i_pT*delta_pT + 0.0;
+                    if(pt_BW > min_max_pT_range_pid_plot_ana[0][i_mass] && pt_BW < min_max_pT_range_pid_plot_ana[1][i_mass])
+                    {
+                        Double_t v2_BW = 0;
+                        Double_t inv_yield_BW = 0;
+
+                        if(id_bw_hypersurface == 1) bw_ana.calc_blastwave_yield_and_v2_fos1(pt_BW, arr_quark_mass_meson[i_mass], T_BW_fit_ana, Rho0_BW_fit_ana, Rho2_BW_fit_ana, RxOverRy_BW_fit_ana, inv_yield_BW, v2_BW);
+                        if(id_bw_hypersurface == 2) bw_ana.calc_blastwave_yield_and_v2_fos2(pt_BW, arr_quark_mass_meson[i_mass], T_BW_fit_ana, Rho0_BW_fit_ana, Rho2_BW_fit_ana, RxOverRy_BW_fit_ana, inv_yield_BW, v2_BW);
+                        if(id_bw_hypersurface == 3) bw_ana.calc_blastwave_yield_and_v2_fos3(pt_BW, arr_quark_mass_meson[i_mass], T_BW_fit_ana, Rho0_BW_fit_ana, Rho2_BW_fit_ana, RxOverRy_BW_fit_ana, inv_yield_BW, v2_BW);
+                        tg_v2_BW_ana_pid_plot[i_mass]       ->SetPoint(i_pT,pt_BW,v2_BW);
+                        if(pt_BW > min_val_pT && pt_BW < max_val_pT)
+                        {
+                            tg_v2_BW_ana_pid_plot_range[i_mass] ->SetPoint(i_pT,pt_BW,v2_BW);
+                        }
+                    }
+                }
+                tg_v2_BW_ana_pid_plot[i_mass] -> SetLineColorAlpha(kGray+1,0.5);
+                tg_v2_BW_ana_pid_plot[i_mass] -> SetLineWidth(2);
+                tg_v2_BW_ana_pid_plot[i_mass] -> SetLineStyle(9);
+
+                tg_v2_BW_ana_pid_plot_range[i_mass] -> SetLineColor(arr_color_plot[iPad][i_mass_loop]);
+                tg_v2_BW_ana_pid_plot_range[i_mass] -> SetLineWidth(3);
+                tg_v2_BW_ana_pid_plot_range[i_mass] -> SetLineStyle(9);
+
+                Double_t chi2 = 0.0;
+                if((fCheckBox_pid[i_mass]->GetState() == kButtonDown))
+                {
+                    //------------------------------------------------------------
+                    // Calculate chi2
+                    Int_t N_points_data = tgae_v2_vs_pT_mesons_data[i_mass]->GetN();
+                    Int_t N_points_data_used = 0;
+                    for(int i_point = 0; i_point < N_points_data; ++i_point)
+                    {
+                        double v2_data = 0.0;
+                        double pt_data    = 0.0;
+
+                        tgae_v2_vs_pT_mesons_data[i_mass]->GetPoint(i_point,pt_data,v2_data);
+                        if(pt_data < min_val_pT || pt_data > max_val_pT) continue;
+                        double v2_err = tgae_v2_vs_pT_mesons_data[i_mass]->GetErrorYhigh(i_point);
+
+                        Double_t y_val_BW = tg_v2_BW_ana_pid_plot[i_mass]->Eval(pt_data);
+                        chi2 += TMath::Power((v2_data - y_val_BW)/v2_err,2);
+                        N_points_data_used++;
+
+                    }
+                    if(N_points_data > 0) chi2 /= (Double_t)N_points_data_used;
+                    //------------------------------------------------------------
+                }
+                //-----------------------------
+
+                Double_t x_offset_chi2 = 0.3;
+                Int_t align_chi2 = 32;
+                if(iPad > 0)
+                {
+                    x_offset_chi2 = -0.3;
+                    align_chi2    = 1;
+                }
+                if(fCheckBox_sel[2]->GetState() == kButtonDown)
+                {
+                    HistName = "#chi^{2} = ";
+                    //sprintf(NoP,"%4.2f",best_individual_chi2_per_point_ana[i_mass][0]);
+                    sprintf(NoP,"%4.2f",chi2);
+                    HistName += NoP;
+                    plotTopLegend((char*)HistName.Data(),x_pos_legend+x_offset_chi2,y_pos_legend,0.065*scaling_factor_3X1,kBlack,0.0,42,1,align_chi2); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
+                }
 
 
                 if(fCheckBox_sel[0]->GetState() == kButtonDown)
@@ -1951,12 +2062,23 @@ void TBlastWaveGUI::MakePlotv2()
         }
 
 
+        if(T_BW_fit_ana > 0.0)
+        {
+            for(int i_mass_loop = 0; i_mass_loop < 3; ++i_mass_loop)
+            {
+                Int_t i_mass = arr_plot_orderAB[iPad][i_mass_loop];
+                if((fCheckBox_pid[i_mass]->GetState() == kButtonDown))
+                {
+                    if(fCheckBox_sel[1]->GetState() == kButtonDown)
+                    {
+                        tg_v2_BW_ana_pid_plot[i_mass]       -> Draw("same L");
+                        tg_v2_BW_ana_pid_plot_range[i_mass] -> Draw("same L");
+                    }
+                }
+            }
+        }
 
-        //tp_v2_vs_pT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->GetXaxis()->SetRangeUser(min_val_pT,max_val_pT);
-
-
-        const Int_t N_points_BW_ana = 35;
-        printf("T_BW_fit_ana: %4.3f \n",T_BW_fit_ana);
+        /*
         if(T_BW_fit_ana > 0.0)
         {
             for(int i_mass_loop = 0; i_mass_loop < 3; ++i_mass_loop)
@@ -2002,6 +2124,25 @@ void TBlastWaveGUI::MakePlotv2()
                 tg_v2_BW_ana_pid_plot_range[i_mass] -> SetLineStyle(9);
                 if((fCheckBox_pid[i_mass]->GetState() == kButtonDown))
                 {
+
+                    //------------------------------------------------------------
+                    // Calculate chi2
+                    Int_t N_points_data = tgae_v2_vs_pT_mesons_data[i_mass]->GetN();
+                    for(int i_point = 0; i_point < N_points_data; ++i_point)
+                    {
+                        double v2_data = 0.0;
+                        double pt_data    = 0.0;
+
+                        tgae_v2_vs_pT_mesons_data[i_mass]->GetPoint(i_point,pt_data,v2_data);
+                        double v2_err = tgae_v2_vs_pT_mesons_data[i_mass]->GetErrorYhigh(i_point);
+
+                        Double_t y_val_BW = [i_mass] tg_v2_BW_ana_pid_plot->Eval(pt_data);
+                        chi2 += TMath::Power((v2_data - y_val_BW)/v2_err,2);
+
+                    }
+                    if(N_points_data > 0) chi2 /= (Double_t)N_points_data;
+                    //------------------------------------------------------------
+
                     if(fCheckBox_sel[1]->GetState() == kButtonDown)
                     {
                         tg_v2_BW_ana_pid_plot[i_mass]       -> Draw("same L");
@@ -2010,6 +2151,7 @@ void TBlastWaveGUI::MakePlotv2()
                 }
             }
         }
+        */
 
     } // end of iPad loop
 
@@ -2167,7 +2309,7 @@ void TBlastWaveGUI::MakePlotdNdpT()
         {
             tgae_dN_dpT_mesons_data_A[i_mass] ->Draw("same P");
             tgae_dN_dpT_mesons_data_B[i_mass] ->Draw("same P");
-            tgae_dN_dpT_mesons_data[i_mass] ->Draw("same P");
+            tgae_dN_dpT_mesons_data[i_mass]   ->Draw("same P");
         }
 
         if(fCheckBox_sel[0]->GetState() == kButtonDown
@@ -2179,6 +2321,8 @@ void TBlastWaveGUI::MakePlotdNdpT()
             h_dN_dpT_mesons[i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a] ->DrawCopy("same hist L"); // blast wave MC
         }
 
+
+        Double_t chi2 = 0.0;
         if(T_BW_fit_ana > 0.0)
         {
             Double_t delta_pT = (Double_t)((min_max_pT_range_pid_plot_ana[1][i_mass] - min_max_pT_range_pid_plot_ana[0][i_mass])/(Double_t)N_points_BW_ana);
@@ -2239,6 +2383,31 @@ void TBlastWaveGUI::MakePlotdNdpT()
             if(fCheckBox_sel[1]->GetState() == kButtonDown)
             {
                 tg_dNdpT_BW_ana_pid_plot[i_mass]       ->DrawClone("same L");
+
+                //------------------------------------------------------------
+                // Calculate chi2
+                Int_t N_points_data = tgae_dN_dpT_mesons_data[i_mass]->GetN();
+                Int_t N_points_data_used = 0;
+                for(int i_point = 0; i_point < N_points_data; ++i_point)
+                {
+                    double dNdpT_data = 0.0;
+                    double pt_data    = 0.0;
+
+                    tgae_dN_dpT_mesons_data[i_mass]->GetPoint(i_point,pt_data,dNdpT_data);
+                    //printf("pt_data: %4.3f, min_val_pT: %4.3f, max_val_pT: %4.3f \n",pt_data,min_val_pT,max_val_pT);
+                    if(pt_data < min_val_pT || pt_data > max_val_pT) continue;
+                    double dNdpT_err = tgae_dN_dpT_mesons_data[i_mass]->GetErrorYhigh(i_point);
+
+                    Double_t y_val_BW = tg_dNdpT_BW_ana_pid_plot[i_mass] ->Eval(pt_data);
+                    chi2 += TMath::Power((dNdpT_data - y_val_BW)/dNdpT_err,2);
+                    N_points_data_used++;
+
+                    //printf("iPad: %d, i_mass: %d, i_point: %d, y_data: %4.3f, y_BW: %4.3f, err: %4.3f, chi2: %4.3f \n",iPad,i_mass,i_point,dNdpT_data,y_val_BW,dNdpT_err,chi2);
+
+                }
+                if(N_points_data > 0) chi2 /= (Double_t)N_points_data_used;
+                //------------------------------------------------------------
+
                 if((fCheckBox_pid[i_mass]->GetState() == kButtonDown))
                 {
                     tg_dNdpT_BW_ana_pid_plot_range[i_mass] ->DrawClone("same L");
@@ -2253,6 +2422,13 @@ void TBlastWaveGUI::MakePlotdNdpT()
         if(TLatex_legend_dNdpT_plot[i_mass]) delete TLatex_legend_dNdpT_plot[i_mass];
         TLatex_legend_dNdpT_plot[i_mass] = plotTopLegend((char*)label_pid_spectra[i_mass].Data(),x_pos_legend,y_pos_legend,0.1*scaling_factor_3X3,kBlack,0.0,42,1,32); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
 
+        if(fCheckBox_sel[2]->GetState() == kButtonDown)
+        {
+            HistName = "#chi^{2} = ";
+            //sprintf(NoP,"%4.2f",best_individual_chi2_per_point_ana[i_mass][1]);
+            sprintf(NoP,"%4.2f",chi2);
+            HistName += NoP;
+        }
 
         Double_t legend_text_size = 0.08;
         if(iPad == 0) // pi
@@ -2260,12 +2436,14 @@ void TBlastWaveGUI::MakePlotdNdpT()
             plotTopLegend((char*)"30-40%",x_pos_legend,y_pos_legend-0.08*scaling_factor_3X3,legend_text_size*scaling_factor_3X3,kBlack,0.0,42,1,32); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
             plotTopLegend((char*)"2.74 TeV",x_pos_legend,y_pos_legend-0.16*scaling_factor_3X3,legend_text_size*scaling_factor_3X3,kBlack,0.0,42,1,32); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
             plotTopLegend((char*)"|y| < 0.5",x_pos_legend,y_pos_legend-0.24*scaling_factor_3X3,legend_text_size*scaling_factor_3X3,kBlack,0.0,42,1,32); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
+            if(fCheckBox_sel[2]->GetState() == kButtonDown) plotTopLegend((char*)HistName.Data(),x_pos_legend,y_pos_legend-0.32*scaling_factor_3X3,legend_text_size*scaling_factor_3X3,kBlack,0.0,42,1,32); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
         }
         if(iPad == 1) // phi
         {
             plotTopLegend((char*)"30-40%",x_pos_legend,y_pos_legend-0.08*scaling_factor_3X3,legend_text_size*scaling_factor_3X3,kBlack,0.0,42,1,32); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
             plotTopLegend((char*)"2.74 TeV",x_pos_legend,y_pos_legend-0.16*scaling_factor_3X3,legend_text_size*scaling_factor_3X3,kBlack,0.0,42,1,32); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
             plotTopLegend((char*)"|y| < 0.5",x_pos_legend,y_pos_legend-0.24*scaling_factor_3X3,legend_text_size*scaling_factor_3X3,kBlack,0.0,42,1,32); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
+            if(fCheckBox_sel[2]->GetState() == kButtonDown) plotTopLegend((char*)HistName.Data(),x_pos_legend,y_pos_legend-0.32*scaling_factor_3X3,legend_text_size*scaling_factor_3X3,kBlack,0.0,42,1,32); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
 
             leg_dNdpT_vs_pT = new TLegend(0.15,0.63,0.5,0.82); // x1,y1,x2,y2
             leg_dNdpT_vs_pT->SetBorderSize(0);
@@ -2280,43 +2458,51 @@ void TBlastWaveGUI::MakePlotdNdpT()
             plotTopLegend((char*)"20-40%",x_pos_legend,y_pos_legend-0.08*scaling_factor_3X3,legend_text_size*scaling_factor_3X3,kBlack,0.0,42,1,32); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
             plotTopLegend((char*)"2.74 TeV",x_pos_legend,y_pos_legend-0.16*scaling_factor_3X3,legend_text_size*scaling_factor_3X3,kBlack,0.0,42,1,32); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
             plotTopLegend((char*)"|y| < 0.5",x_pos_legend,y_pos_legend-0.24*scaling_factor_3X3,legend_text_size*scaling_factor_3X3,kBlack,0.0,42,1,32); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
+            if(fCheckBox_sel[2]->GetState() == kButtonDown) plotTopLegend((char*)HistName.Data(),x_pos_legend,y_pos_legend-0.32*scaling_factor_3X3,legend_text_size*scaling_factor_3X3,kBlack,0.0,42,1,32); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
         }
         if(iPad == 3) // K
         {
             plotTopLegend((char*)"30-40%",x_pos_legend,y_pos_legend-0.08*scaling_factor_3X3,legend_text_size*scaling_factor_3X3,kBlack,0.0,42,1,32); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
             plotTopLegend((char*)"2.74 TeV",x_pos_legend,y_pos_legend-0.16*scaling_factor_3X3,legend_text_size*scaling_factor_3X3,kBlack,0.0,42,1,32); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
             plotTopLegend((char*)"|y| < 0.5",x_pos_legend,y_pos_legend-0.24*scaling_factor_3X3,legend_text_size*scaling_factor_3X3,kBlack,0.0,42,1,32); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
+            if(fCheckBox_sel[2]->GetState() == kButtonDown) plotTopLegend((char*)HistName.Data(),x_pos_legend,y_pos_legend-0.32*scaling_factor_3X3,legend_text_size*scaling_factor_3X3,kBlack,0.0,42,1,32); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
         }
         if(iPad == 4) // Omega
         {
             plotTopLegend((char*)"20-40%",x_pos_legend,y_pos_legend-0.08*scaling_factor_3X3,legend_text_size*scaling_factor_3X3,kBlack,0.0,42,1,32); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
             plotTopLegend((char*)"2.74 TeV",x_pos_legend,y_pos_legend-0.16*scaling_factor_3X3,legend_text_size*scaling_factor_3X3,kBlack,0.0,42,1,32); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
             plotTopLegend((char*)"|y| < 0.5",x_pos_legend,y_pos_legend-0.24*scaling_factor_3X3,legend_text_size*scaling_factor_3X3,kBlack,0.0,42,1,32); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
+            if(fCheckBox_sel[2]->GetState() == kButtonDown) plotTopLegend((char*)HistName.Data(),x_pos_legend,y_pos_legend-0.32*scaling_factor_3X3,legend_text_size*scaling_factor_3X3,kBlack,0.0,42,1,32); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
         }
         if(iPad == 5) // J/Psi
         {
             plotTopLegend((char*)"20-40%",x_pos_legend,y_pos_legend-0.08*scaling_factor_3X3,legend_text_size*scaling_factor_3X3,kBlack,0.0,42,1,32); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
             plotTopLegend((char*)"5.02 TeV",x_pos_legend,y_pos_legend-0.16*scaling_factor_3X3,legend_text_size*scaling_factor_3X3,kBlack,0.0,42,1,32); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
             plotTopLegend((char*)"|y| < 0.9",x_pos_legend,y_pos_legend-0.24*scaling_factor_3X3,legend_text_size*scaling_factor_3X3,kBlack,0.0,42,1,32); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
+            if(fCheckBox_sel[2]->GetState() == kButtonDown) plotTopLegend((char*)HistName.Data(),x_pos_legend,y_pos_legend-0.32*scaling_factor_3X3,legend_text_size*scaling_factor_3X3,kBlack,0.0,42,1,32); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
         }
         if(iPad == 6) // p
         {
             plotTopLegend((char*)"30-40%",x_pos_legend,y_pos_legend-0.08*scaling_factor_3X3,legend_text_size*scaling_factor_3X3,kBlack,0.0,42,1,32); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
             plotTopLegend((char*)"2.74 TeV",x_pos_legend,y_pos_legend-0.16*scaling_factor_3X3,legend_text_size*scaling_factor_3X3,kBlack,0.0,42,1,32); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
             plotTopLegend((char*)"|y| < 0.5",x_pos_legend,y_pos_legend-0.24*scaling_factor_3X3,legend_text_size*scaling_factor_3X3,kBlack,0.0,42,1,32); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
+            if(fCheckBox_sel[2]->GetState() == kButtonDown) plotTopLegend((char*)HistName.Data(),x_pos_legend,y_pos_legend-0.32*scaling_factor_3X3,legend_text_size*scaling_factor_3X3,kBlack,0.0,42,1,32); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
         }
         if(iPad == 7) // D0
         {
             plotTopLegend((char*)"30-50%",x_pos_legend,y_pos_legend-0.08*scaling_factor_3X3,legend_text_size*scaling_factor_3X3,kBlack,0.0,42,1,32); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
             plotTopLegend((char*)"2.74 TeV",x_pos_legend,y_pos_legend-0.16*scaling_factor_3X3,legend_text_size*scaling_factor_3X3,kBlack,0.0,42,1,32); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
             plotTopLegend((char*)"|y| < 0.5",x_pos_legend,y_pos_legend-0.24*scaling_factor_3X3,legend_text_size*scaling_factor_3X3,kBlack,0.0,42,1,32); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
+            if(fCheckBox_sel[2]->GetState() == kButtonDown) plotTopLegend((char*)HistName.Data(),x_pos_legend,y_pos_legend-0.32*scaling_factor_3X3,legend_text_size*scaling_factor_3X3,kBlack,0.0,42,1,32); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
         }
         if(iPad == 8) // Upsilon
         {
             plotTopLegend((char*)"0-100%",x_pos_legend,y_pos_legend-0.08*scaling_factor_3X3,legend_text_size*scaling_factor_3X3,kBlack,0.0,42,1,32); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
             plotTopLegend((char*)"2.74 TeV",x_pos_legend,y_pos_legend-0.16*scaling_factor_3X3,legend_text_size*scaling_factor_3X3,kBlack,0.0,42,1,32); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
             plotTopLegend((char*)"|y| < 2.4",x_pos_legend,y_pos_legend-0.24*scaling_factor_3X3,legend_text_size*scaling_factor_3X3,kBlack,0.0,42,1,32); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
+            if(fCheckBox_sel[2]->GetState() == kButtonDown) plotTopLegend((char*)HistName.Data(),x_pos_legend,y_pos_legend-0.32*scaling_factor_3X3,legend_text_size*scaling_factor_3X3,kBlack,0.0,42,1,32); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
         }
+
 
 
     }
