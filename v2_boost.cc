@@ -4,14 +4,16 @@
 
 Int_t v2_boost(Double_t Temp_set = 0.1, Double_t rho_0_set = 0.95, Double_t rho_a_set = 0.08,
                Double_t R_x_set = 0.8, Double_t fboost_set = 0.1,
-               Int_t flag_loop = 0, Int_t i_rho_a_not_used = 0, Int_t i_R_x = 0, Int_t i_fboost = 0)
+               Int_t flag_loop = 0, Int_t i_rho_a_not_used = 0, Int_t i_R_x = 0, Int_t i_fboost = 0,
+               Int_t quark_mass_set = 0)
 {
 
-    // .x v2_boost.cc++(0.15,0.95,0.08,0.8,0.1,0,0,0,0)
-    // .x v2_boost.cc++(0.14,0.925,0.15,0.9,1.0,0,0,0,0)
+    // .x v2_boost.cc++(0.15,0.95,0.08,0.8,0.1,0,0,0,0,0)
+    // .x v2_boost.cc++(0.14,0.925,0.15,0.9,1.0,0,0,0,0,8)
 
     //--------------------------------------------------------------------
     cout << "v2_boost started" << endl;
+    printf("flag_loop: %d, quark_mass_set: %d \n",flag_loop,quark_mass_set);
 
     TGaxis::SetMaxDigits(3);
     gStyle->SetOptTitle(1);
@@ -54,6 +56,8 @@ Int_t v2_boost(Double_t Temp_set = 0.1, Double_t rho_0_set = 0.95, Double_t rho_
 
 
     //--------------------------------------------------------------------
+    TF1 *f_linear = new TF1("f_linear","x",0,R_scale);
+
     TPolyLine* pl_geometric_shape = new TPolyLine();
     Double_t x_pos       = 0.0;
     Double_t y_pos       = 0.0;
@@ -67,7 +71,7 @@ Int_t v2_boost(Double_t Temp_set = 0.1, Double_t rho_0_set = 0.95, Double_t rho_
     }
 
     Double_t size_hist = 1.5*R_scale*TMath::Max(x_fac,y_fac);
-    h2D_geometric_shape = new TH2D("h2D_geometric_shape","h2D_geometric_shape",100,-size_hist,size_hist,100,-size_hist,size_hist);
+    h2D_geometric_shape = new TH2D("h2D_geometric_shape","h2D_geometric_shape",500,-size_hist,size_hist,500,-size_hist,size_hist);
 
     get_geometric_shape(h2D_geometric_shape,x_fac,y_fac,R_scale);
     //--------------------------------------------------------------------
@@ -221,10 +225,10 @@ Int_t v2_boost(Double_t Temp_set = 0.1, Double_t rho_0_set = 0.95, Double_t rho_
     h_dN_dpT_mesons.resize(N_masses);
     h_dN_dpT_jets.resize(N_masses);
 
-    // pi, K, p, phi, Omega, D0, J/Psi, Upsilon
-    Double_t high_pt_range[8]         = {5.0,5.0,6.0,6.0,7.0,10.0,15.0,15.0};
-    Int_t    N_bins_v2_pt_range[8]    = {25,25,25,25,25,25,25,25};
-    Int_t    N_bins_dNdpT_pt_range[8] = {100,100,100,100,100,100,100,100};
+    // pi, K, p, phi, Omega, D0, J/Psi, Upsilon, d
+    Double_t high_pt_range[N_masses]         = {5.0,5.0,6.0,6.0,7.0,10.0,15.0,15.0,10.0};
+    Int_t    N_bins_v2_pt_range[N_masses]    = {25,25,25,25,25,25,25,25,25};
+    Int_t    N_bins_dNdpT_pt_range[N_masses] = {100,100,100,100,100,100,100,100,100};
 
     for(Int_t i_mass = 0; i_mass < N_masses; i_mass++)
     {
@@ -241,6 +245,10 @@ Int_t v2_boost(Double_t Temp_set = 0.1, Double_t rho_0_set = 0.95, Double_t rho_
     TH1F* h_pos_XY_pos_v2_pT  = new TH1F("h_pos_XY_pos_v2_pT","h_pos_XY_pos_v2_pT",100,0,10.0);
     TH2D* h2D_rapidity_vs_eta = new TH2D("h2D_rapidity_vs_eta","h2D_rapidity_vs_eta",100,-2.0,2.0,100,-2.0,2.0);
     TH2D* h2D_cos_theta_vs_pT = new TH2D("h2D_cos_theta_vs_pT","h2D_cos_theta_vs_pT",100,0,5,100,-1,1);
+
+    TH1D* h_rapidity_before = new TH1D("h_rapidity_before","h_rapidity_before",200,-10,10);
+    TH1D* h_rapidity_after  = new TH1D("h_rapidity_after","h_rapidity_after",200,-10,10);
+    TH1D* h_rapidity_center  = new TH1D("h_rapidity_center","h_rapidity_center",200,-10,10);
     //--------------------------------------------------------------------
 
 
@@ -407,6 +415,16 @@ Int_t v2_boost(Double_t Temp_set = 0.1, Double_t rho_0_set = 0.95, Double_t rho_
     list_profiles ->SetOwner(kTRUE);
     list_profiles ->SetName(Form("list_BW_Rx%d_fb%d",i_R_x,i_fboost));
 
+    Int_t quark_mass_start = 0;
+    //Int_t quark_mass_stop  = N_masses;
+    Int_t quark_mass_stop  = 1;
+    if(flag_loop)
+    {
+        quark_mass_start = quark_mass_set;
+        quark_mass_stop  = quark_mass_set + 1;
+    }
+    printf("quark_mass_start: %d, quark_mass_stop: %d \n",quark_mass_start,quark_mass_stop);
+
     for(Int_t i_Temp = 0; i_Temp < N_Temp_loop; i_Temp++)
     {
         printf("i_Temp: %d \n",i_Temp);
@@ -430,8 +448,7 @@ Int_t v2_boost(Double_t Temp_set = 0.1, Double_t rho_0_set = 0.95, Double_t rho_
 
                 printf("Temp \n");
                 //--------------------------------------------------------------------
-                //for(Int_t i_quark_mass = 0; i_quark_mass < N_masses; i_quark_mass++)
-                for(Int_t i_quark_mass = 0; i_quark_mass < 5; i_quark_mass++)
+                for(Int_t i_quark_mass = quark_mass_start; i_quark_mass < quark_mass_stop; i_quark_mass++)
                 {
                     Double_t quark_mass = arr_quark_mass_meson[i_quark_mass];
                     printf("--------------- i_quark_mass: %d, mass: %4.3f GeV --------------- \n",i_quark_mass,quark_mass);
@@ -456,18 +473,27 @@ Int_t v2_boost(Double_t Temp_set = 0.1, Double_t rho_0_set = 0.95, Double_t rho_
                         {
                             //h2D_density_Glauber ->GetRandom2(x_pos_point,y_pos_point);
                             h2D_geometric_shape ->GetRandom2(x_pos_point,y_pos_point);  // sample postion of particle
+                            Double_t quark_thermal_phi       = ran.Rndm()*360.0; // sample phi
+                            Double_t quark_pos_phi           = ran.Rndm()*360.0; // sample phi
+
+#if 0
+                            // Klaus's way of sampling the x,y positions
+                            Double_t r_hat = f_linear ->GetRandom();
+                            x_pos_point = R_x_best*r_hat*TMath::Cos(quark_pos_phi*TMath::DegToRad());
+                            x_pos_point = 1.0*r_hat*TMath::Sin(quark_pos_phi*TMath::DegToRad());
+#endif
+
                             Double_t weight = 1.0;
                             //if(fabs(x_pos_point) > 2.4) weight = 0.0;
                             //weight = TMath::Power(TMath::Gaus(x_pos_point,0.0,2.5),4.0);
 
                             // Sample z-rapidity
-                            Double_t z_rapidity = (ran.Rndm()-0.5)*2.0; // get bjorken z-rapidity
+                            Double_t z_rapidity = (ran.Rndm()-0.5)*10.0; // get bjorken z-rapidity
                             //Double_t z_rapidity = ran.Gaus(0.0,1.2);
 
                             Double_t beta_z = (TMath::Exp(2.0*z_rapidity) - 1.0)/(TMath::Exp(2.0*z_rapidity) + 1.0); // = TMath::TanH(z_rapidity), z-beta
                             //printf("beta_z: %4.3f, TanH(y): %4.3f \n,",beta_z,TMath::TanH(z_rapidity));
 
-                            Double_t quark_thermal_phi       = ran.Rndm()*360.0; // sample phi
                             Double_t quark_thermal_cos_theta = (ran.Rndm()-0.5)*2.0; // sample cos theta -> polar angle
                             //Double_t quark_thermal_theta     = TMath::Sign(1.0,ran.Rndm()-0.5)*TMath::ACos(quark_thermal_cos_theta);
                             Double_t quark_thermal_theta     = TMath::ACos(quark_thermal_cos_theta); // get theta
@@ -507,6 +533,7 @@ Int_t v2_boost(Double_t Temp_set = 0.1, Double_t rho_0_set = 0.95, Double_t rho_
                             // boost order is important! -> work in progress
 
 
+#if 0
                              TMatrixD TL_Matrix(4,4);
                              TMatrixD TL_MatrixInv(4,4);
                              TMatrixD TL_MatrixBInv(4,4);
@@ -629,6 +656,8 @@ Int_t v2_boost(Double_t Temp_set = 0.1, Double_t rho_0_set = 0.95, Double_t rho_
 
 
                              Init_Lorentz_Matrices(Yb,phi_b,rhob);
+#endif
+
 #if 0
                              //-------------------------------------------------------
                              // LR^-1TR * vec
@@ -643,7 +672,7 @@ Int_t v2_boost(Double_t Temp_set = 0.1, Double_t rho_0_set = 0.95, Double_t rho_
 #endif
 
 
-#if 1
+#if 0
                              //-------------------------------------------------------
                              // R^-1TLR * vec
                              TVectorD vec_Lprime = TL_Matrix_Lambda_R*vec_L;
@@ -659,6 +688,8 @@ Int_t v2_boost(Double_t Temp_set = 0.1, Double_t rho_0_set = 0.95, Double_t rho_
                              //tlv_quark.SetPxPyPzE(vec_Lprime[1],vec_Lprime[2],vec_Lprime[3],vec_Lprime[0]);
 
 
+                             h_rapidity_before ->Fill(tlv_quark.Rapidity());
+                             Double_t rapidity_before = tlv_quark.Rapidity();
 
 #if 0
                             tlv_quark.Boost(tv3_boost);
@@ -669,17 +700,20 @@ Int_t v2_boost(Double_t Temp_set = 0.1, Double_t rho_0_set = 0.95, Double_t rho_
 #if 1
                             if(ran.Rndm() > fboost_best)
                             {
-                                //tlv_quark.Boost(tv3_boost);
+                                //printf("L first then T \n");
                                 tlv_quark.Boost(tv3_boost_long);
                                 tlv_quark.Boost(tv3_boost);
                             }
                             else
                             {
+                                //printf("T first then L \n");
                                 tlv_quark.Boost(tv3_boost);
                                 tlv_quark.Boost(tv3_boost_long);
-                                //tlv_quark.Boost(tv3_boost);
                             }
 #endif
+
+                            h_rapidity_after ->Fill(tlv_quark.Rapidity());
+                            if(fabs(rapidity_before) < 0.1) h_rapidity_center->Fill(tlv_quark.Rapidity());
 
                             Double_t pT_lab   = tlv_quark.Pt();
                             Double_t cos_phin = TMath::Cos(2.0*tlv_quark.Phi());
@@ -697,7 +731,12 @@ Int_t v2_boost(Double_t Temp_set = 0.1, Double_t rho_0_set = 0.95, Double_t rho_
 
                             //if(i_quark_mass < 5  && fabs(eta) > 0.1) continue;
                             //if(i_quark_mass < 5  && fabs(rapidity) > 0.5) continue;
-                            if(i_quark_mass < 5  && fabs(rapidity) > 0.1) continue;
+
+                            // pi,K,p,phi,Omega,D0,J/Psi,Upsilon,d
+                            //if(i_quark_mass == 6  || i_quark_mass == 7 && fabs(rapidity) > 0.1) continue;
+                            if((i_quark_mass == 6  || i_quark_mass == 7) && (fabs(rapidity) < 2.5 || fabs(rapidity) > 4.0)) continue;
+                            if((i_quark_mass == 0 || i_quark_mass == 1 || i_quark_mass == 2 || i_quark_mass == 3 || i_quark_mass == 4 || i_quark_mass == 5 || i_quark_mass == 8)
+                               && fabs(rapidity) > 0.01) continue;
                             //if(i_quark_mass >= 3 && (rapidity < 2.5 || rapidity > 4.0)) continue;
 
                             h2D_cos_theta_vs_pT ->Fill(quark_pT,quark_thermal_cos_theta);
@@ -740,7 +779,7 @@ Int_t v2_boost(Double_t Temp_set = 0.1, Double_t rho_0_set = 0.95, Double_t rho_
                 if(flag_loop)
                 {
                     outputfile ->cd();
-                    for(Int_t i_mass = 0; i_mass < 8; i_mass++)
+                    for(Int_t i_mass = quark_mass_start; i_mass < quark_mass_stop; i_mass++)
                     {
                         cout << "Add profiles to list for i_mass: " << i_mass << endl;
                         tp_v2_vs_pT_mesons[i_mass] ->SetName(Form("v2_vs_pT_BW_id%d_T%d_rho0%d_rhoa%d_Rx%d_fb%d",i_mass,i_Temp,i_rho_0,i_rho_a,i_R_x,i_fboost));
@@ -757,7 +796,7 @@ Int_t v2_boost(Double_t Temp_set = 0.1, Double_t rho_0_set = 0.95, Double_t rho_
 
             }
         }
-    }
+    } // end of Temp loop
 
     if(flag_loop)
     {
@@ -771,7 +810,7 @@ Int_t v2_boost(Double_t Temp_set = 0.1, Double_t rho_0_set = 0.95, Double_t rho_
 
     //------------------------------------------------------------------
     // Calculate spectra and v2 analytially
-    TGraph* tg_spec = new TGraph();
+    tg_spec = new TGraph();
     TGraph* tg_v2   = new TGraph();
     Double_t inv_yield_BW, v2_BW;
     Double_t integral = 0.0;
@@ -779,7 +818,7 @@ Int_t v2_boost(Double_t Temp_set = 0.1, Double_t rho_0_set = 0.95, Double_t rho_
     for(Int_t i_pT = 0; i_pT < 200; i_pT++)
     {
         Double_t pt_BW = i_pT*bin_width;
-        blastwave_yield_and_v2(pt_BW, arr_quark_mass_meson[4], Temp_set, rho_0_set, rho_a_set, R_x_set, inv_yield_BW, v2_BW);
+        blastwave_yield_and_v2(pt_BW, arr_quark_mass_meson[0], Temp_set, rho_0_set, rho_a_set, R_x_set, inv_yield_BW, v2_BW);
         tg_spec ->SetPoint(i_pT,pt_BW,inv_yield_BW*pt_BW);
         tg_v2   ->SetPoint(i_pT,pt_BW,v2_BW);
         integral += bin_width*inv_yield_BW*pt_BW;
@@ -852,7 +891,7 @@ Int_t v2_boost(Double_t Temp_set = 0.1, Double_t rho_0_set = 0.95, Double_t rho_
 
 
 
-    for(Int_t i_mass = 0; i_mass < 5; i_mass++)
+    for(Int_t i_mass = 0; i_mass < 1; i_mass++)
     {
         //tp_v2_vs_pT_mesons[i_mass] ->Scale(1.6);
         tp_v2_vs_pT_mesons[i_mass] ->SetMarkerColor(arr_color_mass[i_mass]);
@@ -1026,11 +1065,14 @@ Int_t v2_boost(Double_t Temp_set = 0.1, Double_t rho_0_set = 0.95, Double_t rho_
 #endif
 
     outputfile ->cd();
-    for(Int_t i_mass = 0; i_mass < 5; i_mass++)
-    {
-        tp_v2_vs_pT_mesons[i_mass] ->SetName(Form("v2_vs_pT_BW_id%d_T%4.2f",i_mass,Temp_set));
-        tp_v2_vs_pT_mesons[i_mass] ->Write();
-    }
+    h_rapidity_before ->Write();
+    h_rapidity_after ->Write();
+    h_rapidity_center ->Write();
+    //for(Int_t i_mass = 0; i_mass < 5; i_mass++)
+    //{
+    //    tp_v2_vs_pT_mesons[i_mass] ->SetName(Form("v2_vs_pT_BW_id%d_T%4.2f",i_mass,Temp_set));
+    //    tp_v2_vs_pT_mesons[i_mass] ->Write();
+    //}
     outputfile ->Close();
 
     return 0;

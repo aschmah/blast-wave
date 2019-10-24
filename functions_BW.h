@@ -978,17 +978,18 @@ void init_pT_spectra_data()
 
     printf("Initialize pT spectra data \n");
 
+    // J/Psi: https://www.hepdata.net/record/ins1472319
     inputfle_D_dNdpT            = TFile::Open("./Data/HEPData-ins1394580-v1-root.root"); // https://www.hepdata.net/record/ins1394580;
     inputfile_spectra_id        = TFile::Open("./Data/HEP_ALICE_PID_pT_spectra.root"); // pi, K, p, https://www.hepdata.net/record/ins1377750
-    inputfile_spectra_phi       = TFile::Open("./Data/HEPData-ins1511864-v1-root_phi_KStar_dNdpT_2.76TeV.root"); // phi
-    inputfile_spectra_Omega     = TFile::Open("./Data/HEPData-ins1243865-v1-root_omegas_dNdpT_2.76TeV.root"); // Omega
+    inputfile_spectra_phi       = TFile::Open("./Data/HEPData-ins1511864-v1-root_phi_KStar_dNdpT_2.76TeV.root"); // phi, https://www.hepdata.net/record/ins1511864
+    inputfile_spectra_Omega     = TFile::Open("./Data/HEPData-ins1243865-v1-root_omegas_dNdpT_2.76TeV.root"); // Omega, https://www.hepdata.net/record/ins1243865
     inputfile_deuterons_low_pT  = TFile::Open("./Data/HEPData-ins1380491-v2-root.root"); // deuterons, low pT, https://www.hepdata.net/record/ins1380491  1/pt
     inputfile_deuterons_high_pT = TFile::Open("./Data/HEPData-ins1611301-v1-root.root"); // deuterons, high pT, https://www.hepdata.net/record/ins1611301
     inputfile_spectra_Upsilon   = TFile::Open("./Data/HEPData-ins1495866-v2-root.root"); // Upsilon, https://www.hepdata.net/record/ins1495866, https://arxiv.org/pdf/1611.01510.pdf, 2.76 TeV, Pb+Pb, 0-100%, |y| < 2.4
 
 
     tge_D_dNdpT        = (TGraphAsymmErrors*)inputfle_D_dNdpT        ->Get(Form("Table %d/Graph1D_y%d",4,1)); // 30-50%
-    tge_phi_dNdpT      = (TGraphAsymmErrors*)inputfile_spectra_phi   ->Get(Form("Table %d/Graph1D_y%d",13,1)); // 30-40%
+    tge_phi_dNdpT      = (TGraphAsymmErrors*)inputfile_spectra_phi   ->Get(Form("Table %d/Graph1D_y%d",13,1)); // 30-40%, |y| < 0.5
     tge_Omega_dNdpT[0] = (TGraphAsymmErrors*)inputfile_spectra_Omega ->Get(Form("Table %d/Graph1D_y%d",8,1)); // 20-40%, Omega-
     tge_Omega_dNdpT[1] = (TGraphAsymmErrors*)inputfile_spectra_Omega ->Get(Form("Table %d/Graph1D_y%d",8,2)); // 20-40%, Omega+
     tge_Omega_dNdpT[2] = Add_tgae_identical(tge_Omega_dNdpT[0],tge_Omega_dNdpT[1]);
@@ -1065,66 +1066,6 @@ void init_pT_spectra_data()
         }
     }
 
-    /*
-    // Make 50-60%
-    for(Int_t i_pid = 0; i_pid < 3; i_pid++)
-    {
-        TString label = label_pid[i_pid];
-        // 0-5, 5-10, 10-20, 20-40, 40-60, 60-80, 20-30, 30-40, 40-50, (50-60)
-        Int_t i = 9; // 50-60% = 40-60% - 40-50%
-        Int_t i_40_60 = 4; // 40-60%
-        Int_t i_40_50 = 8; // 40-50%
-        label += Form("_%d_%d",arr_centrality_low[i],arr_centrality_high[i]);
-        vec_tgae_pT_spectra[i_pid].push_back((TGraphAsymmErrors*)vec_tgae_pT_spectra[i_pid][i_40_60]);
-        vec_tgae_pT_spectra[i_pid][i]->SetName(label.Data());
-        vec_tgae_pT_spectra[i_pid][i]->SetMarkerColor(arr_color[i]);
-        vec_tgae_pT_spectra[i_pid][i]->SetMarkerStyle(20);
-        vec_tgae_pT_spectra[i_pid][i]->SetMarkerSize(0.8);
-        vec_tgae_pT_spectra[i_pid][i]->GetXaxis()->SetTitle("p_{T} (GeV/c)");
-        vec_tgae_pT_spectra[i_pid][i]->GetYaxis()->SetTitle("1/p_{T} dN/dp_{T} (GeV/c)^{-2}");
-
-        for(Int_t i_pT = 0; i_pT < vec_tgae_pT_spectra[i_pid][i]->GetN(); i_pT++)
-        {
-            Double_t x_val, y_val;
-            vec_tgae_pT_spectra[i_pid][i]       ->GetPoint(i_pT,x_val,y_val);
-            y_val *= 2.0; // 40-60% was divided by the number of events in a 20% bin, relative to the 10% one in 40-50%
-            Double_t y_val_40_50 = vec_tgae_pT_spectra[i_pid][i_40_50] ->Eval(x_val);
-
-            vec_tgae_pT_spectra[i_pid][i]       ->SetPoint(i_pT,x_val,y_val - y_val_40_50);
-            //if(i_pid == 0) printf("i_pT: %d, pT: %4.3f, y_val(40-60%): %4.6f, y_val(40-50%): %4.6f \n",i_pT,x_val,y_val,y_val_40_50);
-        }
-    }
-
-    // Make 5-60%
-    for(Int_t i_pid = 0; i_pid < 3; i_pid++)
-    {
-        TString label = label_pid[i_pid];
-        // 0-5, 5-10, 10-20, 20-40, 40-60, 60-80, 20-30, 30-40, 40-50, (50-60), (5-60)
-        Int_t i = 10;
-        label += Form("_%d_%d",arr_centrality_low[i],arr_centrality_high[i]);
-        vec_tgae_pT_spectra[i_pid].push_back((TGraphAsymmErrors*)vec_tgae_pT_spectra[i_pid][1]);
-        vec_tgae_pT_spectra[i_pid][i]->SetName(label.Data());
-        vec_tgae_pT_spectra[i_pid][i]->SetMarkerColor(arr_color[i]);
-        vec_tgae_pT_spectra[i_pid][i]->SetMarkerStyle(20);
-        vec_tgae_pT_spectra[i_pid][i]->SetMarkerSize(0.8);
-        vec_tgae_pT_spectra[i_pid][i]->GetXaxis()->SetTitle("p_{T} (GeV/c)");
-        vec_tgae_pT_spectra[i_pid][i]->GetYaxis()->SetTitle("1/p_{T} dN/dp_{T} (GeV/c)^{-2}");
-
-        Double_t arr_scale_cent_width[5] = {1.0,1.0,2.0,4.0,4.0}; // width: 5%, 5%, 10%, 20%, 20%
-
-        for(Int_t i_pT = 0; i_pT < vec_tgae_pT_spectra[i_pid][i]->GetN(); i_pT++)
-        {
-            Double_t x_val, y_val;
-            vec_tgae_pT_spectra[i_pid][i]       ->GetPoint(i_pT,x_val,y_val);
-            for(Int_t i_cent = 2; i_cent <= 4; i_cent++)
-            {
-                Double_t y_val_cent = vec_tgae_pT_spectra[i_pid][i_cent] ->Eval(x_val);
-                y_val += y_val_cent*arr_scale_cent_width[i_cent];
-            }
-            vec_tgae_pT_spectra[i_pid][i]       ->SetPoint(i_pT,x_val,y_val);
-        }
-    }
-    */
 
     //----------------------------------------------------------------------
     for(Int_t i_pid = 0; i_pid < 3; i_pid++)
@@ -1408,7 +1349,7 @@ void init_data()
     // https://arxiv.org/pdf/1405.4632.pdf
     inputfile_id      = TFile::Open("./Data/HEPData-ins1297103-v1-root.root"); // https://www.hepdata.net/record/ins1297103
     inputfile_JPsi    = TFile::Open("./Data/HEPData-ins1225273-v1-Table_1.root"); // https://www.hepdata.net/record/ins1225273, J/Psi v2 vs. pT, 2.5 < y < 4, 20-40%, 2.76 TeV, Pb+Pb
-    inputfile_D       = TFile::Open("./Data/HEPData-ins1233087-v1-root.root");
+    inputfile_D       = TFile::Open("./Data/HEPData-ins1233087-v1-root.root");  // https://www.hepdata.net/record/ins1233087
     inputfile_Upsilon = TFile::Open("./Data/HEPData-ins1742764-v1-root.root"); // https://www.hepdata.net/record/ins1742764, Upsilon v2 vs. pT, 2.5 < y < 4, 5-60%, 5.02 TeV, Pb+Pb
     inputfile_deuterons_v2  = TFile::Open("./Data/HEPData-ins1611301-v1-root.root"); // deuterons, high pT, https://www.hepdata.net/record/ins1611301
 
@@ -1522,8 +1463,8 @@ void init_data()
     tgae_v2_vs_pT_mesons_data[0] = (TGraphAsymmErrors*)vec_graphs[4]->Clone();  // pi
     tgae_v2_vs_pT_mesons_data[1] = (TGraphAsymmErrors*)vec_graphs[18]->Clone(); // K
     tgae_v2_vs_pT_mesons_data[2] = (TGraphAsymmErrors*)vec_graphs[32]->Clone(); // p
-    tgae_v2_vs_pT_mesons_data[3] = (TGraphAsymmErrors*)vec_graphs[37]->Clone(); // phi  to be changed
-    tgae_v2_vs_pT_mesons_data[4] = (TGraphAsymmErrors*)vec_graphs[57]->Clone(); // Omega  to be changed
+    tgae_v2_vs_pT_mesons_data[3] = (TGraphAsymmErrors*)vec_graphs[37]->Clone(); // phi
+    tgae_v2_vs_pT_mesons_data[4] = (TGraphAsymmErrors*)vec_graphs[57]->Clone(); // Omega
     tgae_v2_vs_pT_mesons_data[5] = (TGraphAsymmErrors*)tg_D0_v2_vs_pT->Clone(); // D0
     tgae_v2_vs_pT_mesons_data[6] = (TGraphAsymmErrors*)tg_JPsi_v2_vs_pT->Clone(); // J/Psi
     tgae_v2_vs_pT_mesons_data[7] = (TGraphAsymmErrors*)tg_Upsilon_v2_vs_pT->Clone(); // Upsilon
