@@ -48,6 +48,7 @@
 #include "TArrow.h"
 #include "TMatrixD.h"
 #include "TVectorD.h"
+#include "TMinuit.h"
 #include "Math/WrappedParamFunction.h"
 #include "Math/AdaptiveIntegratorMultiDim.h"
 
@@ -87,6 +88,7 @@ static TF1 *f_LevyFitFunc        = NULL;
 static TF1 *f_FitBessel          = NULL;
 static TF1 *f_JetPtFunc          = NULL;
 static Double_t arr_quark_mass_meson[N_masses]         = {0.13957,0.497648,0.938272,1.019460,1.67245,1.86962,3.096916,9.46030,1.875612};
+static Double_t pT_fit_max[N_masses]                   = {1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0};
 static Int_t    arr_color_mass[N_masses]               = {kBlack,kGreen+1,kRed,kMagenta+1,kCyan+1,kOrange,kYellow+2,kAzure-2,kOrange+1};
 static const Double_t R_Pb = 5.4946; // fm
 static TH2D* h2D_density_Glauber;
@@ -803,6 +805,19 @@ void blastwave_yield_and_v2(const double &pt, const double &m, const double &T, 
     }
 
     inv_yield = sf * TMath::Sqrt(m * m + pt * pt) * v2_den;
+}
+//------------------------------------------------------------------------------------------------------------
+
+
+
+//------------------------------------------------------------------------------------------------------------
+void calFitRange(double beta = 0.68)
+{
+  double gamma = 1.0/TMath::Sqrt(1.0-beta*beta);
+  for(int i_pid = 0; i_pid < N_masses; ++i_pid)
+  {
+      pT_fit_max[i_pid] = arr_quark_mass_meson[i_pid]*gamma*beta + 1.0;
+  }
 }
 //------------------------------------------------------------------------------------------------------------
 
@@ -2892,6 +2907,92 @@ void plot_spectra()
         */
 }
 //----------------------------------------------------------------------------------------
+
+
+
+//------------------------------------------------------------------------------------------------------------
+// By far too slow
+Double_t yield_blastwave(Double_t* x_val, Double_t* par)
+{
+    Int_t id_bw_hypersurface = (Int_t)par[0];
+    Double_t m         = par[1];
+    Double_t T         = par[2];
+    Double_t rho0      = par[3];
+    Double_t rho2      = par[4];
+    Double_t RxOverRy  = par[5];
+    Double_t scale_fac = par[6]; // fit parameter
+    Double_t pt_BW     = x_val[0];
+
+    Double_t inv_yield_BW, v2_BW;
+    Tblastwave_yield_and_v2 bw_ana;
+    if(id_bw_hypersurface == 1) bw_ana.calc_blastwave_yield_and_v2_fos1(pt_BW, m, T, rho0, rho2, RxOverRy, inv_yield_BW, v2_BW);
+    if(id_bw_hypersurface == 2) bw_ana.calc_blastwave_yield_and_v2_fos2(pt_BW, m, T, rho0, rho2, RxOverRy, inv_yield_BW, v2_BW);
+    if(id_bw_hypersurface == 3) bw_ana.calc_blastwave_yield_and_v2_fos3(pt_BW, m, T, rho0, rho2, RxOverRy, inv_yield_BW, v2_BW);
+
+    return inv_yield_BW*pt_BW*scale_fac;
+}
+
+static TF1 *yield_fit_func = new TF1("yield_fit_func",yield_blastwave,0.0,20,7);
+Double_t get_norm_scaling_factor(TGraphAsymmErrors* tgae_data, Double_t min_val_pT, Double_t max_val_pT,
+                                 Int_t id_bw_hypersurface, Double_t m, Double_t T, Double_t rho0, Double_t rho2, Double_t RxOverRy)
+{
+    for(Int_t x = 0; x < 7; x++)
+    {
+        yield_fit_func ->ReleaseParameter(x);
+        yield_fit_func ->SetParError(x,0.0);
+        yield_fit_func ->SetParameter(x,0.0);
+    }
+
+    yield_fit_func ->SetParameter(0,id_bw_hypersurface);
+    yield_fit_func ->SetParameter(1,m);
+    yield_fit_func ->SetParameter(2,T);
+    yield_fit_func ->SetParameter(3,rho0);
+    yield_fit_func ->SetParameter(4,rho2);
+    yield_fit_func ->SetParameter(5,RxOverRy);
+    yield_fit_func ->SetParameter(6,1.0);
+    tgae_data ->Fit("yield_fit_func","QMN","",min_val_pT,max_val_pT);
+    Double_t amp   = yield_fit_func->GetParameter(6);
+
+    return amp;
+}
+//------------------------------------------------------------------------------------------------------------
+
+
+
+//------------------------------------------------------------------------------------------------------------
+Double_t get_norm_scaling_factor_calc(vector< vector<Double_t> > vec_data_BW, Double_t min_val_pT, Double_t max_val_pT)
+{
+    // chi2 = Sum_i( (a*f(x_i) - y_i)^2/e^2_i )
+    // a = scaling factor
+    // f = blast-wave
+    // x = pT
+    // y = data
+    // dchi2/da = 0 -> to get minimum
+    // --> a =
+
+    Double_t scaling_factor = 1.0;
+    Double_t nom = 0.0;
+    Double_t num = 0.0;
+    for(Int_t i_point = 0; i_point < (Int_t)vec_data_BW[0].size(); i_point++)
+    {
+        Double_t pt_data = vec_data_BW[3][i_point];
+        if(pt_data > max_val_pT) break;
+
+        if(pt_data > min_val_pT)
+        {
+            nom += vec_data_BW[0][i_point]*vec_data_BW[1][i_point]/TMath::Power(vec_data_BW[2][i_point],2);
+            num += TMath::Power(vec_data_BW[1][i_point],2)/TMath::Power(vec_data_BW[2][i_point],2);
+        }
+    }
+    if(num > 0.0)
+    {
+        scaling_factor = nom/num;
+    }
+
+    //printf("scaling_factor: %4.3f \n",scaling_factor);
+    return scaling_factor;
+}
+//------------------------------------------------------------------------------------------------------------
 
 
 
