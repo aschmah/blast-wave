@@ -744,7 +744,9 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
     //--------------
 
 
-
+    //-------------
+    // Add feed down check box
+    //-------------
 
 
     FrameD ->MapSubwindows();
