@@ -37,6 +37,8 @@ private:
     TGTextEntry         *fTeh1, *fTeh2, *fTeh3;
     TGTextBuffer        *fTbh1, *fTbh1a, *fTbh2, *fTbh3;
     TGGroupFrame        *fGroupFrames[7];
+    TGGroupFrame        *pT_Range_Group[N_masses];
+    TGGroupFrame        *GroupSlider[5];
 
     TProfile* tp_v2_vs_pT_mesons[N_masses][9][9][9][9][9] = {NULL}; // [i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a]
     TH1F*     h_dN_dpT_mesons[N_masses][9][9][9][9][9]    = {NULL}; // [i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a]
@@ -48,6 +50,7 @@ private:
     vector<TGTextBuffer*>       vec_TextBuffer;
     vector<TGLabel*>            vec_TGLabel;
 
+    TGMainFrame* FrameA;
     TGMainFrame* FrameB;
     TGLayoutHints* fLcanC;
 
@@ -66,6 +69,7 @@ private:
     TGVerticalFrame *hVframeD5a[4];
     TGVerticalFrame *hVframeD3;
     TGVerticalFrame *hVframeD4;
+    TGVerticalFrame *Vframe_pT_limits;
     TGVerticalFrame *vframeD1;
     TGCompositeFrame *cframe2;
     TGTextButton *ButtonD1a;
@@ -77,7 +81,7 @@ private:
     TGLayoutHints* fHint2;
     TGTextButton      *fGO;
     TGLayoutHints* fHint3;
-    TGLayoutHints* LHintsD4a;
+    TGLayoutHints* LHintsD4a, *LHintsD4a2;
     TGNumberEntry* NEntryD3a;
     TGLabel*       LabelD4a;
     TGNumberEntry* NEntryD3b;
@@ -86,12 +90,13 @@ private:
     TGTransientFrame* frame_TGTransientB;
     TGTextButton      *Button_take_params_MC_to_ana;
     TGTextButton      *Button_take_params_Set_to_ana;
-    TGComboBox          *fCombo;
+    TGComboBox          *fCombo, *ComboEnergy;
 
     TGCheckButton* fCheckBox_sel[3];
     TGCheckButton* fCheckBox_pid[N_masses];
     TGCheckButton* fCheckBox_pid_plot[N_masses];
     TGCheckButton* fCheckBox_v2_dNdpT[2];
+    TGCheckButton* CheckBoxFeedDown;
     TGLayoutHints* fLCheckBox;
     TGLayoutHints* fLCheckBoxB;
     TString label_checkbox[3] = {"Plot MC","Plot Ana","Plot chi^2"};
@@ -393,9 +398,10 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
                     }
                 }
             }
-        }
+            }
     }
     printf("All spectra normalized \n");
+
 
     char buf[32];
     SetCleanup(kDeepCleanup);
@@ -421,6 +427,12 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
     fCanvas->GetCanvas()->SetTicks(1,1);
     fCanvas->GetCanvas()->SetGrid(0,0);
 
+    SetWindowName("Elliptic flow data");
+    MapSubwindows();
+    Resize(GetDefaultSize());
+    MapWindow();
+    this->Resize(1200,800);
+
     //----------------------------------------------------
     // Slider start XA
     //Int_t start_pos_slider[5] = {5,7,3,5,0};
@@ -429,43 +441,44 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
     //Int_t start_pos_slider[5] = {4,7,3,6,0}; // very good for v2 only
     Int_t start_pos_slider[5] = {3,5,3,7,0}; // overall quite good
 
+    // Add a frame for the sliders
+    FrameA = new TGMainFrame(gClient->GetRoot(), 400, 100);
     // Add a slider
     for(Int_t i_param = 0; i_param < 5; i_param++)
     {
-        vec_Hframe[i_param] = new TGHorizontalFrame(this, 0, 0);
-        vec_slider[i_param] = new TGHSlider(vec_Hframe[i_param],250,kSlider1|kScaleDownRight,1);
+        GroupSlider[i_param] = new TGGroupFrame(FrameA,"Set " + vec_label[i_param],kHorizontalFrame);
+        vec_Hframe[i_param] = new TGHorizontalFrame(GroupSlider[i_param], 0, 0);
+        vec_slider[i_param] = new TGHSlider(GroupSlider[i_param],250,kSlider1|kScaleDownRight,1);
         vec_slider[i_param]->Connect("PositionChanged(Int_t)", "TBlastWaveGUI",this, "DoSlider()");
         vec_slider[i_param]->SetRange(0,8);
         vec_slider[i_param]->SetPosition(start_pos_slider[i_param]);
-        vec_LayoutHints[i_param] = new TGLayoutHints(kLHintsTop | kLHintsExpandX, 1, 1, 1, 1); // handles size of slider and number box
-        vec_Hframe[i_param]->AddFrame(vec_slider[i_param], vec_LayoutHints[i_param]);
-        AddFrame(vec_Hframe[i_param], vec_LayoutHints[i_param]);
+        vec_LayoutHints[i_param] = new TGLayoutHints(kLHintsBottom | kLHintsCenterY, 5, 1, 1, 1); // handles size of slider and number box
+        GroupSlider[i_param]->AddFrame(vec_slider[i_param], vec_LayoutHints[i_param]);
+        FrameA->AddFrame(vec_Hframe[i_param], vec_LayoutHints[i_param]);
 
 
         // Add number text box
-        vec_TextEntry[i_param] = new TGTextEntry(vec_Hframe[i_param], vec_TextBuffer[i_param] = new TGTextBuffer(5), HId1);
+        vec_TextEntry[i_param] = new TGTextEntry(GroupSlider[i_param], vec_TextBuffer[i_param] = new TGTextBuffer(5), HId1);
         //vec_TextEntry[i_param] ->SetDefaultSize(0,0);
         vec_TextEntry[i_param] ->SetTextColor(kRed);
         vec_TextEntry[i_param]->SetToolTipText("Minimum (left) Value of Slider");
         vec_TextBuffer[i_param]->AddText(0, "0.0");
         vec_TextEntry[i_param]->Connect("TextChanged(char*)", "TBlastWaveGUI", this,"DoText(char*)");
         //vec_Hframe[i_param]->Resize(100, 25);
-        vec_Hframe[i_param]->AddFrame(vec_TextEntry[i_param], vec_LayoutHints[i_param]);
-        AddFrame(vec_Hframe[i_param], vec_LayoutHints[i_param]);
-        vec_TGLabel[i_param] = new TGLabel(vec_Hframe[i_param], vec_label[i_param].Data());
-        vec_Hframe[i_param]->AddFrame(vec_TGLabel[i_param], new TGLayoutHints(kLHintsLeft | kLHintsCenterY));
+        GroupSlider[i_param]->AddFrame(vec_TextEntry[i_param], vec_LayoutHints[i_param]);
+        FrameA->AddFrame(GroupSlider[i_param], vec_LayoutHints[i_param]);
+        //vec_TGLabel[i_param] = new TGLabel(vec_Hframe[i_param], vec_label[i_param].Data());
+        //Group[i_param]->AddFrame(vec_TGLabel[i_param], new TGLayoutHints(kLHintsBottom|kLHintsCenterY,1,1,1,1));
 
         vec_Hframe[i_param] ->SetHeight(1);
         //vec_Hframe[i_param] ->DrawBorder();
     }
     //----------------------------------------------------
-
-
-    SetWindowName("Elliptic flow data");
-    MapSubwindows();
-    Resize(GetDefaultSize());
-    MapWindow();
-    this ->Resize(1100,1100);
+    FrameA->SetWindowName("Sliders for Elliptic flow data");
+    FrameA->MapSubwindows();
+    FrameA->Resize(GetDefaultSize());
+    FrameA->MapWindow();
+    FrameA->Resize(435,300);
     //------------------------------------------------------------
 
 
@@ -502,7 +515,7 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
          fCanvasB->GetCanvas()->cd(iPad)->SetGrid(0,0);
     }
 
-   // Set a name to the main frame
+    // Set a name to the main frame
     FrameB->SetWindowName("Transverse momentum spectra");
 
     // Map all subwindows of main frame
@@ -563,7 +576,7 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
 
     //--------------
     // A horizontal frame
-    printf("Add minmize buttons \n");
+    printf("Add minimize buttons \n");
     hframeD2  = new TGHorizontalFrame(FrameD,200,100);
 
     // exit button
@@ -630,7 +643,7 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
     fCombo->AddEntry("fos1", 1); // used for fits as in paper -> freeze-out-hypersurface as described in paper
     fCombo->AddEntry("don't use", 2); // test freeze-out-hypersurface, not physical
     fCombo->AddEntry("boost", 3); // same as in Monte Carlo, no hypersurface, gives identical results to Alex MC
-    fCombo->Resize(150, 20);
+    fCombo->Resize(100, 20);
     fCombo->Select(1);
 
 
@@ -746,6 +759,20 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
 
     //-------------
     // Add feed down check box
+    CheckBoxFeedDown = new TGCheckButton(fGroupFrames[2], "Include Feed-Down");
+    CheckBoxFeedDown->SetState(kButtonDown);
+    fGroupFrames[2]->AddFrame(CheckBoxFeedDown, new TGLayoutHints(kLHintsCenterX,5,5,6,4));
+
+    //Add energy drop down
+    TString ComboEnergyLabel[8] = {"7.7  GeV","11.5 GeV","14.6 GeV","19.6 GeV","27.0 GeV","39.0 GeV","62.4 GeV","200  GeV"};
+    ComboEnergy = new TGComboBox(hframeD2b,200);
+    for(Int_t i = 0; i < 8; ++i)
+    {
+        ComboEnergy->AddEntry(ComboEnergyLabel[i], i);
+    }
+    hframeD2b->AddFrame(ComboEnergy, new TGLayoutHints(kLHintsCenterX,5,5,3,4));
+    ComboEnergy->Resize(100,20);
+    ComboEnergy->Select(0);
     //-------------
 
 
@@ -758,44 +785,44 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
 
     //--------------
     printf("Add limits widget \n");
-    LHintsD4a = new TGLayoutHints(kLHintsCenterX,5,5,3,4);
+    LHintsD4a = new TGLayoutHints(kLHintsCenterX,5,5,2,0);
+    LHintsD4a2 = new TGLayoutHints(kLHintsCenterX,5,5,5,0);
 
     TString arr_label_pid[N_masses]     = {"pi","K","p","phi","Omega","D0","J/psi","Y","d"};
     TString arr_label_min_max[2] = {"min","max"};
 
-    arr_fL1[0] = new TGLayoutHints(kLHintsTop | kLHintsLeft, 2, 2, 2, 2);
-    arr_fL1[1] = new TGLayoutHints(kLHintsTop | kLHintsLeft, 2, 2, 2, 2);
+    arr_fL1[0] = new TGLayoutHints(kLHintsTop | kLHintsLeft, 2, 2, 2, 0);
+    arr_fL1[1] = new TGLayoutHints(kLHintsTop | kLHintsLeft, 2, 2, 2, 0);
 
     Double_t max_val_VF[2] = {300,500};
 
-    frame_TGTransient = new TGTransientFrame(gClient->GetRoot(), FrameD, 10, 10, kHorizontalFrame);
+    frame_TGTransient = new TGTransientFrame(gClient->GetRoot(), FrameD, 10, 10, kVerticalFrame);
     FrameD ->AddFrame(frame_TGTransient,LHintsD4a);
 
+    Vframe_pT_limits = new TGVerticalFrame(frame_TGTransient,200,300);
+    frame_TGTransient->AddFrame(Vframe_pT_limits,new TGLayoutHints(kLHintsCenterX,2,2,2,2));
+
     fGroupFrames[4] = new TGGroupFrame(frame_TGTransient, new TGString("Set pT limits"),kHorizontalFrame|kRaisedFrame);
-    frame_TGTransient->AddFrame(fGroupFrames[4], new TGLayoutHints(kLHintsCenterX,2,2,2,2));
+    Vframe_pT_limits->AddFrame(fGroupFrames[4], new TGLayoutHints(kLHintsCenterX,2,2,2,2));
     NEntry_set_limits = new TGNumberEntry(fGroupFrames[4], 0.68, 12,(TGNumberFormat::EStyle) 1);
     NEntry_set_limits ->Connect("ValueSet(Long_t)", "TBlastWaveGUI", this, "CalcMaxPtLimits()");
     NEntry_set_limits->SetNumStyle( TGNumberFormat::kNESRealTwo); // https://root.cern.ch/doc/master/classTGNumberFormat.html#a8a0f81aac8ac12d0461aef554c6271ad
     fGroupFrames[4]->AddFrame(NEntry_set_limits, LHintsD4a);
 
-
-    for(Int_t i_min_max = 0; i_min_max < 2; i_min_max++)
+    for(Int_t i_pid = 0; i_pid < N_masses; i_pid++)
     {
-        //arr_VFrame_NEntry_limits[i_min_max] = new TGVerticalFrame(FrameD, 200, max_val_VF[i_min_max]);
-        //FrameD->AddFrame(arr_VFrame_NEntry_limits[i_min_max], arr_fL1[i_min_max]);
+        pT_Range_Group[i_pid] = new TGGroupFrame(frame_TGTransient,arr_label_pid[i_pid],kHorizontalFrame);
+        Vframe_pT_limits->AddFrame(pT_Range_Group[i_pid], new TGLayoutHints(kLHintsCenterX,2,2,2,2));
 
-        arr_VFrame_NEntry_limits[i_min_max] = new TGVerticalFrame(frame_TGTransient, 200, max_val_VF[i_min_max]);
-        frame_TGTransient->AddFrame(arr_VFrame_NEntry_limits[i_min_max], arr_fL1[i_min_max]);
-    
-        for(Int_t i_pid = 0; i_pid < N_masses; i_pid++)
+        for(Int_t i_min_max = 0; i_min_max < 2; i_min_max++)
         {
-            arr_NEntry_limits[i_min_max][i_pid] = new TGNumberEntry(arr_VFrame_NEntry_limits[i_min_max], min_max_pT_range_pid[i_min_max][i_pid], 12,(TGNumberFormat::EStyle) 1);
+            arr_NEntry_limits[i_min_max][i_pid] = new TGNumberEntry(pT_Range_Group[i_pid], min_max_pT_range_pid[i_min_max][i_pid], 12,(TGNumberFormat::EStyle) 1);
             arr_NEntry_limits[i_min_max][i_pid] ->Connect("ValueSet(Long_t)", "TBlastWaveGUI", this, "DoSlider()");
             arr_NEntry_limits[i_min_max][i_pid]->SetNumStyle( TGNumberFormat::kNESRealOne); // https://root.cern.ch/doc/master/classTGNumberFormat.html#a8a0f81aac8ac12d0461aef554c6271ad
-            arr_VFrame_NEntry_limits[i_min_max]->AddFrame(arr_NEntry_limits[i_min_max][i_pid], LHintsD4a);
-            TString label_entry = "pT " + arr_label_min_max[i_min_max] + " " + arr_label_pid[i_pid];
-            arr_Label_NEntry_limits[i_min_max][i_pid] = new TGLabel(arr_VFrame_NEntry_limits[i_min_max], label_entry.Data(), myGC(), myfont->GetFontStruct());
-            arr_VFrame_NEntry_limits[i_min_max]->AddFrame(arr_Label_NEntry_limits[i_min_max][i_pid], LHintsD4a);
+            pT_Range_Group[i_pid]->AddFrame(arr_NEntry_limits[i_min_max][i_pid], LHintsD4a);
+            TString label_entry = arr_label_min_max[i_min_max];
+            arr_Label_NEntry_limits[i_min_max][i_pid] = new TGLabel(pT_Range_Group[i_pid], label_entry.Data(), myGC(), myfont->GetFontStruct());
+            pT_Range_Group[i_pid]->AddFrame(arr_Label_NEntry_limits[i_min_max][i_pid], LHintsD4a2);
         }
     }
 
