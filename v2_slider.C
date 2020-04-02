@@ -37,8 +37,9 @@ private:
     TGTextEntry         *fTeh1, *fTeh2, *fTeh3;
     TGTextBuffer        *fTbh1, *fTbh1a, *fTbh2, *fTbh3;
     TGGroupFrame        *fGroupFrames[7];
-    TGGroupFrame        *pT_Range_Group[N_masses];
+    TGGroupFrame        *pT_Range_Group[N_masses_2];
     TGGroupFrame        *GroupSlider[5];
+    TGGroupFrame        *fGroupFrame_PID_fit[2];
 
     TProfile* tp_v2_vs_pT_mesons[N_masses][9][9][9][9][9] = {NULL}; // [i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a]
     TH1F*     h_dN_dpT_mesons[N_masses][9][9][9][9][9]    = {NULL}; // [i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a]
@@ -69,9 +70,10 @@ private:
     TGVerticalFrame *hVframeD5a[4];
     TGVerticalFrame *hVframeD3;
     TGVerticalFrame *hVframeD4;
-    TGVerticalFrame *Vframe_pT_limits;
+    TGVerticalFrame *Vframe_pT_limits, *Vframe_pT_limits_2;
     TGVerticalFrame *vframeD1;
     TGCompositeFrame *cframe2;
+    TGCompositeFrame *fCompositeFrame_pid[6];
     TGTextButton *ButtonD1a;
     TGTextButton *Button_exit;
     TGTextButton *Button_save;
@@ -93,9 +95,9 @@ private:
     TGComboBox          *fCombo, *ComboEnergy;
 
     TGCheckButton* fCheckBox_sel[3];
-    TGCheckButton* fCheckBox_pid[N_masses];
-    TGCheckButton* fCheckBox_pid_dNdpt[N_masses];
-    TGCheckButton* fCheckBox_pid_plot[N_masses];
+    TGCheckButton* fCheckBox_pid[N_masses_2];
+    TGCheckButton* fCheckBox_pid_fit_dNdpt[N_masses_2];
+    TGCheckButton* fCheckBox_pid_plot[N_masses_2];
     TGCheckButton* fCheckBox_v2_dNdpT[2];
     TGCheckButton* CheckBoxFeedDown;
     TGLayoutHints* fLCheckBox;
@@ -104,8 +106,8 @@ private:
 
     TGHorizontalFrame* arr_HFrame_NEntry_limits[N_masses];
     TGVerticalFrame* arr_VFrame_NEntry_limits[2];
-    TGLabel*           arr_Label_NEntry_limits[2][N_masses];
-    TGNumberEntry*     arr_NEntry_limits[2][N_masses];
+    TGLabel*           arr_Label_NEntry_limits[2][N_masses_2];
+    TGNumberEntry*     arr_NEntry_limits[2][N_masses_2];
     TGNumberEntry*     NEntry_set_limits;;
     TGNumberEntry*     arr_NEntry_ana_params[4];
     TGLabel*           arr_Label_NEntry_ana_params[4];
@@ -656,54 +658,52 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
     //--------------
     ULong_t green;
     gClient->GetColorByName("green", green);
-    ULong_t Red;
-    gClient->GetColorByName("red", Red);
+    //ULong_t Red;
+    //gClient->GetColorByName("red", Red);
     printf("Add particle check boxes \n");
     fGroupFrames[1] = new TGGroupFrame(FrameD, new TGString("PID fit"),kVerticalFrame|kRaisedFrame);
-    TGGroupFrame *fGroupFrameV2 = new TGGroupFrame(fGroupFrames[1],new TGString("v2"),  kVerticalFrame);
-    TGGroupFrame *fGroupFramedNdpt = new TGGroupFrame(fGroupFrames[1],new TGString("dNdpT"),  kVerticalFrame);
-    fGroupFrames[1]->AddFrame(fGroupFrameV2);
-    fGroupFrames[1]->AddFrame(fGroupFramedNdpt);
-    TGCompositeFrame *fCompositeFrameV2_1 = new TGCompositeFrame(fGroupFrameV2,60,20, kHorizontalFrame);
-    TGCompositeFrame *fCompositeFrameV2_2 = new TGCompositeFrame(fGroupFrameV2,60,20, kHorizontalFrame);
-    TGCompositeFrame *fCompositeFramedNdpt_1 = new TGCompositeFrame(fGroupFramedNdpt,60,20, kHorizontalFrame);
-    TGCompositeFrame *fCompositeFramedNdpt_2 = new TGCompositeFrame(fGroupFramedNdpt,60,20, kHorizontalFrame);
-    fGroupFrameV2->AddFrame(fCompositeFrameV2_1, new TGLayoutHints(kLHintsCenterX,2,2,2,2));
-    fGroupFrameV2->AddFrame(fCompositeFrameV2_2, new TGLayoutHints(kLHintsCenterX,2,2,2,2));
-    fGroupFramedNdpt->AddFrame(fCompositeFramedNdpt_1, new TGLayoutHints(kLHintsCenterX,2,2,2,2));
-    fGroupFramedNdpt->AddFrame(fCompositeFramedNdpt_2, new TGLayoutHints(kLHintsCenterX,2,2,2,2));
+    fGroupFrame_PID_fit[0] = new TGGroupFrame(fGroupFrames[1],new TGString("v2"),  kVerticalFrame);
+    fGroupFrame_PID_fit[1] = new TGGroupFrame(fGroupFrames[1],new TGString("dNdpT"),  kVerticalFrame);
+    fGroupFrames[1]->AddFrame(fGroupFrame_PID_fit[0]);
+    fGroupFrames[1]->AddFrame(fGroupFrame_PID_fit[1]);
+    fCompositeFrame_pid[0] = new TGCompositeFrame(fGroupFrame_PID_fit[0],60,20, kHorizontalFrame);
+    fCompositeFrame_pid[1] = new TGCompositeFrame(fGroupFrame_PID_fit[0],60,20, kHorizontalFrame);
+    fCompositeFrame_pid[2] = new TGCompositeFrame(fGroupFrame_PID_fit[1],60,20, kHorizontalFrame);
+    fCompositeFrame_pid[3] = new TGCompositeFrame(fGroupFrame_PID_fit[1],60,20, kHorizontalFrame);
+    fGroupFrame_PID_fit[0]->AddFrame(fCompositeFrame_pid[0], new TGLayoutHints(kLHintsCenterX,2,2,2,2));
+    fGroupFrame_PID_fit[0]->AddFrame(fCompositeFrame_pid[1], new TGLayoutHints(kLHintsCenterX,2,2,2,2));
+    fGroupFrame_PID_fit[1]->AddFrame(fCompositeFrame_pid[2], new TGLayoutHints(kLHintsCenterX,2,2,2,2));
+    fGroupFrame_PID_fit[1]->AddFrame(fCompositeFrame_pid[3], new TGLayoutHints(kLHintsCenterX,2,2,2,2));
 
-    fLCheckBox = new TGLayoutHints(kLHintsTop | kLHintsLeft,0, 0, 5, 0);
-    TString arr_label_PID[21] = {"Pi+","K+","P", "Phi","Omega","D0", "J/psi","Y","d","Pi-","K-","Pbar","K0S","Lambda","Lambdabar","Xi-","Xibar+","Omegabar","dbar","He3", "He3bar"};
+    fLCheckBox = new TGLayoutHints(kLHintsTop | kLHintsLeft,5, 0, 5, 0);
 
     for(Int_t i_particle = 0; i_particle < 12; i_particle++)    // 20= N_masses
     {
-        fCheckBox_pid[i_particle]  = new TGCheckButton(fCompositeFrameV2_1, new TGHotString(arr_label_PID[i_particle].Data()), -1);
-        fCheckBox_pid_dNdpt[i_particle]  = new TGCheckButton(fCompositeFramedNdpt_1, new TGHotString(arr_label_PID[i_particle].Data()), -1);
-        fCheckBox_pid[i_particle]->ChangeBackground(green);
-        fCheckBox_pid_dNdpt[i_particle]->ChangeBackground(green);
+        fCheckBox_pid[i_particle]  = new TGCheckButton(fCompositeFrame_pid[0], new TGHotString(label_full_pid_spectra[i_particle].Data()), -1);
+        fCheckBox_pid_fit_dNdpt[i_particle]  = new TGCheckButton(fCompositeFrame_pid[2], new TGHotString(label_full_pid_spectra[i_particle].Data()), -1);
+        fCheckBox_pid[i_particle] ->ChangeBackground(green);
+        fCheckBox_pid_fit_dNdpt[i_particle] ->ChangeBackground(red);
         if (i_particle>8 )
         {
-            fCheckBox_pid_dNdpt[i_particle]->ChangeBackground(Red);
-            fCheckBox_pid[i_particle]->ChangeBackground(Red);
+            fCheckBox_pid[i_particle] ->ChangeBackground(red);
         }
         fCheckBox_pid[i_particle] ->SetState(kButtonDown);
-        fCheckBox_pid_dNdpt[i_particle] ->SetState(kButtonDown);
+        fCheckBox_pid_fit_dNdpt[i_particle] ->SetState(kButtonDown);
         //fCheckBox_pid[i_particle] ->Connect("Clicked()", "TBlastWaveGUI", this, "DoSlider()");
-        fCompositeFrameV2_1->AddFrame(fCheckBox_pid[i_particle], fLCheckBox);
-        fCompositeFramedNdpt_1->AddFrame(fCheckBox_pid_dNdpt[i_particle], fLCheckBox);
+        fCompositeFrame_pid[0]->AddFrame(fCheckBox_pid[i_particle], fLCheckBox);
+        fCompositeFrame_pid[2]->AddFrame(fCheckBox_pid_fit_dNdpt[i_particle], fLCheckBox);
     }
-    for(Int_t i_particle = 12; i_particle < 21; i_particle++)    // 20= N_masses
+    for(Int_t i_particle = 12; i_particle < N_masses_2; i_particle++)    // 20= N_masses
     {
-        fCheckBox_pid[i_particle]  = new TGCheckButton(fCompositeFrameV2_2, new TGHotString(arr_label_PID[i_particle].Data()), -1);
-        fCheckBox_pid_dNdpt[i_particle]  = new TGCheckButton(fCompositeFramedNdpt_2, new TGHotString(arr_label_PID[i_particle].Data()), -1);
-        fCheckBox_pid[i_particle]->ChangeBackground(Red);
+        fCheckBox_pid[i_particle]  = new TGCheckButton(fCompositeFrame_pid[1], new TGHotString(label_full_pid_spectra[i_particle].Data()), -1);
+        fCheckBox_pid[i_particle]->ChangeBackground(red);
         fCheckBox_pid[i_particle] ->SetState(kButtonDown);
-        fCheckBox_pid_dNdpt[i_particle]->ChangeBackground(Red);
-        fCheckBox_pid_dNdpt[i_particle] ->SetState(kButtonDown);
+        fCheckBox_pid_fit_dNdpt[i_particle]  = new TGCheckButton(fCompositeFrame_pid[3], new TGHotString(label_full_pid_spectra[i_particle].Data()), -1);
+        fCheckBox_pid_fit_dNdpt[i_particle]->ChangeBackground(red);
+        fCheckBox_pid_fit_dNdpt[i_particle] ->SetState(kButtonDown);
         //fCheckBox_pid[i_particle] ->Connect("Clicked()", "TBlastWaveGUI", this, "DoSlider()");
-        fCompositeFrameV2_2->AddFrame(fCheckBox_pid[i_particle], fLCheckBox);
-        fCompositeFramedNdpt_2->AddFrame(fCheckBox_pid_dNdpt[i_particle], fLCheckBox);
+        fCompositeFrame_pid[1]->AddFrame(fCheckBox_pid[i_particle], fLCheckBox);
+        fCompositeFrame_pid[3]->AddFrame(fCheckBox_pid_fit_dNdpt[i_particle], fLCheckBox);
     }
     FrameD ->AddFrame(fGroupFrames[1], new TGLayoutHints(kLHintsCenterX,2,2,2,2));
     //--------------
@@ -711,15 +711,27 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
 
     //--------------
     printf("Add particle check boxes \n");
-    fGroupFrames[5] = new TGGroupFrame(FrameD, new TGString("PID plot"),kHorizontalFrame|kRaisedFrame);
-    fLCheckBoxB = new TGLayoutHints(kLHintsTop | kLHintsLeft,0, 0, 5, 0);
-    for(Int_t i_particle = 0; i_particle < N_masses; i_particle++)
+    fGroupFrames[5] = new TGGroupFrame(FrameD, new TGString("PID plot"),kVerticalFrame|kRaisedFrame);
+    fLCheckBoxB = new TGLayoutHints(kLHintsTop | kLHintsLeft,5, 0, 5, 0);
+    fCompositeFrame_pid[4] = new TGCompositeFrame(fGroupFrames[5],60,20, kHorizontalFrame);
+    fCompositeFrame_pid[5] = new TGCompositeFrame(fGroupFrames[5],60,20, kHorizontalFrame);
+    fGroupFrames[5]->AddFrame(fCompositeFrame_pid[4]);
+    fGroupFrames[5]->AddFrame(fCompositeFrame_pid[5]);
+    for(Int_t i_particle = 0; i_particle < 12; i_particle++)
     {
-        fCheckBox_pid_plot[i_particle]  = new TGCheckButton(fGroupFrames[5], new TGHotString(label_full_pid_spectra[i_particle].Data()), -1);
+        fCheckBox_pid_plot[i_particle]  = new TGCheckButton(fCompositeFrame_pid[4], new TGHotString(label_full_pid_spectra[i_particle].Data()), -1);
         //fCheckBox_pid_plot[i_particle]->ChangeBackground(green);
         fCheckBox_pid_plot[i_particle] ->SetState(kButtonDown);
         fCheckBox_pid_plot[i_particle] ->Connect("Clicked()", "TBlastWaveGUI", this, "DoSlider()");
-        fGroupFrames[5]->AddFrame(fCheckBox_pid_plot[i_particle], fLCheckBoxB);
+        fCompositeFrame_pid[4]->AddFrame(fCheckBox_pid_plot[i_particle], fLCheckBoxB);
+    }
+    for(Int_t i_particle = 12; i_particle < N_masses_2; i_particle++)
+    {
+        fCheckBox_pid_plot[i_particle]  = new TGCheckButton(fCompositeFrame_pid[5], new TGHotString(label_full_pid_spectra[i_particle].Data()), -1);
+        //fCheckBox_pid_plot[i_particle]->ChangeBackground(green);
+        fCheckBox_pid_plot[i_particle] ->SetState(kButtonDown);
+        fCheckBox_pid_plot[i_particle] ->Connect("Clicked()", "TBlastWaveGUI", this, "DoSlider()");
+        fCompositeFrame_pid[5]->AddFrame(fCheckBox_pid_plot[i_particle], fLCheckBoxB);
     }
     FrameD ->AddFrame(fGroupFrames[5], new TGLayoutHints(kLHintsCenterX,2,2,2,2));
     //--------------
@@ -837,7 +849,7 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
     LHintsD4a = new TGLayoutHints(kLHintsCenterX,5,5,2,0);
     LHintsD4a2 = new TGLayoutHints(kLHintsCenterX,5,5,5,0);
 
-    TString arr_label_pid[N_masses]     = {"Pi","K","P", "Phi","Omega","D0","J/psi","Y","d"};
+   // TString arr_label_pid[N_masses]     = {"Pi","K","P", "Phi","Omega","D0","J/psi","Y","d"};
     TString arr_label_min_max[2] = {"min","max"};
 
     arr_fL1[0] = new TGLayoutHints(kLHintsTop | kLHintsLeft, 2, 2, 2, 0);
@@ -845,11 +857,13 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
 
     Double_t max_val_VF[2] = {300,500};
 
-    frame_TGTransient = new TGTransientFrame(gClient->GetRoot(), FrameD, 10, 10, kVerticalFrame);
+    frame_TGTransient = new TGTransientFrame(gClient->GetRoot(), FrameD, 60, 20, kHorizontalFrame);
     FrameD ->AddFrame(frame_TGTransient,LHintsD4a);
 
-    Vframe_pT_limits = new TGVerticalFrame(frame_TGTransient,200,300);
+    Vframe_pT_limits = new TGVerticalFrame(frame_TGTransient, 200,300);
     frame_TGTransient->AddFrame(Vframe_pT_limits,new TGLayoutHints(kLHintsCenterX,2,2,2,2));
+    Vframe_pT_limits_2 = new TGVerticalFrame(frame_TGTransient);
+    frame_TGTransient->AddFrame(Vframe_pT_limits_2);
 
     fGroupFrames[4] = new TGGroupFrame(frame_TGTransient, new TGString("Set pT limits"),kHorizontalFrame|kRaisedFrame);
     Vframe_pT_limits->AddFrame(fGroupFrames[4], new TGLayoutHints(kLHintsCenterX,2,2,2,2));
@@ -858,11 +872,13 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
     NEntry_set_limits->SetNumStyle( TGNumberFormat::kNESRealTwo); // https://root.cern.ch/doc/master/classTGNumberFormat.html#a8a0f81aac8ac12d0461aef554c6271ad
     fGroupFrames[4]->AddFrame(NEntry_set_limits, LHintsD4a);
 
-    for(Int_t i_pid = 0; i_pid < N_masses; i_pid++)
+    //TGVerticalFrame *Vframe_pT_limits_1= new TGVerticalFrame(frame_TGTransient);
+    //Vframe_pT_limits->AddFrame(Vframe_pT_limits_1);
+    for(Int_t i_pid = 0; i_pid < N_masses_2; i_pid++)
     {
-        pT_Range_Group[i_pid] = new TGGroupFrame(frame_TGTransient,arr_label_pid[i_pid],kHorizontalFrame);
-        Vframe_pT_limits->AddFrame(pT_Range_Group[i_pid], new TGLayoutHints(kLHintsCenterX,2,2,2,2));
-
+        pT_Range_Group[i_pid] = new TGGroupFrame(frame_TGTransient,label_full_pid_spectra[i_pid],kHorizontalFrame);
+        if (i_pid<11) Vframe_pT_limits->AddFrame(pT_Range_Group[i_pid], new TGLayoutHints(kLHintsCenterX,2,2,2,2));
+        //if (i_pid>10) Vframe_pT_limits_2->AddFrame(pT_Range_Group[i_pid], new TGLayoutHints(kLHintsCenterX,2,2,2,2));
         for(Int_t i_min_max = 0; i_min_max < 2; i_min_max++)
         {
             arr_NEntry_limits[i_min_max][i_pid] = new TGNumberEntry(pT_Range_Group[i_pid], min_max_pT_range_pid[i_min_max][i_pid], 12,(TGNumberFormat::EStyle) 1);
@@ -880,7 +896,7 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
     frame_TGTransient->CenterOnParent();
     frame_TGTransient->SetWindowName("pT limits");
     frame_TGTransient->MapWindow();
-    frame_TGTransient->Move(950,650); // position of frame
+    frame_TGTransient->Move(900,650); // position of frame
     //--------------
 
 

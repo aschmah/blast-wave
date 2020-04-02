@@ -23,6 +23,7 @@
 #include "TPolyLine3D.h"
 #include "TVirtualFitter.h"
 #include "Math/MinimizerOptions.h"
+/*
 #include "TGLViewer.h"
 #include "TGLSAViewer.h"
 #include "TGLCamera.h"
@@ -37,6 +38,7 @@
 #include "TGeoMedium.h"
 #include "TGeoVolume.h"
 #include "TGeoMatrix.h"
+*/
 #include "TRandom.h"
 #include "TRandom3.h"
 #include "TGraph.h"
@@ -82,13 +84,15 @@ static Double_t arr_pt_low_cut[N_v2_vs_pt_BW+3];
 static Double_t arr_pt_high_cut[N_v2_vs_pt_BW+3];
 static Int_t arr_color[N_v2_vs_pt_BW+3] = {kBlack,kGreen+1,kRed,kMagenta+1,kCyan+1,kOrange,kRed,kGray,kYellow+2,kRed,kMagenta,kGreen+1};
 
-static const Int_t    N_masses         = 9;
+static const Int_t    N_masses         = 9; // 9->21
+static const Int_t    N_masses_2      = 21;
 static TH2D* h2D_geometric_shape = NULL;
 static TF1 *f_LevyFitFunc        = NULL;
 static TF1 *f_FitBessel          = NULL;
 static TF1 *f_JetPtFunc          = NULL;
-static Double_t arr_quark_mass_meson[N_masses]         = {0.13957,0.497648,0.938272,1.019460,1.67245,1.86962,3.096916,9.46030,1.875612};
-static Double_t pT_fit_max[N_masses]                   = {1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0};
+static Double_t arr_quark_mass_meson[N_masses_2]         = {0.13957,0.497648,0.938272,1.019460,1.67245,1.86962,3.096916,9.46030,1.875612,0.13957,0.497648,0.938272,
+0.497611,1.115683,1.115683, 1.32171, 1.32171, 1.67245, 1.875612, 2.8094313, 2.8094313};
+static Double_t pT_fit_max[N_masses_2]                   = {1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0};
 static Int_t    arr_color_mass[N_masses]               = {kBlack,kGreen+1,kRed,kMagenta+1,kCyan+1,kOrange,kYellow+2,kAzure-2,kOrange+1};
 static const Double_t R_Pb = 5.4946; // fm
 static TH2D* h2D_density_Glauber;
@@ -113,7 +117,7 @@ static TGraphAsymmErrors* tge_deuteron_dNdpT;
 static TH1D* h_dNdpT_best = NULL;
 static vector<TGraphErrors*> vec_tge_v2_vs_pT_560_pid;
 static TString label_pid_spectra[N_masses] = {"#pi","K","p","#phi","#Omega","D^{0}","J/#psi","#varUpsilon","d"};
-static TString label_full_pid_spectra[N_masses] = {"pi","K","p","phi","Omega","D0","J/psi","Upsilon","d"};
+static TString label_full_pid_spectra[N_masses_2] = {"Pi+","K+","P", "Phi","Omega","D0", "J/psi","Upsilon","d","Pi-","K-","Pbar","K0S","Lambda","Lambdabar","Xi-","Xibar+","Omegabar","dbar","He3", "He3bar"}; // 9 -> 21  
 static TString label_v2_dNdpT[2] = {"v2","dNdpT"};
 
 static Double_t Temp_loop_start  = 0.08;
@@ -1358,7 +1362,7 @@ void init_pT_spectra_data()
 
 
 //------------------------------------------------------------------------------------------------------------
-void init_data()
+void init_data() // v2
 {
     printf("Initialize data \n");
     // https://arxiv.org/pdf/1405.4632.pdf
