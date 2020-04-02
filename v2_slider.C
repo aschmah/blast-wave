@@ -94,6 +94,7 @@ private:
 
     TGCheckButton* fCheckBox_sel[3];
     TGCheckButton* fCheckBox_pid[N_masses];
+    TGCheckButton* fCheckBox_pid_dNdpt[N_masses];
     TGCheckButton* fCheckBox_pid_plot[N_masses];
     TGCheckButton* fCheckBox_v2_dNdpT[2];
     TGCheckButton* CheckBoxFeedDown;
@@ -653,15 +654,56 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
 
 
     //--------------
+    ULong_t green;
+    gClient->GetColorByName("green", green);
+    ULong_t Red;
+    gClient->GetColorByName("red", Red);
     printf("Add particle check boxes \n");
-    fGroupFrames[1] = new TGGroupFrame(FrameD, new TGString("PID fit"),kHorizontalFrame|kRaisedFrame);
+    fGroupFrames[1] = new TGGroupFrame(FrameD, new TGString("PID fit"),kVerticalFrame|kRaisedFrame);
+    TGGroupFrame *fGroupFrameV2 = new TGGroupFrame(fGroupFrames[1],new TGString("v2"),  kVerticalFrame);
+    TGGroupFrame *fGroupFramedNdpt = new TGGroupFrame(fGroupFrames[1],new TGString("dNdpT"),  kVerticalFrame);
+    fGroupFrames[1]->AddFrame(fGroupFrameV2);
+    fGroupFrames[1]->AddFrame(fGroupFramedNdpt);
+    TGCompositeFrame *fCompositeFrameV2_1 = new TGCompositeFrame(fGroupFrameV2,60,20, kHorizontalFrame);
+    TGCompositeFrame *fCompositeFrameV2_2 = new TGCompositeFrame(fGroupFrameV2,60,20, kHorizontalFrame);
+    TGCompositeFrame *fCompositeFramedNdpt_1 = new TGCompositeFrame(fGroupFramedNdpt,60,20, kHorizontalFrame);
+    TGCompositeFrame *fCompositeFramedNdpt_2 = new TGCompositeFrame(fGroupFramedNdpt,60,20, kHorizontalFrame);
+    fGroupFrameV2->AddFrame(fCompositeFrameV2_1, new TGLayoutHints(kLHintsCenterX,2,2,2,2));
+    fGroupFrameV2->AddFrame(fCompositeFrameV2_2, new TGLayoutHints(kLHintsCenterX,2,2,2,2));
+    fGroupFramedNdpt->AddFrame(fCompositeFramedNdpt_1, new TGLayoutHints(kLHintsCenterX,2,2,2,2));
+    fGroupFramedNdpt->AddFrame(fCompositeFramedNdpt_2, new TGLayoutHints(kLHintsCenterX,2,2,2,2));
+
     fLCheckBox = new TGLayoutHints(kLHintsTop | kLHintsLeft,0, 0, 5, 0);
-    for(Int_t i_particle = 0; i_particle < N_masses; i_particle++)
+    TString arr_label_PID[21] = {"Pi+","K+","P", "Phi","Omega","D0", "J/psi","Y","d","Pi-","K-","Pbar","K0S","Lambda","Lambdabar","Xi-","Xibar+","Omegabar","dbar","He3", "He3bar"};
+
+    for(Int_t i_particle = 0; i_particle < 12; i_particle++)    // 20= N_masses
     {
-        fCheckBox_pid[i_particle]  = new TGCheckButton(fGroupFrames[1], new TGHotString(label_full_pid_spectra[i_particle].Data()), -1);
+        fCheckBox_pid[i_particle]  = new TGCheckButton(fCompositeFrameV2_1, new TGHotString(arr_label_PID[i_particle].Data()), -1);
+        fCheckBox_pid_dNdpt[i_particle]  = new TGCheckButton(fCompositeFramedNdpt_1, new TGHotString(arr_label_PID[i_particle].Data()), -1);
+        fCheckBox_pid[i_particle]->ChangeBackground(green);
+        fCheckBox_pid_dNdpt[i_particle]->ChangeBackground(green);
+        if (i_particle>8 )
+        {
+            fCheckBox_pid_dNdpt[i_particle]->ChangeBackground(Red);
+            fCheckBox_pid[i_particle]->ChangeBackground(Red);
+        }
         fCheckBox_pid[i_particle] ->SetState(kButtonDown);
+        fCheckBox_pid_dNdpt[i_particle] ->SetState(kButtonDown);
         //fCheckBox_pid[i_particle] ->Connect("Clicked()", "TBlastWaveGUI", this, "DoSlider()");
-        fGroupFrames[1]->AddFrame(fCheckBox_pid[i_particle], fLCheckBox);
+        fCompositeFrameV2_1->AddFrame(fCheckBox_pid[i_particle], fLCheckBox);
+        fCompositeFramedNdpt_1->AddFrame(fCheckBox_pid_dNdpt[i_particle], fLCheckBox);
+    }
+    for(Int_t i_particle = 12; i_particle < 21; i_particle++)    // 20= N_masses
+    {
+        fCheckBox_pid[i_particle]  = new TGCheckButton(fCompositeFrameV2_2, new TGHotString(arr_label_PID[i_particle].Data()), -1);
+        fCheckBox_pid_dNdpt[i_particle]  = new TGCheckButton(fCompositeFramedNdpt_2, new TGHotString(arr_label_PID[i_particle].Data()), -1);
+        fCheckBox_pid[i_particle]->ChangeBackground(Red);
+        fCheckBox_pid[i_particle] ->SetState(kButtonDown);
+        fCheckBox_pid_dNdpt[i_particle]->ChangeBackground(Red);
+        fCheckBox_pid_dNdpt[i_particle] ->SetState(kButtonDown);
+        //fCheckBox_pid[i_particle] ->Connect("Clicked()", "TBlastWaveGUI", this, "DoSlider()");
+        fCompositeFrameV2_2->AddFrame(fCheckBox_pid[i_particle], fLCheckBox);
+        fCompositeFramedNdpt_2->AddFrame(fCheckBox_pid_dNdpt[i_particle], fLCheckBox);
     }
     FrameD ->AddFrame(fGroupFrames[1], new TGLayoutHints(kLHintsCenterX,2,2,2,2));
     //--------------
@@ -674,6 +716,7 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
     for(Int_t i_particle = 0; i_particle < N_masses; i_particle++)
     {
         fCheckBox_pid_plot[i_particle]  = new TGCheckButton(fGroupFrames[5], new TGHotString(label_full_pid_spectra[i_particle].Data()), -1);
+        //fCheckBox_pid_plot[i_particle]->ChangeBackground(green);
         fCheckBox_pid_plot[i_particle] ->SetState(kButtonDown);
         fCheckBox_pid_plot[i_particle] ->Connect("Clicked()", "TBlastWaveGUI", this, "DoSlider()");
         fGroupFrames[5]->AddFrame(fCheckBox_pid_plot[i_particle], fLCheckBoxB);
@@ -776,9 +819,15 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
     //-------------
 
 
+
+
+
+    //-------------
+
+
     FrameD ->MapSubwindows();
     FrameD ->MapWindow();
-    FrameD ->Resize(550,550); // size of frame
+    FrameD ->Resize(700,700); // size of frame
     FrameD ->Move(1250,650); // position of frame
 
 
@@ -788,7 +837,7 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
     LHintsD4a = new TGLayoutHints(kLHintsCenterX,5,5,2,0);
     LHintsD4a2 = new TGLayoutHints(kLHintsCenterX,5,5,5,0);
 
-    TString arr_label_pid[N_masses]     = {"pi","K","p","phi","Omega","D0","J/psi","Y","d"};
+    TString arr_label_pid[N_masses]     = {"Pi","K","P", "Phi","Omega","D0","J/psi","Y","d"};
     TString arr_label_min_max[2] = {"min","max"};
 
     arr_fL1[0] = new TGLayoutHints(kLHintsTop | kLHintsLeft, 2, 2, 2, 0);
