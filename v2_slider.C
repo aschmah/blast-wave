@@ -999,7 +999,6 @@ void TBlastWaveGUI::DoSetClicked(Int_t i_particle, Int_t i_type)
 
     cout << "SetClicked()" << endl;
     if(!TransientFrame_Set[i_type][i_particle]) TransientFrame_Set[i_type][i_particle] = new TGTransientFrame(gClient->GetRoot(), FrameD, 60, 20, kHorizontalFrame);
-
     if(!fVSetClicked[i_type][i_particle])       fVSetClicked[i_type][i_particle]       = new TGVerticalFrame(TransientFrame_Set[i_type][i_particle]);
     if(!ComboCentrality_PID[i_type][i_particle])ComboCentrality_PID[i_type][i_particle]= new TGComboBox(fVSetClicked[i_type][i_particle], "Centrality");
     if(!ComboEnergy_PID[i_type][i_particle])    ComboEnergy_PID[i_type][i_particle]    = new TGComboBox(fVSetClicked[i_type][i_particle], "Energy");
@@ -1010,6 +1009,23 @@ void TBlastWaveGUI::DoSetClicked(Int_t i_particle, Int_t i_type)
     ComboCentrality_PID[i_type][i_particle] ->Select(0);
     ComboEnergy_PID[i_type][i_particle]     ->Resize(100,20);
     ComboEnergy_PID[i_type][i_particle]     ->Select(0);
+
+    TransientFrame_Set[i_type][i_particle]->SetWindowName(label_full_pid_spectra[i_particle].Data());
+    TString ComboCentralityLabel_PID[18] = {"0-5  %", "0-10 %", "0-20 %","0-30 %","0-80%", "5-10 %","10-20%", "20-30%","10-40%","20-40%", "30-40%", "40-50%", "40-60%","40-80%", "50-60%", "60-70%","60-80%", "70-80%"};
+    TString ComboEnergyLabel_PID[10] = {"7.7    GeV","11.5  GeV","14.6  GeV","19.6  GeV","27.0  GeV","39.0  GeV","62.4  GeV","200   GeV", "2760 GeV", "5020 GeV"};
+    for(Int_t index_cent_pid = 0; index_cent_pid < 18; index_cent_pid++)
+    {
+        ComboCentrality_PID[i_type][i_particle]->AddEntry(ComboCentralityLabel_PID[index_cent_pid], index_cent_pid);
+    }
+    for(Int_t index_energy_pid = 0; index_energy_pid < 10; index_energy_pid++)
+    {
+        ComboEnergy_PID[i_type][i_particle]->AddEntry(ComboEnergyLabel_PID[index_energy_pid], index_energy_pid);
+    }
+    TransientFrame_Set[i_type][i_particle]->MapSubwindows();
+    TransientFrame_Set[i_type][i_particle]->Resize(150,70);
+    TransientFrame_Set[i_type][i_particle]->CenterOnParent();
+    TransientFrame_Set[i_type][i_particle]->MapWindow();
+    //TransientFrame_Set[i_type][i_particle]->Move(500,650); // position of frame
     /*
     // v2:  Pi+-, K+-, P, Pbar, K0S, Lambda, Lambdabar, Omega-, Omegabar+, Xi-, Xibar+, Phi
     TString ComboCentralityLabel_PID[4] = {"0-10 %","10-40%","40-80%", "0-80%"};
@@ -1023,41 +1039,7 @@ void TBlastWaveGUI::DoSetClicked(Int_t i_particle, Int_t i_type)
     TString ComboCentralityLabel_PID[4] = {"0-10%","10-20%","20-40","40-80%"};
     TString ComboEnergyLabel_PID[1] = {"62.4  GeV"}
     */
-    if (i_type == 0)
-    {
-        TString ComboCentralityLabel_PID[4] = {"0-10 %","10-40%","40-80%", "0-80%"};
-        TString ComboEnergyLabel_PID[7] = {"7.7    GeV","11.5  GeV","14.6  GeV","19.6  GeV","27.0  GeV","39.0  GeV","62.4  GeV"};
-        if (i_particle == 0)
-        {
-            TransientFrame_Set[i_type][i_particle]->SetWindowName(label_full_pid_spectra[i_particle].Data());
-            for(Int_t index_cent_pid = 0; index_cent_pid < 4; index_cent_pid++)
-            {
-                ComboCentrality_PID[i_type][i_particle]->AddEntry(ComboCentralityLabel_PID[index_cent_pid], index_cent_pid);
-            }
-            for(Int_t index_energy_pid = 0; index_energy_pid < 7; index_energy_pid++)
-            {
-                ComboEnergy_PID[i_type][i_particle]->AddEntry(ComboEnergyLabel_PID[index_energy_pid], index_energy_pid);
-            }
-        }
-        if (i_particle == 1)
-        {
-            TransientFrame_Set[i_type][i_particle]->SetWindowName(label_full_pid_spectra[i_particle].Data());
-            for(Int_t index_cent_pid = 0; index_cent_pid < 4; index_cent_pid++)
-            {
-                ComboCentrality_PID[i_type][i_particle]->AddEntry(ComboCentralityLabel_PID[index_cent_pid], index_cent_pid);
-            }
-            for(Int_t index_energy_pid = 0; index_energy_pid < 7; index_energy_pid++)
-            {
-                ComboEnergy_PID[i_type][i_particle]->AddEntry(ComboEnergyLabel_PID[index_energy_pid], index_energy_pid);
-            }
-        }
-    }
 
-    TransientFrame_Set[i_type][i_particle]->MapSubwindows();
-    TransientFrame_Set[i_type][i_particle]->Resize(150,70);
-    TransientFrame_Set[i_type][i_particle]->CenterOnParent();
-    TransientFrame_Set[i_type][i_particle]->MapWindow();
-    //TransientFrame_Set[i_type][i_particle]->Move(500,650); // position of frame
 }
 
 //______________________________________________________________________________
