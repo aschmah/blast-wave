@@ -90,8 +90,8 @@ static TH2D* h2D_geometric_shape = NULL;
 static TF1 *f_LevyFitFunc        = NULL;
 static TF1 *f_FitBessel          = NULL;
 static TF1 *f_JetPtFunc          = NULL;
-static Double_t arr_quark_mass_meson[N_masses_2]         = {0.13957,0.497648,0.938272,1.019460,1.67245,1.86962,3.096916,9.46030,1.875612,0.13957,0.497648,0.938272,
-0.497611,1.115683,1.115683, 1.32171, 1.32171, 1.67245, 1.875612, 2.8094313, 2.8094313};
+static Double_t arr_quark_mass_meson[N_masses_2]         = {0.13957,0.13957,0.497648,0.497648,0.938272,0.938272,1.019460,1.32171, 1.32171, 1.67245,1.67245,1.115683,1.115683,0.497611,1.86962,3.096916,9.46030,1.875612,
+1.875612, 2.8094313, 2.8094313};
 static Double_t pT_fit_max[N_masses_2]                   = {1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0};
 static Int_t    arr_color_mass[N_masses]               = {kBlack,kGreen+1,kRed,kMagenta+1,kCyan+1,kOrange,kYellow+2,kAzure-2,kOrange+1};
 static const Double_t R_Pb = 5.4946; // fm
@@ -117,7 +117,7 @@ static TGraphAsymmErrors* tge_deuteron_dNdpT;
 static TH1D* h_dNdpT_best = NULL;
 static vector<TGraphErrors*> vec_tge_v2_vs_pT_560_pid;
 static TString label_pid_spectra[N_masses] = {"#pi","K","p","#phi","#Omega","D^{0}","J/#psi","#varUpsilon","d"};
-static TString label_full_pid_spectra[N_masses_2] = {"Pi+","K+","P", "Phi","Omega","D0", "J/psi","Upsilon","d","Pi-","K-","Pbar","K0S","Lambda","Lambdabar","Xi-","Xibar+","Omegabar","dbar","He3", "He3bar"}; // 9 -> 21  
+static TString label_full_pid_spectra[N_masses_2] = {"Pi+","Pi-","K+","K-","P","Pbar", "Phi","Xi-","Xibar+","Omega-","Omegabar+","Lambda","Lambdabar","K0S","D0", "J/psi","Upsilon","d","dbar","He3", "He3bar"}; // 9 -> 21  
 static TString label_v2_dNdpT[2] = {"v2","dNdpT"};
 
 static Double_t Temp_loop_start  = 0.08;
@@ -986,6 +986,136 @@ Double_t PtFitBessel(Double_t* x_val, Double_t* par)
     y = Ampl*x*sqrt(x*x+m0*m0)*TMath::BesselK1(sqrt(x*x+m0*m0)/Temp);
     return y;
 }
+//------------------------------------------------------------------------------------------------------------
+
+
+
+//----------------------------------------------------------------------------------------
+void load_data(const char *dirname="./Out/", const char *ext=".root")
+{
+    printf("load_data \n");
+    TSystemDirectory dir(dirname, dirname);
+    TList *files = dir.GetListOfFiles();
+    if (files)
+    {
+        TSystemFile *file;
+        vector<TString> vec_fname;
+        TString fname;
+        TIter next(files);
+        while ((file=(TSystemFile*)next()))
+        {
+            fname = file->GetName();
+            if (!file->IsDirectory() && fname.EndsWith(ext))
+            {
+                vec_fname.push_back(fname.Data());
+                cout << fname.Data() << endl;
+                fname.Clear();
+
+
+            }
+        }
+
+        vector<TFile*> vec_newfile;
+        vector<TGraphAsymmErrors*> vec_tgae;
+        vec_tgae.clear();
+        vector<TString> vec_tgae_name;
+        vec_tgae_name.clear();
+
+        for (Int_t index_file = 0; index_file < (Int_t)vec_fname.size(); index_file++)
+        {
+            TString filename = "./Out/";
+            filename += vec_fname[index_file];
+            vec_newfile.push_back( new TFile(filename.Data()));
+
+            TString GraphName;
+            TIter keyList(vec_newfile[index_file]->GetListOfKeys());
+            TKey *key;
+            while((key = (TKey*)keyList())) {
+                TClass *cl = gROOT->GetClass(key->GetClassName());
+                if( !cl->InheritsFrom("TGraphAsymmErrors"))continue;
+                GraphName = key->GetName();
+                vec_tgae_name.push_back(GraphName.Copy());
+                vec_tgae.push_back((TGraphAsymmErrors*)key->ReadObj());
+                //cout<< vec_tgae.size()<<endl;
+                //cout<< GraphName <<endl;
+                GraphName.Clear();
+
+            }
+        }
+        TString type, pid, energy, centrality_lower, centrality_upper;
+        vector<TString> vec_type;
+        vector<TString> vec_pid;
+        vector<TString> vec_energy;
+        vector<TString> vec_centrality_lower;
+        vector<TString> vec_centrality_upper;
+
+        for (Int_t i_graph = 0; i_graph < (Int_t)vec_tgae_name.size(); i_graph++ )
+        {
+            Ssiz_t found = vec_tgae_name[i_graph].First("_");
+            TSubString sub_str =  vec_tgae_name[i_graph](0,found);
+            type = sub_str;
+
+            vec_tgae_name[i_graph].Replace(0, found+1, "");
+            found = vec_tgae_name[i_graph].First("_");
+            vec_tgae_name[i_graph].Replace(0, found+1, "");
+
+            found = vec_tgae_name[i_graph].First("_");
+            sub_str =  vec_tgae_name[i_graph](0,found);
+            pid = sub_str;
+
+            vec_tgae_name[i_graph].Replace(0, found+1, "");
+
+            found = vec_tgae_name[i_graph].First("_");
+            vec_tgae_name[i_graph].Replace(0, found+1, "");
+
+            found = vec_tgae_name[i_graph].First("_");
+            sub_str =  vec_tgae_name[i_graph](0,found);
+            energy = sub_str;
+
+            vec_tgae_name[i_graph].Replace(0, found+1, "");
+
+            found = vec_tgae_name[i_graph].First("_");
+            vec_tgae_name[i_graph].Replace(0, found+1, "");
+
+            found = vec_tgae_name[i_graph].First("_");
+            sub_str =  vec_tgae_name[i_graph](0,found);
+            centrality_lower = sub_str;
+
+            vec_tgae_name[i_graph].Replace(0, found+1, "");
+
+            found = vec_tgae_name[i_graph].First("_");
+            sub_str =  vec_tgae_name[i_graph](0,found);
+            centrality_upper = sub_str;
+
+            vec_type.push_back(type.Copy());
+            vec_pid.push_back(pid.Copy());
+            vec_energy.push_back(energy.Copy());
+            vec_centrality_lower.push_back(centrality_lower.Copy());
+            vec_centrality_upper.push_back(centrality_upper.Copy());
+
+            type.Clear();
+            pid.Clear();
+            energy.Clear();
+            centrality_lower.Clear();
+            centrality_upper.Clear();
+        }
+        cout<< vec_type.size()<<endl;
+        cout<< vec_pid.size()<<endl;
+
+        /* 
+        for (Int_t i_found = 0; i_found < (Int_t)vec_tgae_name.size();i_found++ )
+        {
+            if (vec_pid[i_found] == label_full_pid_spectra[11]) cout<< i_found <<endl;
+        } 
+         */   
+
+    }
+
+
+
+}
+
+
 //----------------------------------------------------------------------------------------
 
 

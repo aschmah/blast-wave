@@ -335,6 +335,8 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
 
     init_data();
     init_pT_spectra_data();
+    load_data();
+
     //make_5_60_spectra();
     Init_v2_Mathematica();
 
@@ -898,7 +900,7 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
     ComboCentrality->Select(0);
     //-------------
 
-
+    //-------------
 
 
     //-------------
