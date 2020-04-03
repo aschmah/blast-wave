@@ -91,10 +91,9 @@ private:
     TGLabel*       LabelD4b;
     TGTransientFrame* frame_TGTransient;
     TGTransientFrame* frame_TGTransientB;
-    TGTransientFrame* TransientFrame_Set;
     TGTextButton      *Button_take_params_MC_to_ana;
     TGTextButton      *Button_take_params_Set_to_ana;
-    TGComboBox          *fCombo, *ComboEnergy, *ComboCentrality;
+    TGComboBox        *fCombo, *ComboEnergy, *ComboCentrality;
 
     TGCheckButton* fCheckBox_sel[3];
     TGCheckButton* fCheckBox_pid[N_masses_2];
@@ -203,9 +202,10 @@ private:
 
     Tblastwave_yield_and_v2 bw_ana;
     TFile* outputfile;
-
-
-
+    vector< vector<TGTransientFrame*> > TransientFrame_Set;
+    vector< vector<TGVerticalFrame*> >  fVSetClicked;
+    vector< vector<TGComboBox*> >       ComboEnergy_PID;
+    vector< vector<TGComboBox*> >       ComboCentrality_PID;
 public:
     TBlastWaveGUI();
     virtual ~TBlastWaveGUI();
@@ -223,7 +223,7 @@ public:
     void CalcMaxPtLimits();
     void DrawEllipse();
     void DoSave();
-    void SetClicked(Int_t i_particle, Int_t i_type);
+    void DoSetClicked(Int_t i_particle, Int_t i_type);
     ClassDef(TBlastWaveGUI, 0)
 };
 
@@ -697,11 +697,9 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
         fCheckBox_pid_set[0][i_particle] = new TGCheckButton(fGroupFrames_particles[0][i_particle],"set" );
         fCheckBox_pid_set[2][i_particle] = new TGCheckButton(fGroupFrames_particles[2][i_particle],"set" );
 
-        fCheckBox_pid_set[0][i_particle]->Connect("Clicked()", "TBlastWaveGUI", this, Form("SetClicked(Int_t=%d, Int_t=%d)", i_particle,0));
-        fCheckBox_pid_set[2][i_particle]->Connect("Clicked()", "TBlastWaveGUI", this, Form("SetClicked(Int_t=%d, Int_t=%d)", i_particle,0));
+        fCheckBox_pid_set[0][i_particle]->Connect("Clicked()", "TBlastWaveGUI", this, Form("DoSetClicked(Int_t =%d, %d)", i_particle,0));
+        fCheckBox_pid_set[2][i_particle]->Connect("Clicked()", "TBlastWaveGUI", this, Form("DoSetClicked(Int_t =%d, %d)", i_particle,1));
        
-        //fCheckBox_pid_set[0][i_particle]->Connect("Clicked()", "TBlastWaveGUI", this, "SetClicked()");
-        //fCheckBox_pid_set[2][i_particle]->Connect("Clicked()", "TBlastWaveGUI", this, "SetClicked()");
 
         fCheckBox_pid[i_particle] ->ChangeBackground(green);
         fCheckBox_pid_fit_dNdpt[i_particle] ->ChangeBackground(red);
@@ -730,12 +728,10 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
         fCheckBox_pid_set[1][i_particle] = new TGCheckButton(fGroupFrames_particles[1][i_particle],"set" );
         fCheckBox_pid_set[3][i_particle] = new TGCheckButton(fGroupFrames_particles[3][i_particle],"set" );
 
-        fCheckBox_pid_set[1][i_particle]->Connect("Clicked()", "TBlastWaveGUI", this, Form("SetClicked(Int_t=%d, Int_t=%d)", i_particle,1));
-        fCheckBox_pid_set[3][i_particle]->Connect("Clicked()", "TBlastWaveGUI", this, Form("SetClicked(Int_t=%d, Int_t=%d)", i_particle,1));
+        fCheckBox_pid_set[1][i_particle]->Connect("Clicked()", "TBlastWaveGUI", this, Form("DoSetClicked(Int_t= %d, %d)", i_particle,0));
+        fCheckBox_pid_set[3][i_particle]->Connect("Clicked()", "TBlastWaveGUI", this, Form("DoSetClicked(Int_t= %d, %d)", i_particle,1));
 
-        //fCheckBox_pid_set[1][i_particle]->Connect("Clicked()", "TBlastWaveGUI", this, "SetClicked()");
-        //fCheckBox_pid_set[3][i_particle]->Connect("Clicked()", "TBlastWaveGUI", this, "SetClicked()");
-        // fCheckBox_pid_fit_dNdpt[i_particle] ->SetState(kButtonDown);
+        //fCheckBox_pid_fit_dNdpt[i_particle] ->SetState(kButtonDown);
         //fCheckBox_pid[i_particle] ->Connect("Clicked()", "TBlastWaveGUI", this, "DoSlider()");
         fGroupFrames_particles[1][i_particle]->AddFrame(fCheckBox_pid[i_particle], fLCheckBox);
         fGroupFrames_particles[3][i_particle]->AddFrame(fCheckBox_pid_fit_dNdpt[i_particle], fLCheckBox);
@@ -743,6 +739,30 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
         fGroupFrames_particles[3][i_particle]->AddFrame(fCheckBox_pid_set[3][i_particle], fLCheckBox);
     }
     FrameD ->AddFrame(fGroupFrames[1], new TGLayoutHints(kLHintsCenterX,2,2,2,2));
+    //--------------
+
+
+    //--------------
+    TransientFrame_Set.resize(2); // v2, dNdpT
+    fVSetClicked.resize(2);
+    ComboCentrality_PID.resize(2);
+    ComboEnergy_PID.resize(2);
+    for(Int_t i_type = 0; i_type < 2; i_type++)
+    {
+        TransientFrame_Set[i_type].resize(N_masses_2);
+        fVSetClicked[i_type].resize(N_masses_2);
+        ComboCentrality_PID[i_type].resize(N_masses_2);
+        ComboEnergy_PID[i_type].resize(N_masses_2);
+        for(Int_t i_particle = 0; i_particle < N_masses_2; i_particle++)
+        {
+            TransientFrame_Set[i_type][i_particle] = NULL;
+            fVSetClicked[i_type][i_particle]       = NULL;
+            ComboCentrality_PID[i_type][i_particle]= NULL;
+            ComboEnergy_PID[i_type][i_particle]    = NULL;
+        }
+    }
+
+
     //--------------
 
 
@@ -867,9 +887,9 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
     ComboEnergy->Select(0);
     //-------------
     //Add centrality drop down
-    TString ComboCentralityLabel[16] = {"0-5  %", "0-10 %", "0-20 %","0-30 %","0-80%", "5-10 %","10-20%", "20-30%","20-40%", "30-40%", "40-50%", "40-60%", "50-60%", "60-70%","60-80%", "70-80%"};
+    TString ComboCentralityLabel[18] = {"0-5  %", "0-10 %", "0-20 %","0-30 %","0-80%", "5-10 %","10-20%", "20-30%","10-40%","20-40%", "30-40%", "40-50%", "40-60%","40-80%", "50-60%", "60-70%","60-80%", "70-80%"};
     ComboCentrality = new TGComboBox(hframeD2b,200);
-    for(Int_t index_cent = 0; index_cent < 16; index_cent++)
+    for(Int_t index_cent = 0; index_cent < 18; index_cent++)
     {
         ComboCentrality->AddEntry(ComboCentralityLabel[index_cent], index_cent);
     }
@@ -972,35 +992,72 @@ void TBlastWaveGUI::CloseWindow()
     delete this;
 }
 //______________________________________________________________________________
-void TBlastWaveGUI::SetClicked(Int_t i_particle, Int_t i_type)
+void TBlastWaveGUI::DoSetClicked(Int_t i_particle, Int_t i_type)
 {
     // Called when set is clicked
 
 
-    // private
-    vector< vector<TGTransientFrame> > TransientFrame_Set;
+    cout << "SetClicked()" << endl;
+    if(!TransientFrame_Set[i_type][i_particle]) TransientFrame_Set[i_type][i_particle] = new TGTransientFrame(gClient->GetRoot(), FrameD, 60, 20, kHorizontalFrame);
 
-    // constructor
-    TransientFrame_Set.resize(2); // v2, dNdpT
-    for(Int_t i_type = 0; i_type < 2; i_type++)
+    if(!fVSetClicked[i_type][i_particle])       fVSetClicked[i_type][i_particle]       = new TGVerticalFrame(TransientFrame_Set[i_type][i_particle]);
+    if(!ComboCentrality_PID[i_type][i_particle])ComboCentrality_PID[i_type][i_particle]= new TGComboBox(fVSetClicked[i_type][i_particle], "Centrality");
+    if(!ComboEnergy_PID[i_type][i_particle])    ComboEnergy_PID[i_type][i_particle]    = new TGComboBox(fVSetClicked[i_type][i_particle], "Energy");
+    TransientFrame_Set[i_type][i_particle]  ->AddFrame(fVSetClicked[i_type][i_particle], new TGLayoutHints(kLHintsCenterX, 5,5,5,5));
+    fVSetClicked[i_type][i_particle]    ->AddFrame(ComboCentrality_PID[i_type][i_particle], new TGLayoutHints(kLHintsCenterX,5,5,3,4));
+    fVSetClicked[i_type][i_particle]    ->AddFrame(ComboEnergy_PID[i_type][i_particle],     new TGLayoutHints(kLHintsCenterX,5,5,3,4));
+    ComboCentrality_PID[i_type][i_particle] ->Resize(100,20);
+    ComboCentrality_PID[i_type][i_particle] ->Select(0);
+    ComboEnergy_PID[i_type][i_particle]     ->Resize(100,20);
+    ComboEnergy_PID[i_type][i_particle]     ->Select(0);
+    /*
+    // v2:  Pi+-, K+-, P, Pbar, K0S, Lambda, Lambdabar, Omega-, Omegabar+, Xi-, Xibar+, Phi
+    TString ComboCentralityLabel_PID[4] = {"0-10 %","10-40%","40-80%", "0-80%"};
+    TString ComboEnergyLabel_PID[7] = {"7.7    GeV","11.5  GeV","14.5  GeV","19.6  GeV","27.0  GeV","39.0  GeV","62.4  GeV"}
+
+    // dNdpt :  Pi+-, K+-, P, Pbar
+    TString ComboCentralityLabel_PID[9] = {"0-5 %","5-10%","10-20%","20-30","30-40%","40-50%","50-60%","60-70%", "70-80%"};
+    TString ComboEnergyLabel_PID[5] = {"7.7    GeV","11.5  GeV","19.6  GeV","27.0  GeV","39.0  GeV"}
+
+    // dNdpt :  Pi+-, P, Pbar
+    TString ComboCentralityLabel_PID[4] = {"0-10%","10-20%","20-40","40-80%"};
+    TString ComboEnergyLabel_PID[1] = {"62.4  GeV"}
+    */
+    if (i_type == 0)
     {
-        TransientFrame_Set[i_type].resize(N_particles);
-        for(Int_t i_particle = 0; i_particle < N_particles; i_particle++)
+        TString ComboCentralityLabel_PID[4] = {"0-10 %","10-40%","40-80%", "0-80%"};
+        TString ComboEnergyLabel_PID[7] = {"7.7    GeV","11.5  GeV","14.6  GeV","19.6  GeV","27.0  GeV","39.0  GeV","62.4  GeV"};
+        if (i_particle == 0)
         {
-            TransientFrame_Set[i_type][i_particle] = NULL;
+            TransientFrame_Set[i_type][i_particle]->SetWindowName(label_full_pid_spectra[i_particle].Data());
+            for(Int_t index_cent_pid = 0; index_cent_pid < 4; index_cent_pid++)
+            {
+                ComboCentrality_PID[i_type][i_particle]->AddEntry(ComboCentralityLabel_PID[index_cent_pid], index_cent_pid);
+            }
+            for(Int_t index_energy_pid = 0; index_energy_pid < 7; index_energy_pid++)
+            {
+                ComboEnergy_PID[i_type][i_particle]->AddEntry(ComboEnergyLabel_PID[index_energy_pid], index_energy_pid);
+            }
+        }
+        if (i_particle == 1)
+        {
+            TransientFrame_Set[i_type][i_particle]->SetWindowName(label_full_pid_spectra[i_particle].Data());
+            for(Int_t index_cent_pid = 0; index_cent_pid < 4; index_cent_pid++)
+            {
+                ComboCentrality_PID[i_type][i_particle]->AddEntry(ComboCentralityLabel_PID[index_cent_pid], index_cent_pid);
+            }
+            for(Int_t index_energy_pid = 0; index_energy_pid < 7; index_energy_pid++)
+            {
+                ComboEnergy_PID[i_type][i_particle]->AddEntry(ComboEnergyLabel_PID[index_energy_pid], index_energy_pid);
+            }
         }
     }
 
-
-
-    cout << "SetClicked()" << endl;
-    if(!TransientFrame_Set[i_type][i_particle]) TransientFrame_Set[i_type][i_particle] = new TGTransientFrame(gClient->GetRoot(), FrameD, 60, 20, kHorizontalFrame);
-    //TransientFrame_Set->MapSubwindows();
-    TransientFrame_Set->Resize(300,100);
-    TransientFrame_Set->CenterOnParent();
-    TransientFrame_Set->SetWindowName("set energy and centrality");
-    TransientFrame_Set->MapWindow();
-    //TransientFrame_Set->Move(500,650); // position of frame
+    TransientFrame_Set[i_type][i_particle]->MapSubwindows();
+    TransientFrame_Set[i_type][i_particle]->Resize(150,70);
+    TransientFrame_Set[i_type][i_particle]->CenterOnParent();
+    TransientFrame_Set[i_type][i_particle]->MapWindow();
+    //TransientFrame_Set[i_type][i_particle]->Move(500,650); // position of frame
 }
 
 //______________________________________________________________________________
