@@ -204,6 +204,8 @@ private:
     Tblastwave_yield_and_v2 bw_ana;
     TFile* outputfile;
 
+
+
 public:
     TBlastWaveGUI();
     virtual ~TBlastWaveGUI();
@@ -221,7 +223,7 @@ public:
     void CalcMaxPtLimits();
     void DrawEllipse();
     void DoSave();
-    void SetClicked();
+    void SetClicked(Int_t i_particle, Int_t i_type);
     ClassDef(TBlastWaveGUI, 0)
 };
 
@@ -695,8 +697,11 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
         fCheckBox_pid_set[0][i_particle] = new TGCheckButton(fGroupFrames_particles[0][i_particle],"set" );
         fCheckBox_pid_set[2][i_particle] = new TGCheckButton(fGroupFrames_particles[2][i_particle],"set" );
 
-        fCheckBox_pid_set[0][i_particle]->Connect("Clicked()", "TBlastWaveGUI", this, "SetClicked()");
-        fCheckBox_pid_set[2][i_particle]->Connect("Clicked()", "TBlastWaveGUI", this, "SetClicked()");
+        fCheckBox_pid_set[0][i_particle]->Connect("Clicked()", "TBlastWaveGUI", this, Form("SetClicked(Int_t=%d, Int_t=%d)", i_particle,0));
+        fCheckBox_pid_set[2][i_particle]->Connect("Clicked()", "TBlastWaveGUI", this, Form("SetClicked(Int_t=%d, Int_t=%d)", i_particle,0));
+       
+        //fCheckBox_pid_set[0][i_particle]->Connect("Clicked()", "TBlastWaveGUI", this, "SetClicked()");
+        //fCheckBox_pid_set[2][i_particle]->Connect("Clicked()", "TBlastWaveGUI", this, "SetClicked()");
 
         fCheckBox_pid[i_particle] ->ChangeBackground(green);
         fCheckBox_pid_fit_dNdpt[i_particle] ->ChangeBackground(red);
@@ -725,8 +730,11 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
         fCheckBox_pid_set[1][i_particle] = new TGCheckButton(fGroupFrames_particles[1][i_particle],"set" );
         fCheckBox_pid_set[3][i_particle] = new TGCheckButton(fGroupFrames_particles[3][i_particle],"set" );
 
-        fCheckBox_pid_set[1][i_particle]->Connect("Clicked()", "TBlastWaveGUI", this, "SetClicked()");
-        fCheckBox_pid_set[3][i_particle]->Connect("Clicked()", "TBlastWaveGUI", this, "SetClicked()");
+        fCheckBox_pid_set[1][i_particle]->Connect("Clicked()", "TBlastWaveGUI", this, Form("SetClicked(Int_t=%d, Int_t=%d)", i_particle,1));
+        fCheckBox_pid_set[3][i_particle]->Connect("Clicked()", "TBlastWaveGUI", this, Form("SetClicked(Int_t=%d, Int_t=%d)", i_particle,1));
+
+        //fCheckBox_pid_set[1][i_particle]->Connect("Clicked()", "TBlastWaveGUI", this, "SetClicked()");
+        //fCheckBox_pid_set[3][i_particle]->Connect("Clicked()", "TBlastWaveGUI", this, "SetClicked()");
         // fCheckBox_pid_fit_dNdpt[i_particle] ->SetState(kButtonDown);
         //fCheckBox_pid[i_particle] ->Connect("Clicked()", "TBlastWaveGUI", this, "DoSlider()");
         fGroupFrames_particles[1][i_particle]->AddFrame(fCheckBox_pid[i_particle], fLCheckBox);
@@ -964,12 +972,29 @@ void TBlastWaveGUI::CloseWindow()
     delete this;
 }
 //______________________________________________________________________________
-void TBlastWaveGUI::SetClicked()
+void TBlastWaveGUI::SetClicked(Int_t i_particle, Int_t i_type)
 {
     // Called when set is clicked
 
+
+    // private
+    vector< vector<TGTransientFrame> > TransientFrame_Set;
+
+    // constructor
+    TransientFrame_Set.resize(2); // v2, dNdpT
+    for(Int_t i_type = 0; i_type < 2; i_type++)
+    {
+        TransientFrame_Set[i_type].resize(N_particles);
+        for(Int_t i_particle = 0; i_particle < N_particles; i_particle++)
+        {
+            TransientFrame_Set[i_type][i_particle] = NULL;
+        }
+    }
+
+
+
     cout << "SetClicked()" << endl;
-    TransientFrame_Set = new TGTransientFrame(gClient->GetRoot(), FrameD, 60, 20, kHorizontalFrame);
+    if(!TransientFrame_Set[i_type][i_particle]) TransientFrame_Set[i_type][i_particle] = new TGTransientFrame(gClient->GetRoot(), FrameD, 60, 20, kHorizontalFrame);
     //TransientFrame_Set->MapSubwindows();
     TransientFrame_Set->Resize(300,100);
     TransientFrame_Set->CenterOnParent();
