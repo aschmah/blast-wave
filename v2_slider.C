@@ -111,6 +111,7 @@ private:
     TGHorizontalFrame* arr_HFrame_NEntry_limits[N_masses];
     TGVerticalFrame* arr_VFrame_NEntry_limits[2];
     TGLabel*           arr_Label_NEntry_limits[2][N_masses_2];
+    TGLabel*           arr_Label_NEntry_limits_A[2][N_masses_2];
     TGNumberEntry*     arr_NEntry_limits[2][N_masses_2];
     TGNumberEntry*     arr_NEntry_limits_A[2][N_masses_2];
     TGNumberEntry*     NEntry_set_limits;;
@@ -948,13 +949,13 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
     for(Int_t i_pid = 0; i_pid < N_masses_2; i_pid++)
     {
         pT_Range_Group[0][i_pid] = new TGGroupFrame(Vframe_pT_limits[0],label_full_pid_spectra[i_pid],kHorizontalFrame);
-        if (i_pid<11)
+        if (i_pid<10)
         {
             pT_Range_Group[0][i_pid] = new TGGroupFrame(Vframe_pT_limits[0],label_full_pid_spectra[i_pid],kHorizontalFrame);
             Vframe_pT_limits[0]->AddFrame(pT_Range_Group[0][i_pid], new TGLayoutHints(kLHintsCenterX,2,2,2,2));
         }
         pT_Range_Group[1][i_pid] = new TGGroupFrame(Vframe_pT_limits[1],label_full_pid_spectra[i_pid],kHorizontalFrame);
-        if (i_pid>10)
+        if (i_pid>9)
         {
             pT_Range_Group[1][i_pid] = new TGGroupFrame(Vframe_pT_limits[1],label_full_pid_spectra[i_pid],kHorizontalFrame);
             Vframe_pT_limits[1]->AddFrame(pT_Range_Group[1][i_pid], new TGLayoutHints(kLHintsCenterX,2,2,2,2));
@@ -971,9 +972,15 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
             arr_NEntry_limits_A[i_min_max][i_pid]->SetNumStyle( TGNumberFormat::kNESRealOne); // https://root.cern.ch/doc/master/classTGNumberFormat.html#a8a0f81aac8ac12d0461aef554c6271ad
 
             pT_Range_Group[0][i_pid]->AddFrame(arr_NEntry_limits[i_min_max][i_pid], LHintsD4a);
+            pT_Range_Group[1][i_pid]->AddFrame(arr_NEntry_limits_A[i_min_max][i_pid], LHintsD4a);
+
             TString label_entry = arr_label_min_max[i_min_max];
-            arr_Label_NEntry_limits[i_min_max][i_pid] = new TGLabel(pT_Range_Group[0][i_pid], label_entry.Data(), myGC(), myfont->GetFontStruct());
+            arr_Label_NEntry_limits[i_min_max][i_pid]   = new TGLabel(pT_Range_Group[0][i_pid], label_entry.Data(), myGC(), myfont->GetFontStruct());
+            arr_Label_NEntry_limits_A[i_min_max][i_pid] = new TGLabel(pT_Range_Group[1][i_pid], label_entry.Data(), myGC(), myfont->GetFontStruct());
+
             pT_Range_Group[0][i_pid]->AddFrame(arr_Label_NEntry_limits[i_min_max][i_pid], LHintsD4a2);
+            pT_Range_Group[1][i_pid]->AddFrame(arr_Label_NEntry_limits_A[i_min_max][i_pid], LHintsD4a2);
+
         }
     }
 
