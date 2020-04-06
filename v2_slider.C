@@ -37,7 +37,7 @@ private:
     TGTextEntry         *fTeh1, *fTeh2, *fTeh3;
     TGTextBuffer        *fTbh1, *fTbh1a, *fTbh2, *fTbh3;
     TGGroupFrame        *fGroupFrames[7];
-    TGGroupFrame        *pT_Range_Group[N_masses_2];
+    TGGroupFrame        *pT_Range_Group[2][N_masses_2];
     TGGroupFrame        *GroupSlider[5];
     TGGroupFrame        *fGroupFrame_PID_fit[2];
     TGGroupFrame        *fGroupFrames_particles[4][N_masses_2];
@@ -68,6 +68,7 @@ private:
     TGHorizontalFrame *hframeD5;
     TGHorizontalFrame *hframeD5a;
     TGHorizontalFrame *hframeD6;
+    TGHorizontalFrame *Hframe_pT_limits;
     TGVerticalFrame *hVframeD5a[4];
     TGVerticalFrame *hVframeD3;
     TGVerticalFrame *hVframeD4;
@@ -111,6 +112,7 @@ private:
     TGVerticalFrame* arr_VFrame_NEntry_limits[2];
     TGLabel*           arr_Label_NEntry_limits[2][N_masses_2];
     TGNumberEntry*     arr_NEntry_limits[2][N_masses_2];
+    TGNumberEntry*     arr_NEntry_limits_A[2][N_masses_2];
     TGNumberEntry*     NEntry_set_limits;;
     TGNumberEntry*     arr_NEntry_ana_params[4];
     TGLabel*           arr_Label_NEntry_ana_params[4];
@@ -929,10 +931,12 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
     frame_TGTransient = new TGTransientFrame(gClient->GetRoot(), FrameD, 60, 20, kHorizontalFrame);
     FrameD ->AddFrame(frame_TGTransient,LHintsD4a);
 
-    Vframe_pT_limits[0] = new TGVerticalFrame(frame_TGTransient, 200,300);
-    frame_TGTransient->AddFrame(Vframe_pT_limits[0],new TGLayoutHints(kLHintsCenterX,2,2,2,2));
-    Vframe_pT_limits[1] = new TGVerticalFrame(frame_TGTransient);
-    frame_TGTransient->AddFrame(Vframe_pT_limits[1]);
+    Hframe_pT_limits = new TGHorizontalFrame(frame_TGTransient, 60, 20);
+    frame_TGTransient ->AddFrame(Hframe_pT_limits);
+    Vframe_pT_limits[0] = new TGVerticalFrame(Hframe_pT_limits, 200,300);
+    Hframe_pT_limits->AddFrame(Vframe_pT_limits[0],new TGLayoutHints(kLHintsCenterX,2,2,2,2));
+    Vframe_pT_limits[1] = new TGVerticalFrame(Hframe_pT_limits);
+    Hframe_pT_limits->AddFrame(Vframe_pT_limits[1]);
 
     fGroupFrames[4] = new TGGroupFrame(Vframe_pT_limits[0], new TGString("Set pT limits"),kHorizontalFrame|kRaisedFrame);
     Vframe_pT_limits[0]->AddFrame(fGroupFrames[4], new TGLayoutHints(kLHintsCenterX,2,2,2,2));
@@ -943,22 +947,33 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
 
     for(Int_t i_pid = 0; i_pid < N_masses_2; i_pid++)
     {
-        pT_Range_Group[i_pid] = new TGGroupFrame(Vframe_pT_limits[0],label_full_pid_spectra[i_pid],kHorizontalFrame);
+        pT_Range_Group[0][i_pid] = new TGGroupFrame(Vframe_pT_limits[0],label_full_pid_spectra[i_pid],kHorizontalFrame);
         if (i_pid<11)
         {
-            pT_Range_Group[i_pid] = new TGGroupFrame(Vframe_pT_limits[0],label_full_pid_spectra[i_pid],kHorizontalFrame);
-            Vframe_pT_limits[0]->AddFrame(pT_Range_Group[i_pid], new TGLayoutHints(kLHintsCenterX,2,2,2,2));
+            pT_Range_Group[0][i_pid] = new TGGroupFrame(Vframe_pT_limits[0],label_full_pid_spectra[i_pid],kHorizontalFrame);
+            Vframe_pT_limits[0]->AddFrame(pT_Range_Group[0][i_pid], new TGLayoutHints(kLHintsCenterX,2,2,2,2));
         }
-        //if (i_pid>10) Vframe_pT_limits_2->AddFrame(pT_Range_Group[i_pid], new TGLayoutHints(kLHintsCenterX,2,2,2,2));
+        pT_Range_Group[1][i_pid] = new TGGroupFrame(Vframe_pT_limits[1],label_full_pid_spectra[i_pid],kHorizontalFrame);
+        if (i_pid>10)
+        {
+            pT_Range_Group[1][i_pid] = new TGGroupFrame(Vframe_pT_limits[1],label_full_pid_spectra[i_pid],kHorizontalFrame);
+            Vframe_pT_limits[1]->AddFrame(pT_Range_Group[1][i_pid], new TGLayoutHints(kLHintsCenterX,2,2,2,2));
+        }
         for(Int_t i_min_max = 0; i_min_max < 2; i_min_max++)
         {
-            arr_NEntry_limits[i_min_max][i_pid] = new TGNumberEntry(pT_Range_Group[i_pid], min_max_pT_range_pid[i_min_max][i_pid], 12,(TGNumberFormat::EStyle) 1);
+            arr_NEntry_limits[i_min_max][i_pid]   = new TGNumberEntry(pT_Range_Group[0][i_pid], min_max_pT_range_pid[i_min_max][i_pid], 12,(TGNumberFormat::EStyle) 1);
+            arr_NEntry_limits_A[i_min_max][i_pid] = new TGNumberEntry(pT_Range_Group[1][i_pid], min_max_pT_range_pid[i_min_max][i_pid], 12,(TGNumberFormat::EStyle) 1);
+
             arr_NEntry_limits[i_min_max][i_pid] ->Connect("ValueSet(Long_t)", "TBlastWaveGUI", this, "DoSlider()");
-            arr_NEntry_limits[i_min_max][i_pid]->SetNumStyle( TGNumberFormat::kNESRealOne); // https://root.cern.ch/doc/master/classTGNumberFormat.html#a8a0f81aac8ac12d0461aef554c6271ad
-            pT_Range_Group[i_pid]->AddFrame(arr_NEntry_limits[i_min_max][i_pid], LHintsD4a);
+            //arr_NEntry_limits_A[i_min_max][i_pid] ->Connect("ValueSet(Long_t)", "TBlastWaveGUI", this, "DoSlider()");
+
+            arr_NEntry_limits[i_min_max][i_pid]  ->SetNumStyle( TGNumberFormat::kNESRealOne); // https://root.cern.ch/doc/master/classTGNumberFormat.html#a8a0f81aac8ac12d0461aef554c6271ad
+            arr_NEntry_limits_A[i_min_max][i_pid]->SetNumStyle( TGNumberFormat::kNESRealOne); // https://root.cern.ch/doc/master/classTGNumberFormat.html#a8a0f81aac8ac12d0461aef554c6271ad
+
+            pT_Range_Group[0][i_pid]->AddFrame(arr_NEntry_limits[i_min_max][i_pid], LHintsD4a);
             TString label_entry = arr_label_min_max[i_min_max];
-            arr_Label_NEntry_limits[i_min_max][i_pid] = new TGLabel(pT_Range_Group[i_pid], label_entry.Data(), myGC(), myfont->GetFontStruct());
-            pT_Range_Group[i_pid]->AddFrame(arr_Label_NEntry_limits[i_min_max][i_pid], LHintsD4a2);
+            arr_Label_NEntry_limits[i_min_max][i_pid] = new TGLabel(pT_Range_Group[0][i_pid], label_entry.Data(), myGC(), myfont->GetFontStruct());
+            pT_Range_Group[0][i_pid]->AddFrame(arr_Label_NEntry_limits[i_min_max][i_pid], LHintsD4a2);
         }
     }
 
