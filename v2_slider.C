@@ -1036,30 +1036,31 @@ void TBlastWaveGUI::DoSetClicked(Int_t i_particle, Int_t i_type)
     //}
     cout << "SetClicked()" << endl;
 
-    if(!TransientFrame_Set[i_type][i_particle])
-    {
-        TransientFrame_Set[i_type][i_particle] = new TGTransientFrame(gClient->GetRoot(), FrameD, 60, 20, kHorizontalFrame);
-        //TransientFrame_Set[i_type][i_particle]->SetWindowName(label_full_pid_spectra[i_particle].Data());
-    }
-    if(!fVSetClicked[i_type][i_particle])
-    {
-        fVSetClicked[i_type][i_particle]       = new TGVerticalFrame(TransientFrame_Set[i_type][i_particle]);
-        //TransientFrame_Set[i_type][i_particle]  ->AddFrame(fVSetClicked[i_type][i_particle], new TGLayoutHints(kLHintsCenterX, 5,5,5,5));
+    
+    cout << "Create Transient frame" << endl;
+    TransientFrame_Set[i_type][i_particle] = new TGTransientFrame(gClient->GetRoot(), FrameD, 60, 20, kHorizontalFrame);
+    cout << "Created Transient frame" << endl;
+    //TransientFrame_Set[i_type][i_particle]->SetWindowName(label_full_pid_spectra[i_particle].Data());
 
-    }
-    if(!ComboEnergy_PID[i_type][i_particle])
+    cout << "Create vertical frame" << endl;
+    fVSetClicked[i_type][i_particle]       = new TGVerticalFrame(TransientFrame_Set[i_type][i_particle]);
+    cout << "Created vertical frame" << endl;
+    //TransientFrame_Set[i_type][i_particle]  ->AddFrame(fVSetClicked[i_type][i_particle], new TGLayoutHints(kLHintsCenterX, 5,5,5,5));
+
+#if 1
+    //if(!ComboEnergy_PID[i_type][i_particle])
     {
         ComboEnergy_PID[i_type][i_particle]    = new TGComboBox(fVSetClicked[i_type][i_particle], "Energy");
         // fVSetClicked[i_type][i_particle]    ->AddFrame(ComboEnergy_PID[i_type][i_particle],  new TGLayoutHints(kLHintsCenterX,5,5,3,4));
         // ComboEnergy_PID[i_type][i_particle]     ->Resize(100,20);
         //ComboEnergy_PID[i_type][i_particle]     ->Select(0);
     }
-    if(!Set_energy[i_type][i_particle])
+    //if(!Set_energy[i_type][i_particle])
     {
         Set_energy[i_type][i_particle]         = new TGTextButton(fVSetClicked[i_type][i_particle], "Set");
         //fVSetClicked[i_type][i_particle]    ->AddFrame(Set_energy[i_type][i_particle],       new TGLayoutHints(kLHintsCenterX,5,5,3,4));
     }
-    if(!ComboCentrality_PID[i_type][i_particle])
+    //if(!ComboCentrality_PID[i_type][i_particle])
     {
         ComboCentrality_PID[i_type][i_particle]= new TGComboBox(fVSetClicked[i_type][i_particle], "Centrality");
         //fVSetClicked[i_type][i_particle]    ->AddFrame(ComboCentrality_PID[i_type][i_particle], new TGLayoutHints(kLHintsCenterX,5,5,3,4));
@@ -1069,14 +1070,22 @@ void TBlastWaveGUI::DoSetClicked(Int_t i_particle, Int_t i_type)
     }
     fVSetClicked[i_type][i_particle]    ->AddFrame(ComboEnergy_PID[i_type][i_particle],  new TGLayoutHints(kLHintsCenterX,5,5,3,4));
     fVSetClicked[i_type][i_particle]    ->AddFrame(Set_energy[i_type][i_particle],       new TGLayoutHints(kLHintsCenterX,5,5,3,4));
+#endif
+    cout << "Add Transient frame" << endl;
     TransientFrame_Set[i_type][i_particle]  ->AddFrame(fVSetClicked[i_type][i_particle], new TGLayoutHints(kLHintsCenterX, 5,5,5,5));
+    cout << "Added Transient frame" << endl;
+#if 1
     fVSetClicked[i_type][i_particle]    ->AddFrame(ComboCentrality_PID[i_type][i_particle], new TGLayoutHints(kLHintsCenterX,5,5,3,4));
     ComboCentrality_PID[i_type][i_particle] ->Resize(100,20);
     ComboCentrality_PID[i_type][i_particle] ->Select(0);
     ComboEnergy_PID[i_type][i_particle]     ->Resize(100,20);
     ComboEnergy_PID[i_type][i_particle]     ->Select(0);
+#endif
 
+    cout << "Set Window name" << endl;
     TransientFrame_Set[i_type][i_particle]->SetWindowName(label_full_pid_spectra[i_particle].Data());
+    cout << "Setted Window name" << endl;
+#if 1
     TString ComboEnergyLabel_PID;
     if (i_type == 0)
     {
@@ -1122,14 +1131,21 @@ void TBlastWaveGUI::DoSetClicked(Int_t i_particle, Int_t i_type)
             }
         }
     }
+#endif
 
     //ComboEnergy_PID[i_type][i_particle]->Connect("Selected(Int_t)", "TBlastWaseGUI", this, Form("DoCentralityCombo(Int_t= %d, %d)", i_particle, i_type));
+#if 1
     Set_energy[i_type][i_particle] ->Connect("Clicked()", "TBlastWaveGUI", this, Form("DoCentralityCombo(Int_t= %d, %d)", i_particle,i_type));
+#endif
+
+    cout << "Set Window size" << endl;
     TransientFrame_Set[i_type][i_particle]->MapSubwindows();
     TransientFrame_Set[i_type][i_particle]->Resize(150,100);
     TransientFrame_Set[i_type][i_particle]->CenterOnParent();
     TransientFrame_Set[i_type][i_particle]->MapWindow();
+    cout << "Setted Window size" << endl;
     //TransientFrame_Set[i_type][i_particle]->Move(500,650); // position of frame
+
 
 }
 //______________________________________________________________________________
