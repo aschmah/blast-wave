@@ -347,7 +347,7 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
     //make_5_60_spectra();
     Init_v2_Mathematica();
 
-
+    /*
     inputfiles[0] = TFile::Open("./Data/merge_out_v2_boost.root");
     inputfiles[1] = TFile::Open("./Data/Merge_v2_dNdpT_pT_d.root"); // deuterons
 
@@ -420,7 +420,7 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
             }
     }
     printf("All spectra normalized \n");
-
+    */
 
     char buf[32];
     SetCleanup(kDeepCleanup);
