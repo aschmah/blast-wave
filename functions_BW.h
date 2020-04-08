@@ -85,13 +85,13 @@ static Double_t arr_pt_high_cut[N_v2_vs_pt_BW+3];
 static Int_t arr_color[N_v2_vs_pt_BW+3] = {kBlack,kGreen+1,kRed,kMagenta+1,kCyan+1,kOrange,kRed,kGray,kYellow+2,kRed,kMagenta,kGreen+1};
 
 static const Int_t    N_masses         = 9; // 9->21
-static const Int_t    N_masses_2      = 21;
+static const Int_t    N_masses_2      = 22;
 static TH2D* h2D_geometric_shape = NULL;
 static TF1 *f_LevyFitFunc        = NULL;
 static TF1 *f_FitBessel          = NULL;
 static TF1 *f_JetPtFunc          = NULL;
 static Double_t arr_quark_mass_meson[N_masses_2]         = {0.13957,0.13957,0.497648,0.497648,0.938272,0.938272,1.019460,1.32171, 1.32171, 1.67245,1.67245,1.115683,1.115683,0.497611,1.86962,3.096916,9.46030,1.875612,
-1.875612, 2.8094313, 2.8094313};
+1.875612, 2.8094313, 2.8094313, 2.80945};
 static Double_t pT_fit_max[N_masses_2]                   = {1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0};
 static Int_t    arr_color_mass[N_masses]               = {kBlack,kGreen+1,kRed,kMagenta+1,kCyan+1,kOrange,kYellow+2,kAzure-2,kOrange+1};
 static const Double_t R_Pb = 5.4946; // fm
@@ -117,7 +117,7 @@ static TGraphAsymmErrors* tge_deuteron_dNdpT;
 static TH1D* h_dNdpT_best = NULL;
 static vector<TGraphErrors*> vec_tge_v2_vs_pT_560_pid;
 static TString label_pid_spectra[N_masses] = {"#pi","K","p","#phi","#Omega","D^{0}","J/#psi","#varUpsilon","d"};
-static TString label_full_pid_spectra[N_masses_2] = {"Pi+","Pi-","K+","K-","P","Pbar", "Phi","Xi-","Xibar+","Omega-","Omegabar+","Lambda","Lambdabar","K0S","D0", "J/psi","Upsilon","d","dbar","He3", "He3bar"}; // 9 -> 21  
+static TString label_full_pid_spectra[N_masses_2] = {"Pi+","Pi-","K+","K-","P","Pbar", "Phi","Xi-","Xibar+","Omega-","Omegabar+","Lambda","Lambdabar","K0S","D0", "J/Psi","Upsilon","d","dbar","He3", "He3bar", "t"}; // 9 -> 21
 static TString label_v2_dNdpT[2] = {"v2","dNdpT"};
 
 static Double_t Temp_loop_start  = 0.08;
@@ -148,7 +148,12 @@ static TMatrixD TL_Matrix_Lambda_TInv(4,4);
 
 static TGraph* tg_spec;
 
-
+static vector<vector<TString>> vec_pid_energy_v2;
+static vector<vector<TString>> vec_pid_cent_upper_v2;
+static vector<vector<TString>> vec_pid_cent_lower_v2;
+static vector<vector<TString>> vec_pid_energy_dNdpt;
+static vector<vector<TString>> vec_pid_cent_upper_dNdpt;
+static vector<vector<TString>> vec_pid_cent_lower_dNdpt;
 //------------------------------------------------------------------------------------------------------------
 static const Float_t Pi = TMath::Pi();
 static TRandom ran;
@@ -1083,9 +1088,25 @@ void load_data(const char *dirname="./Out/", const char *ext=".root")
 
             vec_tgae_name[i_graph].Replace(0, found+1, "");
 
-            found = vec_tgae_name[i_graph].First("_");
-            sub_str =  vec_tgae_name[i_graph](0,found);
+            //found = vec_tgae_name[i_graph].First("_");
+            //sub_str =  vec_tgae_name[i_graph](0, found);
+
+           // centrality_upper = sub_str;
+
+            Ssiz_t sub_str_length = sub_str.Length();
+            sub_str =  vec_tgae_name[i_graph](0,1);
             centrality_upper = sub_str;
+
+            vec_tgae_name[i_graph].Replace(0, 1, "");
+            sub_str = vec_tgae_name[i_graph](0,1);
+
+            if ( sub_str != "_") centrality_upper += sub_str;
+            vec_tgae_name[i_graph].Replace(0, 1, "");
+            sub_str = vec_tgae_name[i_graph](0,1);
+            if ( sub_str == ".") centrality_upper += sub_str;
+            vec_tgae_name[i_graph].Replace(0, 1, "");
+            sub_str = vec_tgae_name[i_graph](0,1);
+            if ( sub_str != "_" && sub_str != "s"  && sub_str != "t" && sub_str != "y") centrality_upper += sub_str;
 
             vec_type.push_back(type.Copy());
             vec_pid.push_back(pid.Copy());
@@ -1102,12 +1123,46 @@ void load_data(const char *dirname="./Out/", const char *ext=".root")
         cout<< vec_type.size()<<endl;
         cout<< vec_pid.size()<<endl;
 
-        /* 
-        for (Int_t i_found = 0; i_found < (Int_t)vec_tgae_name.size();i_found++ )
+        //Int_t N_masses_2 = 21;
+        vec_pid_energy_v2.resize(N_masses_2);
+        vec_pid_cent_upper_v2.resize(N_masses_2);
+        vec_pid_cent_lower_v2.resize(N_masses_2);
+        vec_pid_energy_dNdpt.resize(N_masses_2);
+        vec_pid_cent_upper_dNdpt.resize(N_masses_2);
+        vec_pid_cent_lower_dNdpt.resize(N_masses_2);
+
+
+        for (Int_t i_particle= 0; i_particle< N_masses_2; i_particle++ )
         {
-            if (vec_pid[i_found] == label_full_pid_spectra[11]) cout<< i_found <<endl;
-        } 
-         */   
+            vec_pid_energy_v2[i_particle].push_back(label_full_pid_spectra[i_particle].Data());
+            vec_pid_cent_upper_v2[i_particle].push_back(label_full_pid_spectra[i_particle].Data());
+            vec_pid_cent_lower_v2[i_particle].push_back(label_full_pid_spectra[i_particle].Data());
+
+            vec_pid_energy_dNdpt[i_particle].push_back(label_full_pid_spectra[i_particle].Data());
+            vec_pid_cent_upper_dNdpt[i_particle].push_back(label_full_pid_spectra[i_particle].Data());
+            vec_pid_cent_lower_dNdpt[i_particle].push_back(label_full_pid_spectra[i_particle].Data());
+
+            for (Int_t i_found = 0; i_found < (Int_t)vec_tgae_name.size();i_found++ )
+             {
+                 if (vec_pid[i_found] == label_full_pid_spectra[i_particle])
+                 {
+                     if (vec_type[i_found] == "v2")
+                     {
+                         cout<< "v2"<<endl;
+                         vec_pid_energy_v2[i_particle].push_back(vec_energy[i_found].Data());
+                         vec_pid_cent_upper_v2[i_particle].push_back(vec_centrality_upper[i_found].Data());
+                         vec_pid_cent_lower_v2[i_particle].push_back(vec_centrality_lower[i_found].Data());
+                     }
+                     if (vec_type[i_found] == "dNdpt")
+                     {
+                         vec_pid_energy_dNdpt[i_particle].push_back(vec_energy[i_found].Data());
+                         vec_pid_cent_upper_dNdpt[i_particle].push_back(vec_centrality_upper[i_found].Data());
+                         vec_pid_cent_lower_dNdpt[i_particle].push_back(vec_centrality_lower[i_found].Data());
+                     }
+                 }
+             }
+        }
+        cout<< vec_pid_energy_v2[20][1]<<endl;
 
     }
 
