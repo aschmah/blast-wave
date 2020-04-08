@@ -1120,8 +1120,8 @@ void load_data(const char *dirname="./Out/", const char *ext=".root")
             centrality_lower.Clear();
             centrality_upper.Clear();
         }
-        cout<< vec_type.size()<<endl;
-        cout<< vec_pid.size()<<endl;
+        //cout<< vec_type.size()<<endl;
+        //cout<< vec_pid.size()<<endl;
 
         //Int_t N_masses_2 = 21;
         vec_pid_energy_v2.resize(N_masses_2);
@@ -1148,7 +1148,6 @@ void load_data(const char *dirname="./Out/", const char *ext=".root")
                  {
                      if (vec_type[i_found] == "v2")
                      {
-                         cout<< "v2"<<endl;
                          vec_pid_energy_v2[i_particle].push_back(vec_energy[i_found].Data());
                          vec_pid_cent_upper_v2[i_particle].push_back(vec_centrality_upper[i_found].Data());
                          vec_pid_cent_lower_v2[i_particle].push_back(vec_centrality_lower[i_found].Data());
@@ -1162,7 +1161,7 @@ void load_data(const char *dirname="./Out/", const char *ext=".root")
                  }
              }
         }
-        cout<< vec_pid_energy_v2[20][1]<<endl;
+        //cout<< vec_pid_energy_v2[20][1]<<endl;
 
     }
 
