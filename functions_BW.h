@@ -999,7 +999,7 @@ Double_t PtFitBessel(Double_t* x_val, Double_t* par)
 
 
 //----------------------------------------------------------------------------------------
-void load_data(const char *dirname="./out/", const char *ext=".root")
+void load_data(const char *dirname="./Out/", const char *ext=".root")
 {
     printf("load_data \n");
     TSystemDirectory dir(dirname, dirname);
@@ -1030,7 +1030,7 @@ void load_data(const char *dirname="./out/", const char *ext=".root")
 
         for (Int_t index_file = 0; index_file < (Int_t)vec_fname.size(); index_file++)
         {
-            TString filename = "./out/";
+            TString filename = "./Out/";
             filename += vec_fname[index_file];
             vec_newfile.push_back( new TFile(filename.Data()));
 
