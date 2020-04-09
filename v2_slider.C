@@ -40,6 +40,7 @@ private:
     TGGroupFrame        *pT_Range_Group[2][N_masses_2];
     TGGroupFrame        *GroupSlider[5];
     TGGroupFrame        *fGroupFrame_PID_fit[2];
+    TGGroupFrame        *fGroupFrame_PID_plot[2];
     TGGroupFrame        *fGroupFrames_particles[4][N_masses_2];
 
     TProfile* tp_v2_vs_pT_mesons[N_masses][9][9][9][9][9] = {NULL}; // [i_mass][i_R_x][i_fboost][i_Temp][i_rho_0][i_rho_a]
@@ -75,7 +76,8 @@ private:
     TGVerticalFrame *Vframe_pT_limits[2];
     TGVerticalFrame *vframeD1;
     TGCompositeFrame *cframe2;
-    TGCompositeFrame *fCompositeFrame_pid[6];
+    TGCompositeFrame *fCompositeFrame_pid[8];
+    //TGCompositeFrame *fCompositeFrame_pid_plot[2][2];
     TGTextButton *ButtonD1a;
     TGTextButton *Button_exit;
     TGTextButton *Button_save;
@@ -100,6 +102,7 @@ private:
     TGCheckButton* fCheckBox_pid[N_masses_2];
     TGCheckButton* fCheckBox_pid_fit_dNdpt[N_masses_2];
     TGCheckButton* fCheckBox_pid_plot[N_masses_2];
+    TGCheckButton* fCheckBox_pid_plot_dNdpt[N_masses_2];
     TGCheckButton* fCheckBox_pid_set[4][N_masses_2];
     TGCheckButton* fCheckBox_v2_dNdpT[2];
     TGCheckButton* CheckBoxFeedDown;
@@ -145,12 +148,14 @@ private:
 
     TGTextButton *Button_make_plot_v2;
     TGTextButton *Button_make_plot_dNdpT;
+    TGTextButton *Button_plot_data;
     TGTextButton *Set_energy_centrality;
 
     TFile* inputfiles[2];
     TH1D* h_dummy;
     TH1D* h_dummy_plot_v2[3] = {NULL};
     TH1D* h_dummy_dNdpT;
+    TH1D* h_dummy_plot_data;
     TLegend* leg_v2_vs_pT_A = NULL;
     TLegend* leg_v2_vs_pT_B = NULL;
     TLegend* leg_dNdpT_vs_pT = NULL;
@@ -199,6 +204,8 @@ private:
     TCanvas* c_3X3 = NULL;
     TCanvas* c_correlate = NULL;
     TCanvas* c_single_pid = NULL;
+    TCanvas* c_1X1_v2 = NULL;
+    TCanvas* c_1X1_dNdpt = NULL;
     TH1F* h_frame_single_pid = NULL;
     TGraph* tg_label_plot[3][N_masses];
 
@@ -211,6 +218,9 @@ private:
     vector< vector<TGComboBox*> >       ComboEnergy_PID;
     vector< vector<TGComboBox*> >       ComboCentrality_PID;
     vector< vector<TGTextButton*> >     Set_energy;
+    vector< vector<TGTextButton*> >     Set_centrality;
+    vector <TString> vec_tgae_id_v2;
+    vector <TString> vec_tgae_id_dNdpt;
 
     Int_t i_transient_frame[2][N_masses_2] = {0,0};
 
@@ -235,6 +245,9 @@ public:
     void DoSetTextButton();
     void DoCentralityCombo(Int_t i_particle, Int_t i_type);
     void SetIndex(Int_t i_particle, Int_t i_type);
+    void PlotData();
+    void DoSetSingleParticle(Int_t i_particle, Int_t i_type);
+    void DoFillTgaeID();
     ClassDef(TBlastWaveGUI, 0)
 };
 
@@ -581,9 +594,41 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
 
     FrameD ->AddFrame(fGroupFrames[0], new TGLayoutHints(kLHintsCenterX,2,2,2,2));
     //--------------
+    //hframeD5  = new TGHorizontalFrame(FrameD,200,100);
 
+    Button_take_params_MC_to_ana = new TGTextButton(fGroupFrames[0], "Use MC params for Ana",10);
+    Button_take_params_MC_to_ana->Connect("Clicked()", "TBlastWaveGUI", this, "TakeParamsFromMC()");
+    fGroupFrames[0]->AddFrame(Button_take_params_MC_to_ana, new TGLayoutHints(kLHintsCenterX,5,5,3,4));
 
+    Button_take_params_Set_to_ana = new TGTextButton(fGroupFrames[0], "Use SET params for Ana",10);
+    Button_take_params_Set_to_ana->Connect("Clicked()", "TBlastWaveGUI", this, "TakeParamsFromSet()");
+    fGroupFrames[0]->AddFrame(Button_take_params_Set_to_ana, new TGLayoutHints(kLHintsCenterX,5,5,3,4));
 
+    // FrameD ->AddFrame(hframeD5, new TGLayoutHints(kLHintsCenterX,2,2,2,2));
+
+    //--------------
+
+    // hframeD6  = new TGHorizontalFrame(FrameD,200,100);
+
+    Button_make_plot_v2 = new TGTextButton(fGroupFrames[0], "Make plot v2",10);
+    Button_make_plot_v2->Connect("Clicked()", "TBlastWaveGUI", this, "MakePlotv2()");
+    fGroupFrames[0]->AddFrame(Button_make_plot_v2, new TGLayoutHints(kLHintsCenterX,5,5,3,4));
+
+    Button_make_plot_dNdpT = new TGTextButton(fGroupFrames[0], "Make plot dN/dpT",10);
+    Button_make_plot_dNdpT->Connect("Clicked()", "TBlastWaveGUI", this, "MakePlotdNdpT()");
+    fGroupFrames[0]->AddFrame(Button_make_plot_dNdpT, new TGLayoutHints(kLHintsCenterX,5,5,3,4));
+
+    // FrameD ->AddFrame(hframeD6, new TGLayoutHints(kLHintsCenterX,2,2,2,2));
+
+    //--------------
+
+    // new plot data button
+
+    Button_plot_data= new TGTextButton(fGroupFrames[0], "Plot data",10);
+    Button_plot_data->Connect("Clicked()", "TBlastWaveGUI", this, "PlotData()");
+    fGroupFrames[0]->AddFrame(Button_plot_data, new TGLayoutHints(kLHintsCenterX,5,5,3,4));
+
+    h_dummy_plot_data = new TH1D("h_dummy_plot_data","h_dummy_plot_data" , 200,0,20);
     //--------------
     // A horizontal frame
     hVframeD3  = new TGVerticalFrame(FrameD,200,100);
@@ -712,12 +757,8 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
 
         fCheckBox_pid_set[0][i_particle]->Connect("Clicked()", "TBlastWaveGUI", this, Form("DoSetClicked(Int_t =%d, %d)", i_particle,0));
         fCheckBox_pid_set[2][i_particle]->Connect("Clicked()", "TBlastWaveGUI", this, Form("DoSetClicked(Int_t =%d, %d)", i_particle,1));
-       
 
-        //fCheckBox_pid[i_particle] ->ChangeBackground(green);
-        //fCheckBox_pid_fit_dNdpt[i_particle] ->ChangeBackground(red);
-        fCheckBox_pid[i_particle] ->SetState(kButtonDown);
-        fCheckBox_pid_fit_dNdpt[i_particle] ->SetState(kButtonDown);
+        
         //fCheckBox_pid[i_particle] ->Connect("Clicked()", "TBlastWaveGUI", this, "DoSlider()");
         fGroupFrames_particles[0][i_particle]->AddFrame(fCheckBox_pid[i_particle], fLCheckBox);
         fGroupFrames_particles[2][i_particle]->AddFrame(fCheckBox_pid_fit_dNdpt[i_particle], fLCheckBox);
@@ -741,7 +782,6 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
         fCheckBox_pid_set[1][i_particle]->Connect("Clicked()", "TBlastWaveGUI", this, Form("DoSetClicked(Int_t= %d, %d)", i_particle,0));
         fCheckBox_pid_set[3][i_particle]->Connect("Clicked()", "TBlastWaveGUI", this, Form("DoSetClicked(Int_t= %d, %d)", i_particle,1));
 
-        //fCheckBox_pid_fit_dNdpt[i_particle] ->SetState(kButtonDown);
         //fCheckBox_pid[i_particle] ->Connect("Clicked()", "TBlastWaveGUI", this, "DoSlider()");
         fGroupFrames_particles[1][i_particle]->AddFrame(fCheckBox_pid[i_particle], fLCheckBox);
         fGroupFrames_particles[3][i_particle]->AddFrame(fCheckBox_pid_fit_dNdpt[i_particle], fLCheckBox);
@@ -756,6 +796,7 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
     TransientFrame_Set.resize(2); // v2, dNdpT
     fVSetClicked.resize(2);
     Set_energy.resize(2);
+    Set_centrality.resize(2);
     ComboCentrality_PID.resize(2);
     ComboEnergy_PID.resize(2);
     for(Int_t i_type = 0; i_type < 2; i_type++)
@@ -765,6 +806,7 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
         ComboCentrality_PID[i_type].resize(N_masses_2);
         ComboEnergy_PID[i_type].resize(N_masses_2);
         Set_energy[i_type].resize(N_masses_2);
+        Set_centrality[i_type].resize(N_masses_2);
         for(Int_t i_particle = 0; i_particle < N_masses_2; i_particle++)
         {
             TransientFrame_Set[i_type][i_particle] = NULL;
@@ -772,14 +814,9 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
             ComboCentrality_PID[i_type][i_particle]= NULL;
             ComboEnergy_PID[i_type][i_particle]    = NULL;
             Set_energy[i_type][i_particle]         = NULL;
+            Set_centrality[i_type][i_particle]     = NULL;
         }
     }
-
-     //--------------
-
-
-    //--------------
-
     //--------------
 
 
@@ -787,26 +824,48 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
     printf("Add particle check boxes \n");
     fGroupFrames[5] = new TGGroupFrame(FrameD, new TGString("PID plot"),kVerticalFrame|kRaisedFrame);
     fLCheckBoxB = new TGLayoutHints(kLHintsTop | kLHintsLeft,5, 0, 5, 0);
-    fCompositeFrame_pid[4] = new TGCompositeFrame(fGroupFrames[5],60,20, kHorizontalFrame);
-    fCompositeFrame_pid[5] = new TGCompositeFrame(fGroupFrames[5],60,20, kHorizontalFrame);
-    fGroupFrames[5]->AddFrame(fCompositeFrame_pid[4]);
-    fGroupFrames[5]->AddFrame(fCompositeFrame_pid[5]);
+    fGroupFrame_PID_plot[0] = new TGGroupFrame(fGroupFrames[5],new TGString("v2"),  kVerticalFrame);
+    fGroupFrame_PID_plot[1] = new TGGroupFrame(fGroupFrames[5],new TGString("dNdpT"),  kVerticalFrame);
+    fGroupFrames[5]->AddFrame(fGroupFrame_PID_plot[0]);
+    fGroupFrames[5]->AddFrame(fGroupFrame_PID_plot[1]);
+    fCompositeFrame_pid[4] = new TGCompositeFrame(fGroupFrame_PID_plot[0],60,20, kHorizontalFrame);     //dNdpt
+    fCompositeFrame_pid[5] = new TGCompositeFrame(fGroupFrame_PID_plot[0],60,20, kHorizontalFrame);     //dNdpt
+    fCompositeFrame_pid[6] = new TGCompositeFrame(fGroupFrame_PID_plot[1],60,20, kHorizontalFrame);     //v2
+    fCompositeFrame_pid[7] = new TGCompositeFrame(fGroupFrame_PID_plot[1],60,20, kHorizontalFrame);     //v2
+    fGroupFrame_PID_plot[0]->AddFrame(fCompositeFrame_pid[4], new TGLayoutHints(kLHintsCenterX,2,2,2,2));
+    fGroupFrame_PID_plot[0]->AddFrame(fCompositeFrame_pid[5], new TGLayoutHints(kLHintsCenterX,2,2,2,2));
+    fGroupFrame_PID_plot[1]->AddFrame(fCompositeFrame_pid[6], new TGLayoutHints(kLHintsCenterX,2,2,2,2));
+    fGroupFrame_PID_plot[1]->AddFrame(fCompositeFrame_pid[7], new TGLayoutHints(kLHintsCenterX,2,2,2,2));
+
+    fLCheckBox = new TGLayoutHints(kLHintsTop | kLHintsLeft,2, 2, 5, 0);
+    fLGroupFrames_particles = new TGLayoutHints(kLHintsCenterX,2,2,2,2);
+
+    //fCompositeFrame_pid[4] = new TGCompositeFrame(fGroupFrames[5],60,20, kHorizontalFrame);
+    //fCompositeFrame_pid[5] = new TGCompositeFrame(fGroupFrames[5],60,20, kHorizontalFrame);
+    //fGroupFrames[5]->AddFrame(fCompositeFrame_pid[4]);
+    //fGroupFrames[5]->AddFrame(fCompositeFrame_pid[5]);
+
     for(Int_t i_particle = 0; i_particle < 12; i_particle++)
     {
-        fCheckBox_pid_plot[i_particle]  = new TGCheckButton(fCompositeFrame_pid[4], new TGHotString(label_full_pid_spectra[i_particle].Data()), -1);
-        //fCheckBox_pid_plot[i_particle]->ChangeBackground(green);
-        fCheckBox_pid_plot[i_particle] ->SetState(kButtonDown);
+        fCheckBox_pid_plot[i_particle]        = new TGCheckButton(fCompositeFrame_pid[4], new TGHotString(label_full_pid_spectra[i_particle].Data()), -1);
+        fCheckBox_pid_plot_dNdpt[i_particle]  = new TGCheckButton(fCompositeFrame_pid[6], new TGHotString(label_full_pid_spectra[i_particle].Data()), -1);
+
         fCheckBox_pid_plot[i_particle] ->Connect("Clicked()", "TBlastWaveGUI", this, "DoSlider()");
-        fCompositeFrame_pid[4]->AddFrame(fCheckBox_pid_plot[i_particle], fLCheckBoxB);
+
+        fCompositeFrame_pid[4]->AddFrame(fCheckBox_pid_plot[i_particle], fLCheckBox);
+        fCompositeFrame_pid[6]->AddFrame(fCheckBox_pid_plot_dNdpt[i_particle], fLCheckBox);
     }
     for(Int_t i_particle = 12; i_particle < N_masses_2; i_particle++)
     {
-        fCheckBox_pid_plot[i_particle]  = new TGCheckButton(fCompositeFrame_pid[5], new TGHotString(label_full_pid_spectra[i_particle].Data()), -1);
-        //fCheckBox_pid_plot[i_particle]->ChangeBackground(green);
-        fCheckBox_pid_plot[i_particle] ->SetState(kButtonDown);
+        fCheckBox_pid_plot[i_particle]            = new TGCheckButton(fCompositeFrame_pid[5], new TGHotString(label_full_pid_spectra[i_particle].Data()), -1);
+        fCheckBox_pid_plot_dNdpt[i_particle]      = new TGCheckButton(fCompositeFrame_pid[7], new TGHotString(label_full_pid_spectra[i_particle].Data()), -1);
+
         fCheckBox_pid_plot[i_particle] ->Connect("Clicked()", "TBlastWaveGUI", this, "DoSlider()");
-        fCompositeFrame_pid[5]->AddFrame(fCheckBox_pid_plot[i_particle], fLCheckBoxB);
+
+        fCompositeFrame_pid[5]->AddFrame(fCheckBox_pid_plot[i_particle], fLCheckBox);
+        fCompositeFrame_pid[7]->AddFrame(fCheckBox_pid_plot_dNdpt[i_particle], fLCheckBox);
     }
+
     FrameD ->AddFrame(fGroupFrames[5], new TGLayoutHints(kLHintsCenterX,2,2,2,2));
     //--------------
 
@@ -855,38 +914,6 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
 
 
     //--------------
-    hframeD5  = new TGHorizontalFrame(FrameD,200,100);
-
-    Button_take_params_MC_to_ana = new TGTextButton(hframeD5, "Use MC params for Ana",10);
-    Button_take_params_MC_to_ana->Connect("Clicked()", "TBlastWaveGUI", this, "TakeParamsFromMC()");
-    hframeD5->AddFrame(Button_take_params_MC_to_ana, new TGLayoutHints(kLHintsCenterX,5,5,3,4));
-
-    Button_take_params_Set_to_ana = new TGTextButton(hframeD5, "Use SET params for Ana",10);
-    Button_take_params_Set_to_ana->Connect("Clicked()", "TBlastWaveGUI", this, "TakeParamsFromSet()");
-    hframeD5->AddFrame(Button_take_params_Set_to_ana, new TGLayoutHints(kLHintsCenterX,5,5,3,4));
-
-    FrameD ->AddFrame(hframeD5, new TGLayoutHints(kLHintsCenterX,2,2,2,2));
-    //--------------
-
-
-
-
-    //--------------
-    hframeD6  = new TGHorizontalFrame(FrameD,200,100);
-
-    Button_make_plot_v2 = new TGTextButton(hframeD6, "Make plot v2",10);
-    Button_make_plot_v2->Connect("Clicked()", "TBlastWaveGUI", this, "MakePlotv2()");
-    hframeD6->AddFrame(Button_make_plot_v2, new TGLayoutHints(kLHintsCenterX,5,5,3,4));
-
-    Button_make_plot_dNdpT = new TGTextButton(hframeD6, "Make plot dN/dpT",10);
-    Button_make_plot_dNdpT->Connect("Clicked()", "TBlastWaveGUI", this, "MakePlotdNdpT()");
-    hframeD6->AddFrame(Button_make_plot_dNdpT, new TGLayoutHints(kLHintsCenterX,5,5,3,4));
-
-    FrameD ->AddFrame(hframeD6, new TGLayoutHints(kLHintsCenterX,2,2,2,2));
-    //--------------
-
-
-    //-------------
     // Add feed down check box
     CheckBoxFeedDown = new TGCheckButton(fGroupFrames[2], "Include Feed-Down");
     CheckBoxFeedDown->SetState(kButtonDown);
@@ -904,7 +931,7 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
     ComboEnergy->Select(0);
     //-------------
     //Add centrality drop down
-    TString ComboCentralityLabel[18] = {"0-5  %", "0-10 %", "0-20 %","0-30 %","0-80%", "5-10 %","10-20%", "20-30%","10-40%","20-40%", "30-40%", "40-50%", "40-60%","40-80%", "50-60%", "60-70%","60-80%", "70-80%"};
+    TString ComboCentralityLabel[18] = {"0-5  %", "0-10 %", "0-20 %","0-30 %","0-80 %", "5-10 %","10-20 %", "20-30 %","10-40 %","20-40 %", "30-40 %", "40-50 %", "40-60 %","40-80 %", "50-60 %", "60-70 %","60-80 %", "70-80 %"};
     ComboCentrality = new TGComboBox(hframeD2b,200);
     for(Int_t index_cent = 0; index_cent < 18; index_cent++)
     {
@@ -925,8 +952,8 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
 
     FrameD ->MapSubwindows();
     FrameD ->MapWindow();
-    FrameD ->Resize(1050,950); // size of frame
-    FrameD ->Move(1250,650); // position of frame
+    FrameD ->Resize(1050,980); // size of frame
+    FrameD ->Move(1250,850); // position of frame
 
 
 
@@ -1007,7 +1034,6 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
     //--------------
 
 
-
     //------------------------------------------------------------
 
 
@@ -1042,12 +1068,16 @@ void TBlastWaveGUI::DoSetClicked(Int_t i_particle, Int_t i_type)
         TransientFrame_Set[i_type][i_particle] = new TGTransientFrame(gClient->GetRoot(), FrameD, 60, 20, kHorizontalFrame);
         fVSetClicked[i_type][i_particle]       = new TGVerticalFrame(TransientFrame_Set[i_type][i_particle]);
         ComboEnergy_PID[i_type][i_particle]    = new TGComboBox(fVSetClicked[i_type][i_particle], "Energy");
-        Set_energy[i_type][i_particle]         = new TGTextButton(fVSetClicked[i_type][i_particle], "Set");
+        Set_energy[i_type][i_particle]         = new TGTextButton(fVSetClicked[i_type][i_particle], "Set energy");
         ComboCentrality_PID[i_type][i_particle]= new TGComboBox(fVSetClicked[i_type][i_particle], "Centrality");
+        Set_centrality[i_type][i_particle]     = new TGTextButton(fVSetClicked[i_type][i_particle], "Set centrality");
         TransientFrame_Set[i_type][i_particle]  ->AddFrame(fVSetClicked[i_type][i_particle],        new TGLayoutHints(kLHintsCenterX,5,5,5,5));
         fVSetClicked[i_type][i_particle]        ->AddFrame(ComboEnergy_PID[i_type][i_particle],     new TGLayoutHints(kLHintsCenterX,5,5,3,4));
         fVSetClicked[i_type][i_particle]        ->AddFrame(Set_energy[i_type][i_particle],          new TGLayoutHints(kLHintsCenterX,5,5,3,4));
         fVSetClicked[i_type][i_particle]        ->AddFrame(ComboCentrality_PID[i_type][i_particle], new TGLayoutHints(kLHintsCenterX,5,5,3,4));
+        fVSetClicked[i_type][i_particle]        ->AddFrame(Set_centrality[i_type][i_particle],      new TGLayoutHints(kLHintsCenterX,5,5,3,4));
+        Set_centrality[i_type][i_particle]->Connect("Clicked()", "TBlastWaveGUI", this, Form("DoSetSingleParticle(Int_t= %d, %d)", i_particle,i_type));
+
         ComboCentrality_PID[i_type][i_particle] ->Resize(100,20);
         ComboCentrality_PID[i_type][i_particle] ->Select(0);
         ComboEnergy_PID[i_type][i_particle]     ->Resize(100,20);
@@ -1104,7 +1134,7 @@ void TBlastWaveGUI::DoSetClicked(Int_t i_particle, Int_t i_type)
         Set_energy[i_type][i_particle] ->Connect("Clicked()", "TBlastWaveGUI", this, Form("DoCentralityCombo(Int_t= %d, %d)", i_particle,i_type));
 
         TransientFrame_Set[i_type][i_particle]->MapSubwindows();
-        TransientFrame_Set[i_type][i_particle]->Resize(150,100);
+        TransientFrame_Set[i_type][i_particle]->Resize(150,150);
         TransientFrame_Set[i_type][i_particle]->CenterOnParent();
         TransientFrame_Set[i_type][i_particle]->MapWindow();
     }
@@ -1127,6 +1157,83 @@ void TBlastWaveGUI::DoSetClicked(Int_t i_particle, Int_t i_type)
 
 }
 //______________________________________________________________________________
+void TBlastWaveGUI::DoSetSingleParticle(Int_t i_particle, Int_t i_type)
+{
+    ULong_t green;
+    gClient->GetColorByName("green", green);
+
+    if (i_type ==0)
+    {
+        fCheckBox_pid[i_particle] ->ChangeBackground(green);
+        fCheckBox_pid[i_particle] ->SetState(kButtonDown);
+        fCheckBox_pid_plot[i_particle]->ChangeBackground(green);
+        fCheckBox_pid_plot[i_particle] ->SetState(kButtonDown);
+    }
+
+    if (i_type ==1)
+    {
+        fCheckBox_pid_fit_dNdpt[i_particle] ->ChangeBackground(green);
+        fCheckBox_pid_fit_dNdpt[i_particle] ->SetState(kButtonDown);
+        fCheckBox_pid_plot_dNdpt[i_particle]->ChangeBackground(green);
+        fCheckBox_pid_plot_dNdpt[i_particle] ->SetState(kButtonDown);
+    }
+
+    TGTextLBEntry *cent_text_entry = (TGTextLBEntry *) ComboCentrality_PID[i_type][i_particle]->GetSelectedEntry();
+    const char *selected_centrality = cent_text_entry->GetTitle();
+
+    TString select_centrality = selected_centrality ;
+    Ssiz_t found = select_centrality.First("-");
+    TSubString sub_str = select_centrality(0,found);
+    TString cent_lower = sub_str;
+
+    select_centrality.Replace(0, found+1, "");
+    found  = select_centrality.First(" ");
+    sub_str = select_centrality(0,found);
+    TString cent_upper = sub_str;
+
+    TGTextLBEntry *energy_text_entry = (TGTextLBEntry *)ComboEnergy_PID[i_type][i_particle]->GetSelectedEntry();
+    const char *selected_Energy = energy_text_entry->GetTitle();
+    TString select_Energy = selected_Energy ;
+    found = select_Energy.First(" ");
+    TSubString sub_str_Energy = select_Energy(0,found);
+
+    TString tgae_id;
+    // vector tgae_id_v2 and dNdpt , loop over all tgae_ids and over all tgae_names
+    for (Int_t i_particle= 0; i_particle< N_masses_2; i_particle++)
+    {
+        if (fCheckBox_pid_plot[i_particle]->IsDown())
+        {
+            tgae_id = "v2_PID_";
+            tgae_id += label_full_pid_spectra[i_particle].Data();
+            tgae_id += "_E_";
+            tgae_id += sub_str_Energy;
+            tgae_id += "_C_";
+            tgae_id += cent_lower.Data();
+            tgae_id += "_";
+            tgae_id += cent_upper.Data();
+            cout << tgae_id << endl;
+            vec_tgae_id_v2.push_back(tgae_id.Copy());
+            tgae_id.Clear();
+        }
+
+        if (fCheckBox_pid_plot_dNdpt[i_particle]->IsDown())
+        {
+            tgae_id = "dNdpt_PID_";
+            tgae_id += label_full_pid_spectra[i_particle].Data();
+            tgae_id += "_E_";
+            tgae_id += sub_str_Energy;
+            tgae_id += "_C_";
+            tgae_id += cent_lower.Data();
+            tgae_id += "_";
+            tgae_id += cent_upper.Data();
+            cout << tgae_id << endl;
+            vec_tgae_id_dNdpt.push_back(tgae_id.Copy());
+            tgae_id.Clear();
+        }
+    }
+
+}
+//______________________________________________________________________________
 void TBlastWaveGUI::DoSetTextButton()
 {
     cout << "DoSetTextButton()" << endl;
@@ -1137,8 +1244,6 @@ void TBlastWaveGUI::DoSetTextButton()
     TString ComboEnergyLabel_float[10] = {"7.7","11.5","14.5","19.6","27.0", "39.0","62.4", "200.0", "2760", "5020"};
     TString ComboCentralityLabel_upper[18] = {"5","10","20","30","80","10","20", "30","40","40", "40", "50", "60","80", "60", "70","80", "80"};
     TString ComboCentralityLabel_lower[18] = {"0", "0", "0", "0", "0", "5","10", "20","10","20", "30", "40", "40","40", "50", "60","60", "70"};
-    TString ComboCentralityLabel_upper_float[18] = {"5.0","10.0","20.0","30.0","80.0","10.0","20.0", "30.0","40.0","40.0", "40.0", "50.0", "60.0","80.0", "60.0", "70.0","80.0", "80.0"};
-    TString ComboCentralityLabel_lower_float[18] = {"0.0", "0.0", "0.0", "0.0", "0.0", "5.0","10.0", "20.0","10.0","20.0", "30.0", "40.0", "40.0","40.0", "50.0", "60.0","60.0", "70.0"};
 
     ULong_t green;
     gClient->GetColorByName("green", green);
@@ -1147,47 +1252,54 @@ void TBlastWaveGUI::DoSetTextButton()
 
     for (Int_t i_particle= 0; i_particle< N_masses_2; i_particle++)
         {
-            fCheckBox_pid[i_particle] ->ChangeBackground(red);
+            fCheckBox_pid[i_particle]           ->ChangeBackground(red);
             fCheckBox_pid_fit_dNdpt[i_particle] ->ChangeBackground(red);
+            fCheckBox_pid_plot[i_particle]      ->ChangeBackground(red);
+            fCheckBox_pid_plot_dNdpt[i_particle]->ChangeBackground(red);
+            fCheckBox_pid[i_particle]           ->SetState(kButtonUp);
+            fCheckBox_pid_fit_dNdpt[i_particle] ->SetState(kButtonUp);
+            fCheckBox_pid_plot[i_particle]      ->SetState(kButtonUp);
+            fCheckBox_pid_plot_dNdpt[i_particle]->SetState(kButtonUp);
             for (Int_t i_found = 0; i_found < (Int_t)vec_pid_energy_v2[i_particle].size();i_found++ )
             {
                 if (vec_pid_energy_v2[i_particle][i_found] == ComboEnergyLabel[i_select_energy].Data() && vec_pid_cent_upper_v2[i_particle][i_found]== ComboCentralityLabel_upper[i_select_centrality].Data() && vec_pid_cent_lower_v2[i_particle][i_found]== ComboCentralityLabel_lower[i_select_centrality].Data() )
                 {
                     fCheckBox_pid[i_particle] ->ChangeBackground(green);
+                    fCheckBox_pid[i_particle] ->SetState(kButtonDown);
+                    fCheckBox_pid_plot[i_particle]->ChangeBackground(green);
+                    fCheckBox_pid_plot[i_particle] ->SetState(kButtonDown);
                 }
                 if (vec_pid_energy_v2[i_particle][i_found] == ComboEnergyLabel_float[i_select_energy].Data() && vec_pid_cent_upper_v2[i_particle][i_found]== ComboCentralityLabel_upper[i_select_centrality].Data() && vec_pid_cent_lower_v2[i_particle][i_found]== ComboCentralityLabel_lower[i_select_centrality].Data() )
                 {
                     fCheckBox_pid[i_particle] ->ChangeBackground(green);
+                    fCheckBox_pid[i_particle] ->SetState(kButtonDown);
+                    fCheckBox_pid_plot[i_particle]->ChangeBackground(green);
+                    fCheckBox_pid_plot[i_particle] ->SetState(kButtonDown);
                 }
-                if (vec_pid_energy_v2[i_particle][i_found] == ComboEnergyLabel[i_select_energy].Data() && vec_pid_cent_upper_v2[i_particle][i_found]== ComboCentralityLabel_upper_float[i_select_centrality].Data() && vec_pid_cent_lower_v2[i_particle][i_found]== ComboCentralityLabel_lower_float[i_select_centrality].Data() )
-                {
-                    fCheckBox_pid[i_particle] ->ChangeBackground(green);
-                }
-                if (vec_pid_energy_v2[i_particle][i_found] == ComboEnergyLabel_float[i_select_energy].Data() && vec_pid_cent_upper_v2[i_particle][i_found]== ComboCentralityLabel_upper_float[i_select_centrality].Data() && vec_pid_cent_lower_v2[i_particle][i_found]== ComboCentralityLabel_lower_float[i_select_centrality].Data() )
-                {
-                    fCheckBox_pid[i_particle] ->ChangeBackground(green);
-                }
+                
             }
             for (Int_t i_found = 0; i_found < (Int_t)vec_pid_energy_dNdpt[i_particle].size();i_found++ )
             {
                 if (vec_pid_energy_dNdpt[i_particle][i_found] == ComboEnergyLabel[i_select_energy].Data() && vec_pid_cent_upper_dNdpt[i_particle][i_found]== ComboCentralityLabel_upper[i_select_centrality].Data() && vec_pid_cent_lower_dNdpt[i_particle][i_found]== ComboCentralityLabel_lower[i_select_centrality].Data() )
                 {
                     fCheckBox_pid_fit_dNdpt[i_particle] ->ChangeBackground(green);
+                    fCheckBox_pid_fit_dNdpt[i_particle] ->SetState(kButtonDown);
+                    fCheckBox_pid_plot_dNdpt[i_particle]->ChangeBackground(green);
+                    fCheckBox_pid_plot_dNdpt[i_particle] ->SetState(kButtonDown);
                 }
                 if (vec_pid_energy_dNdpt[i_particle][i_found] == ComboEnergyLabel_float[i_select_energy].Data() && vec_pid_cent_upper_dNdpt[i_particle][i_found]== ComboCentralityLabel_upper[i_select_centrality].Data() && vec_pid_cent_lower_dNdpt[i_particle][i_found]== ComboCentralityLabel_lower[i_select_centrality].Data() )
                 {
                     fCheckBox_pid_fit_dNdpt[i_particle] ->ChangeBackground(green);
-                }
-                if (vec_pid_energy_dNdpt[i_particle][i_found] == ComboEnergyLabel[i_select_energy].Data() && vec_pid_cent_upper_dNdpt[i_particle][i_found]== ComboCentralityLabel_upper_float[i_select_centrality].Data() && vec_pid_cent_lower_dNdpt[i_particle][i_found]== ComboCentralityLabel_lower_float[i_select_centrality].Data() )
-                {
-                    fCheckBox_pid_fit_dNdpt[i_particle] ->ChangeBackground(green);
-                }
-                if (vec_pid_energy_dNdpt[i_particle][i_found] == ComboEnergyLabel_float[i_select_energy].Data() && vec_pid_cent_upper_dNdpt[i_particle][i_found]== ComboCentralityLabel_upper_float[i_select_centrality].Data() && vec_pid_cent_lower_dNdpt[i_particle][i_found]== ComboCentralityLabel_lower_float[i_select_centrality].Data() )
-                {
-                    fCheckBox_pid_fit_dNdpt[i_particle] ->ChangeBackground(green);
+                    fCheckBox_pid_fit_dNdpt[i_particle] ->SetState(kButtonDown);
+                    fCheckBox_pid_plot_dNdpt[i_particle]->ChangeBackground(green);
+                    fCheckBox_pid_plot_dNdpt[i_particle] ->SetState(kButtonDown);
                 }
             }
         }
+
+
+    DoFillTgaeID();
+
 }
 
 //______________________________________________________________________________
@@ -1201,11 +1313,11 @@ void TBlastWaveGUI::DoCentralityCombo(Int_t i_particle, Int_t i_type)
 
     TGTextLBEntry *filePointer = (TGTextLBEntry *)ComboEnergy_PID[i_type][i_particle]->GetSelectedEntry();
     const char *selected_energy = filePointer->GetTitle();
-    cout << selected_energy << endl;
     TString select_energy = selected_energy ;
+
     Ssiz_t found = select_energy.First(" ");
     TSubString sub_str = select_energy(0,found);
-    cout << sub_str << endl;
+
     Int_t i_number = 0;
     Int_t i_entries = ComboCentrality_PID[i_type][i_particle]->GetNumberOfEntries();
     ComboCentrality_PID[i_type][i_particle]->RemoveAll();
@@ -1257,6 +1369,182 @@ void TBlastWaveGUI::DoCentralityCombo(Int_t i_particle, Int_t i_type)
     cout << i_entries << endl;
     //ComboCentrality_PID[i_type][i_particle]->Select(0);
 }
+//______________________________________________________________________________
+void TBlastWaveGUI::DoFillTgaeID()
+{
+    TGTextLBEntry *cent_text_entry = (TGTextLBEntry *)ComboCentrality->GetSelectedEntry();
+    const char *selected_centrality = cent_text_entry->GetTitle();
+
+    TString select_centrality = selected_centrality ;
+    Ssiz_t found = select_centrality.First("-");
+    TSubString sub_str = select_centrality(0,found);
+    TString cent_lower = sub_str;
+
+    select_centrality.Replace(0, found+1, "");
+    found  = select_centrality.First(" ");
+    sub_str = select_centrality(0,found);
+    TString cent_upper = sub_str;
+
+    TGTextLBEntry *energy_text_entry = (TGTextLBEntry *)ComboEnergy->GetSelectedEntry();
+    const char *selected_Energy = energy_text_entry->GetTitle();
+    TString select_Energy = selected_Energy ;
+    found = select_Energy.First(" ");
+    TSubString sub_str_Energy = select_Energy(0,found);
+
+    vec_tgae_id_v2.clear();
+    vec_tgae_id_dNdpt.clear();
+    TString tgae_id;
+    // vector tgae_id_v2 and dNdpt , loop over all tgae_ids and over all tgae_names
+    for (Int_t i_particle= 0; i_particle< N_masses_2; i_particle++)
+    {
+        if (fCheckBox_pid_plot[i_particle]->IsDown())
+        {
+            tgae_id = "v2_PID_";
+            tgae_id += label_full_pid_spectra[i_particle].Data();
+            tgae_id += "_E_";
+            tgae_id += sub_str_Energy;
+            tgae_id += "_C_";
+            tgae_id += cent_lower.Data();
+            tgae_id += "_";
+            tgae_id += cent_upper.Data();
+            cout << tgae_id << endl;
+            vec_tgae_id_v2.push_back(tgae_id.Copy());
+            tgae_id.Clear();
+        }
+
+        if (fCheckBox_pid_plot_dNdpt[i_particle]->IsDown())
+        {
+            tgae_id = "dNdpt_PID_";
+            tgae_id += label_full_pid_spectra[i_particle].Data();
+            tgae_id += "_E_";
+            tgae_id += sub_str_Energy;
+            tgae_id += "_C_";
+            tgae_id += cent_lower.Data();
+            tgae_id += "_";
+            tgae_id += cent_upper.Data();
+            cout << tgae_id << endl;
+            vec_tgae_id_dNdpt.push_back(tgae_id.Copy());
+            tgae_id.Clear();
+        }
+    }
+
+
+
+
+
+}
+//______________________________________________________________________________
+void TBlastWaveGUI::PlotData()
+{
+    // Handle Plot data button.
+    cout << "PlotData()" << endl;
+    if(!c_1X1_v2)
+    {
+        c_1X1_v2 = new TCanvas("c_1X1_v2","c_1X1_v2",50,100,1400,900);
+        c_1X1_v2->SetTopMargin(0.5);
+        c_1X1_v2->SetBottomMargin(2);
+        c_1X1_v2->SetRightMargin(0.5);
+        c_1X1_v2->SetLeftMargin(1);
+        c_1X1_v2->SetLogy(0);
+    }
+
+    c_1X1_v2->cd()->SetTicks(1,1);
+    c_1X1_v2->cd()->SetGrid(0,0);
+    c_1X1_v2->cd()->SetFillColor(10);
+    c_1X1_v2->cd()->SetRightMargin(1);
+    c_1X1_v2->cd()->SetTopMargin(1);
+
+    h_dummy_plot_data->SetTitle("");
+    h_dummy_plot_data->SetStats(0);
+    h_dummy_plot_data->GetXaxis()->SetTitleOffset();
+    h_dummy_plot_data->GetYaxis()->SetTitleOffset();
+    h_dummy_plot_data->GetXaxis()->SetLabelOffset();
+    h_dummy_plot_data->GetYaxis()->SetLabelOffset();
+    h_dummy_plot_data->GetXaxis()->SetLabelSize();
+    h_dummy_plot_data->GetYaxis()->SetLabelSize();
+    h_dummy_plot_data->GetXaxis()->SetTitleSize();
+    h_dummy_plot_data->GetYaxis()->SetTitleSize();
+    h_dummy_plot_data->GetXaxis()->SetNdivisions(505,'N');
+    h_dummy_plot_data->GetYaxis()->SetNdivisions(505,'N');
+    h_dummy_plot_data->SetLineColor(10);
+    h_dummy_plot_data->GetXaxis()->SetRangeUser(-0.03,4.5);
+    h_dummy_plot_data->GetYaxis()->SetRangeUser(-0.1999,0.38);
+    h_dummy_plot_data->DrawCopy();
+
+    PlotLine(0.0,20,0,0,1,1,2); // x1_val, x2_val, y1_val, y2_val, Line_Col, LineWidth, LineStyle
+    plotTopLegend((char*)"p_{T} (GeV/c)",0.475,0.03,0.05,1,0.0,42,1);
+    plotTopLegend((char*)"#it{v}_{2}",0.03,0.5,0.05,1,90,42,1);
+
+
+    for (Int_t i_tgae_name = 0; i_tgae_name < (Int_t) vec_tgae_name_full.size(); i_tgae_name++)
+    {
+        for (Int_t i_tgae_id = 0; i_tgae_id < (Int_t) vec_tgae_id_v2.size(); i_tgae_id++)
+        {
+            if ( vec_tgae_id_v2[i_tgae_id] == vec_tgae_name_full[i_tgae_name] && vec_error_type[i_tgae_name] =="stat")
+            {
+                vec_tgae[i_tgae_name]->SetMarkerSize(0.75);
+                vec_tgae[i_tgae_name]->SetMarkerStyle(20);
+                vec_tgae[i_tgae_name]->SetMarkerColor(arr_color_mass[i_tgae_id]);
+                vec_tgae[i_tgae_name]->Draw("same PZ");
+            }
+
+        }
+    }
+    if(!c_1X1_dNdpt)
+    {
+        c_1X1_dNdpt = new TCanvas("c_1X1_dNdpt","c_1X1_dNdpt",50,100,1400,900);
+        c_1X1_dNdpt->SetTopMargin(0.5);
+        c_1X1_dNdpt->SetBottomMargin(2);
+        c_1X1_dNdpt->SetRightMargin(0.5);
+        c_1X1_dNdpt->SetLeftMargin(1);
+        c_1X1_dNdpt->SetLogy(0);
+    }
+
+    c_1X1_dNdpt->cd()->SetTicks(1,1);
+    c_1X1_dNdpt->cd()->SetGrid(0,0);
+    c_1X1_dNdpt->cd()->SetFillColor(10);
+    c_1X1_dNdpt->cd()->SetRightMargin(1);
+    c_1X1_dNdpt->cd()->SetTopMargin(1);
+
+    h_dummy_plot_data->SetTitle("");
+    h_dummy_plot_data->SetStats(0);
+    h_dummy_plot_data->GetXaxis()->SetTitleOffset();
+    h_dummy_plot_data->GetYaxis()->SetTitleOffset();
+    h_dummy_plot_data->GetXaxis()->SetLabelOffset();
+    h_dummy_plot_data->GetYaxis()->SetLabelOffset();
+    h_dummy_plot_data->GetXaxis()->SetLabelSize();
+    h_dummy_plot_data->GetYaxis()->SetLabelSize();
+    h_dummy_plot_data->GetXaxis()->SetTitleSize();
+    h_dummy_plot_data->GetYaxis()->SetTitleSize();
+    h_dummy_plot_data->GetXaxis()->SetNdivisions(505,'N');
+    h_dummy_plot_data->GetYaxis()->SetNdivisions(505,'N');
+    h_dummy_plot_data->SetLineColor(10);
+    h_dummy_plot_data->GetXaxis()->SetRangeUser(-0.03,6.5);
+    h_dummy_plot_data->GetYaxis()->SetRangeUser(-0.1999,2);
+    h_dummy_plot_data->DrawCopy();
+
+    PlotLine(0.0,20,0,0,1,1,2); // x1_val, x2_val, y1_val, y2_val, Line_Col, LineWidth, LineStyle
+    plotTopLegend((char*)"p_{T} (GeV/c)",0.475,0.03,0.05,1,0.0,42,1);
+    plotTopLegend((char*)"dN/dp_{T}",0.03,0.5,0.05,1,90,42,1);
+
+    
+    for (Int_t i_tgae_name = 0; i_tgae_name < (Int_t) vec_tgae_name_full.size(); i_tgae_name++)
+    {
+        for (Int_t i_tgae_id = 0; i_tgae_id < (Int_t) vec_tgae_id_dNdpt.size(); i_tgae_id++)
+        {
+            if ( vec_tgae_id_dNdpt[i_tgae_id] == vec_tgae_name_full[i_tgae_name]&& vec_error_type[i_tgae_name] =="stat")
+            {
+                vec_tgae[i_tgae_name]->SetMarkerSize(0.75);
+                vec_tgae[i_tgae_name]->SetMarkerStyle(20);
+                vec_tgae[i_tgae_name]->SetMarkerColor(arr_color_mass[i_tgae_id]);
+                vec_tgae[i_tgae_name]->Draw("same PZ");
+            }
+
+        }
+
+    }
+}
+
 //______________________________________________________________________________
 void TBlastWaveGUI::DoText(const char * /*text*/)
 {

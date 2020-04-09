@@ -93,7 +93,7 @@ static TF1 *f_JetPtFunc          = NULL;
 static Double_t arr_quark_mass_meson[N_masses_2]         = {0.13957,0.13957,0.497648,0.497648,0.938272,0.938272,1.019460,1.32171, 1.32171, 1.67245,1.67245,1.115683,1.115683,0.497611,1.86962,3.096916,9.46030,1.875612,
 1.875612, 2.8094313, 2.8094313, 2.80945};
 static Double_t pT_fit_max[N_masses_2]                   = {1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0};
-static Int_t    arr_color_mass[N_masses]               = {kBlack,kGreen+1,kRed,kMagenta+1,kCyan+1,kOrange,kYellow+2,kAzure-2,kOrange+1};
+static Int_t    arr_color_mass[N_masses_2]               = {kBlack,kGreen+1,kRed,kMagenta+1,kCyan+1,kOrange,kYellow+2,kAzure-2,kOrange+1,kGray, kBlack,kGreen+1,kRed,kMagenta+1,kCyan+1,kOrange,kYellow+2,kAzure-2,kOrange+1,kGray, kYellow};
 static const Double_t R_Pb = 5.4946; // fm
 static TH2D* h2D_density_Glauber;
 
@@ -154,6 +154,9 @@ static vector<vector<TString>> vec_pid_cent_lower_v2;
 static vector<vector<TString>> vec_pid_energy_dNdpt;
 static vector<vector<TString>> vec_pid_cent_upper_dNdpt;
 static vector<vector<TString>> vec_pid_cent_lower_dNdpt;
+static vector<TGraphAsymmErrors*> vec_tgae;
+static vector<TString> vec_tgae_name_full;
+static vector<TString> vec_error_type;
 //------------------------------------------------------------------------------------------------------------
 static const Float_t Pi = TMath::Pi();
 static TRandom ran;
@@ -996,7 +999,7 @@ Double_t PtFitBessel(Double_t* x_val, Double_t* par)
 
 
 //----------------------------------------------------------------------------------------
-void load_data(const char *dirname="./Out/", const char *ext=".root")
+void load_data(const char *dirname="./out/", const char *ext=".root")
 {
     printf("load_data \n");
     TSystemDirectory dir(dirname, dirname);
@@ -1021,14 +1024,13 @@ void load_data(const char *dirname="./Out/", const char *ext=".root")
         }
 
         vector<TFile*> vec_newfile;
-        vector<TGraphAsymmErrors*> vec_tgae;
         vec_tgae.clear();
         vector<TString> vec_tgae_name;
         vec_tgae_name.clear();
 
         for (Int_t index_file = 0; index_file < (Int_t)vec_fname.size(); index_file++)
         {
-            TString filename = "./Out/";
+            TString filename = "./out/";
             filename += vec_fname[index_file];
             vec_newfile.push_back( new TFile(filename.Data()));
 
@@ -1040,6 +1042,7 @@ void load_data(const char *dirname="./Out/", const char *ext=".root")
                 if( !cl->InheritsFrom("TGraphAsymmErrors"))continue;
                 GraphName = key->GetName();
                 vec_tgae_name.push_back(GraphName.Copy());
+                //vec_tgae_name_full.push_back(GraphName.Copy());
                 vec_tgae.push_back((TGraphAsymmErrors*)key->ReadObj());
                 //cout<< vec_tgae.size()<<endl;
                 //cout<< GraphName <<endl;
@@ -1047,7 +1050,7 @@ void load_data(const char *dirname="./Out/", const char *ext=".root")
 
             }
         }
-        TString type, pid, energy, centrality_lower, centrality_upper;
+        TString type, pid, energy, centrality_lower, centrality_upper, tgae_name_full, error_type;
         vector<TString> vec_type;
         vector<TString> vec_pid;
         vector<TString> vec_energy;
@@ -1059,71 +1062,82 @@ void load_data(const char *dirname="./Out/", const char *ext=".root")
             Ssiz_t found = vec_tgae_name[i_graph].First("_");
             TSubString sub_str =  vec_tgae_name[i_graph](0,found);
             type = sub_str;
+            tgae_name_full = sub_str;
+            tgae_name_full += "_";
 
             vec_tgae_name[i_graph].Replace(0, found+1, "");
             found = vec_tgae_name[i_graph].First("_");
+            sub_str = vec_tgae_name[i_graph](0,found);
+            tgae_name_full += sub_str;
+            tgae_name_full += "_";
             vec_tgae_name[i_graph].Replace(0, found+1, "");
 
             found = vec_tgae_name[i_graph].First("_");
             sub_str =  vec_tgae_name[i_graph](0,found);
             pid = sub_str;
+            tgae_name_full += sub_str;
+            tgae_name_full += "_";
 
             vec_tgae_name[i_graph].Replace(0, found+1, "");
 
             found = vec_tgae_name[i_graph].First("_");
+            sub_str = vec_tgae_name[i_graph](0,found);
+            tgae_name_full += sub_str;
+            tgae_name_full += "_";
             vec_tgae_name[i_graph].Replace(0, found+1, "");
 
             found = vec_tgae_name[i_graph].First("_");
             sub_str =  vec_tgae_name[i_graph](0,found);
             energy = sub_str;
+            tgae_name_full += sub_str;
+            tgae_name_full += "_";
 
             vec_tgae_name[i_graph].Replace(0, found+1, "");
-
+            
             found = vec_tgae_name[i_graph].First("_");
+            sub_str = vec_tgae_name[i_graph](0,found);
+            tgae_name_full += sub_str;
+            tgae_name_full += "_";
             vec_tgae_name[i_graph].Replace(0, found+1, "");
 
             found = vec_tgae_name[i_graph].First("_");
             sub_str =  vec_tgae_name[i_graph](0,found);
             centrality_lower = sub_str;
-
+            tgae_name_full += sub_str;
+            tgae_name_full += "_";
             vec_tgae_name[i_graph].Replace(0, found+1, "");
 
-            //found = vec_tgae_name[i_graph].First("_");
-            //sub_str =  vec_tgae_name[i_graph](0, found);
+            found = vec_tgae_name[i_graph].First("_");
+            sub_str =  vec_tgae_name[i_graph](0, found);
 
-           // centrality_upper = sub_str;
-
-            Ssiz_t sub_str_length = sub_str.Length();
-            sub_str =  vec_tgae_name[i_graph](0,1);
             centrality_upper = sub_str;
+            tgae_name_full += sub_str;
+            vec_tgae_name[i_graph].Replace(0, found+1, "");
 
-            vec_tgae_name[i_graph].Replace(0, 1, "");
-            sub_str = vec_tgae_name[i_graph](0,1);
+            Ssiz_t sub_str_length = vec_tgae_name[i_graph].Length();
+            sub_str =   vec_tgae_name[i_graph](0, sub_str_length);
 
-            if ( sub_str != "_") centrality_upper += sub_str;
-            vec_tgae_name[i_graph].Replace(0, 1, "");
-            sub_str = vec_tgae_name[i_graph](0,1);
-            if ( sub_str == ".") centrality_upper += sub_str;
-            vec_tgae_name[i_graph].Replace(0, 1, "");
-            sub_str = vec_tgae_name[i_graph](0,1);
-            if ( sub_str != "_" && sub_str != "s"  && sub_str != "t" && sub_str != "y") centrality_upper += sub_str;
+            error_type = sub_str;
+
 
             vec_type.push_back(type.Copy());
             vec_pid.push_back(pid.Copy());
             vec_energy.push_back(energy.Copy());
             vec_centrality_lower.push_back(centrality_lower.Copy());
             vec_centrality_upper.push_back(centrality_upper.Copy());
-
+            vec_tgae_name_full.push_back(tgae_name_full.Copy());
+            vec_error_type.push_back(error_type.Copy());
             type.Clear();
             pid.Clear();
             energy.Clear();
             centrality_lower.Clear();
             centrality_upper.Clear();
+            tgae_name_full.Clear();
+            error_type.Clear();
         }
         //cout<< vec_type.size()<<endl;
         //cout<< vec_pid.size()<<endl;
 
-        //Int_t N_masses_2 = 21;
         vec_pid_energy_v2.resize(N_masses_2);
         vec_pid_cent_upper_v2.resize(N_masses_2);
         vec_pid_cent_lower_v2.resize(N_masses_2);
