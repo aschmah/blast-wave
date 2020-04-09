@@ -1134,6 +1134,7 @@ void TBlastWaveGUI::DoSetTextButton()
     Int_t i_select_centrality = ComboCentrality->GetSelected();
     cout << i_select_energy << endl;
     TString ComboEnergyLabel[10] = {"7.7","11.5","14.5","19.6","27","39","62.4","200", "2760", "5020"};
+    TString ComboEnergyLabel_float[10] = {"7.7","11.5","14.5","19.6","27.0", "39.0","62.4", "200.0", "2760", "5020"};
     TString ComboCentralityLabel_upper[18] = {"5","10","20","30","80","10","20", "30","40","40", "40", "50", "60","80", "60", "70","80", "80"};
     TString ComboCentralityLabel_lower[18] = {"0", "0", "0", "0", "0", "5","10", "20","10","20", "30", "40", "40","40", "50", "60","60", "70"};
     TString ComboCentralityLabel_upper_float[18] = {"5.0","10.0","20.0","30.0","80.0","10.0","20.0", "30.0","40.0","40.0", "40.0", "50.0", "60.0","80.0", "60.0", "70.0","80.0", "80.0"};
@@ -1154,7 +1155,15 @@ void TBlastWaveGUI::DoSetTextButton()
                 {
                     fCheckBox_pid[i_particle] ->ChangeBackground(green);
                 }
+                if (vec_pid_energy_v2[i_particle][i_found] == ComboEnergyLabel_float[i_select_energy].Data() && vec_pid_cent_upper_v2[i_particle][i_found]== ComboCentralityLabel_upper[i_select_centrality].Data() && vec_pid_cent_lower_v2[i_particle][i_found]== ComboCentralityLabel_lower[i_select_centrality].Data() )
+                {
+                    fCheckBox_pid[i_particle] ->ChangeBackground(green);
+                }
                 if (vec_pid_energy_v2[i_particle][i_found] == ComboEnergyLabel[i_select_energy].Data() && vec_pid_cent_upper_v2[i_particle][i_found]== ComboCentralityLabel_upper_float[i_select_centrality].Data() && vec_pid_cent_lower_v2[i_particle][i_found]== ComboCentralityLabel_lower_float[i_select_centrality].Data() )
+                {
+                    fCheckBox_pid[i_particle] ->ChangeBackground(green);
+                }
+                if (vec_pid_energy_v2[i_particle][i_found] == ComboEnergyLabel_float[i_select_energy].Data() && vec_pid_cent_upper_v2[i_particle][i_found]== ComboCentralityLabel_upper_float[i_select_centrality].Data() && vec_pid_cent_lower_v2[i_particle][i_found]== ComboCentralityLabel_lower_float[i_select_centrality].Data() )
                 {
                     fCheckBox_pid[i_particle] ->ChangeBackground(green);
                 }
@@ -1165,7 +1174,15 @@ void TBlastWaveGUI::DoSetTextButton()
                 {
                     fCheckBox_pid_fit_dNdpt[i_particle] ->ChangeBackground(green);
                 }
+                if (vec_pid_energy_dNdpt[i_particle][i_found] == ComboEnergyLabel_float[i_select_energy].Data() && vec_pid_cent_upper_dNdpt[i_particle][i_found]== ComboCentralityLabel_upper[i_select_centrality].Data() && vec_pid_cent_lower_dNdpt[i_particle][i_found]== ComboCentralityLabel_lower[i_select_centrality].Data() )
+                {
+                    fCheckBox_pid_fit_dNdpt[i_particle] ->ChangeBackground(green);
+                }
                 if (vec_pid_energy_dNdpt[i_particle][i_found] == ComboEnergyLabel[i_select_energy].Data() && vec_pid_cent_upper_dNdpt[i_particle][i_found]== ComboCentralityLabel_upper_float[i_select_centrality].Data() && vec_pid_cent_lower_dNdpt[i_particle][i_found]== ComboCentralityLabel_lower_float[i_select_centrality].Data() )
+                {
+                    fCheckBox_pid_fit_dNdpt[i_particle] ->ChangeBackground(green);
+                }
+                if (vec_pid_energy_dNdpt[i_particle][i_found] == ComboEnergyLabel_float[i_select_energy].Data() && vec_pid_cent_upper_dNdpt[i_particle][i_found]== ComboCentralityLabel_upper_float[i_select_centrality].Data() && vec_pid_cent_lower_dNdpt[i_particle][i_found]== ComboCentralityLabel_lower_float[i_select_centrality].Data() )
                 {
                     fCheckBox_pid_fit_dNdpt[i_particle] ->ChangeBackground(green);
                 }
