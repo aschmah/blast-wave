@@ -85,15 +85,15 @@ static Double_t arr_pt_high_cut[N_v2_vs_pt_BW+3];
 static Int_t arr_color[N_v2_vs_pt_BW+3] = {kBlack,kGreen+1,kRed,kMagenta+1,kCyan+1,kOrange,kRed,kGray,kYellow+2,kRed,kMagenta,kGreen+1};
 
 static const Int_t    N_masses         = 9; // 9->21
-static const Int_t    N_masses_2      = 22;
+static const Int_t    N_masses_all      = 22;
 static TH2D* h2D_geometric_shape = NULL;
 static TF1 *f_LevyFitFunc        = NULL;
 static TF1 *f_FitBessel          = NULL;
 static TF1 *f_JetPtFunc          = NULL;
-static Double_t arr_quark_mass_meson[N_masses_2]         = {0.13957,0.13957,0.497648,0.497648,0.938272,0.938272,1.019460,1.32171, 1.32171, 1.67245,1.67245,1.115683,1.115683,0.497611,1.86962,3.096916,9.46030,1.875612,
+static Double_t arr_quark_mass_meson[N_masses_all]         = {0.13957,0.13957,0.497648,0.497648,0.938272,0.938272,1.019460,1.32171, 1.32171, 1.67245,1.67245,1.115683,1.115683,0.497611,1.86962,3.096916,9.46030,1.875612,
 1.875612, 2.8094313, 2.8094313, 2.80945};
-static Double_t pT_fit_max[N_masses_2]                   = {1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0};
-static Int_t    arr_color_mass[N_masses_2]               = {kBlack,kGreen+1,kRed,kMagenta+1,kCyan+1,kOrange,kYellow+2,kAzure-2,kOrange+1,kGray, kBlack,kGreen+1,kRed,kMagenta+1,kCyan+1,kOrange,kYellow+2,kAzure-2,kOrange+1,kGray, kYellow};
+static Double_t pT_fit_max[N_masses_all]                   = {1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0};
+static Int_t    arr_color_mass[N_masses_all]               = {kBlack,kGreen+1,kRed,kMagenta+1,kCyan+1,kOrange,kYellow+2,kAzure-2,kOrange+1,kGray, kBlack,kGreen+1,kRed,kMagenta+1,kCyan+1,kOrange,kYellow+2,kAzure-2,kOrange+1,kGray, kYellow};
 static const Double_t R_Pb = 5.4946; // fm
 static TH2D* h2D_density_Glauber;
 
@@ -117,7 +117,7 @@ static TGraphAsymmErrors* tge_deuteron_dNdpT;
 static TH1D* h_dNdpT_best = NULL;
 static vector<TGraphErrors*> vec_tge_v2_vs_pT_560_pid;
 static TString label_pid_spectra[N_masses] = {"#pi","K","p","#phi","#Omega","D^{0}","J/#psi","#varUpsilon","d"};
-static TString label_full_pid_spectra[N_masses_2] = {"Pi+","Pi-","K+","K-","P","Pbar", "Phi","Xi-","Xibar+","Omega-","Omegabar+","Lambda","Lambdabar","K0S","D0", "J/Psi","Upsilon","d","dbar","He3", "He3bar", "t"}; // 9 -> 21
+static TString label_full_pid_spectra[N_masses_all] = {"Pi+","Pi-","K+","K-","P","Pbar", "Phi","Xi-","Xibar+","Omega-","Omegabar+","Lambda","Lambdabar","K0S","D0", "J/Psi","Upsilon","d","dbar","He3", "He3bar", "t"}; // 9 -> 21
 static TString label_v2_dNdpT[2] = {"v2","dNdpT"};
 
 static Double_t Temp_loop_start  = 0.08;
@@ -826,7 +826,7 @@ void blastwave_yield_and_v2(const double &pt, const double &m, const double &T, 
 void calFitRange(double beta = 0.68)
 {
   double gamma = 1.0/TMath::Sqrt(1.0-beta*beta);
-  for(int i_pid = 0; i_pid < N_masses; ++i_pid)
+  for(int i_pid = 0; i_pid < N_masses_all; ++i_pid)
   {
       pT_fit_max[i_pid] = arr_quark_mass_meson[i_pid]*gamma*beta + 1.0;
   }
@@ -1135,18 +1135,19 @@ void load_data(const char *dirname="./Out/", const char *ext=".root")
             tgae_name_full.Clear();
             error_type.Clear();
         }
-        //cout<< vec_type.size()<<endl;
+        cout<< vec_tgae_name_full[1]<<endl;
         //cout<< vec_pid.size()<<endl;
 
-        vec_pid_energy_v2.resize(N_masses_2);
-        vec_pid_cent_upper_v2.resize(N_masses_2);
-        vec_pid_cent_lower_v2.resize(N_masses_2);
-        vec_pid_energy_dNdpt.resize(N_masses_2);
-        vec_pid_cent_upper_dNdpt.resize(N_masses_2);
-        vec_pid_cent_lower_dNdpt.resize(N_masses_2);
+        vec_pid_energy_v2.resize(N_masses_all);
+        vec_pid_cent_upper_v2.resize(N_masses_all);
+        vec_pid_cent_lower_v2.resize(N_masses_all);
+        vec_pid_energy_dNdpt.resize(N_masses_all);
+        vec_pid_cent_upper_dNdpt.resize(N_masses_all);
+        vec_pid_cent_lower_dNdpt.resize(N_masses_all);
 
 
-        for (Int_t i_particle= 0; i_particle< N_masses_2; i_particle++ )
+
+        for (Int_t i_particle= 0; i_particle< N_masses_all; i_particle++ )
         {
             vec_pid_energy_v2[i_particle].push_back(label_full_pid_spectra[i_particle].Data());
             vec_pid_cent_upper_v2[i_particle].push_back(label_full_pid_spectra[i_particle].Data());
