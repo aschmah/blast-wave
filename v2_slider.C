@@ -160,6 +160,7 @@ private:
     TLegend* leg_v2_vs_pT_B = NULL;
     TLegend* leg_dNdpT_vs_pT = NULL;
     TLegend* leg_v2_vs_pT_C = NULL;
+    TLegend* legend_v2_plot_data = NULL;
     TGraph* tg_leg = NULL;
     Int_t flag_stop_minimize = 0;
     Int_t flag_minimization_ana = 0;
@@ -223,7 +224,6 @@ private:
     vector <TString> vec_tgae_id_dNdpt;
     vector <TString> vec_tgae_id_v2_fit;
     vector <TString> vec_tgae_id_dNdpt_fit;
-
 
     Int_t i_transient_frame[2][N_masses_all] = {0,0};
 
@@ -1094,7 +1094,7 @@ void TBlastWaveGUI::CloseWindow()
 //______________________________________________________________________________
 void TBlastWaveGUI::DoSetTextButton()
 {
-    // Handle Set text button, rough selection of energy and centrality
+    // Handle text button Set, rough selection of energy and centrality
     cout << "DoSetTextButton()" << endl;
     Int_t i_select_energy = ComboEnergy->GetSelected();
     Int_t i_select_centrality = ComboCentrality->GetSelected();
@@ -1472,8 +1472,8 @@ void TBlastWaveGUI::DoSetSingleParticle(Int_t i_particle, Int_t i_type)
     TString tgae_id;
 
 
-    for (Int_t i_particle= 0; i_particle< N_masses_all; i_particle++)
-    {
+    //for (Int_t i_particle= 0; i_particle< N_masses_all; i_particle++)
+    //{
         if (fCheckBox_pid_plot[i_particle]->IsDown() )   // pid plot v2
         {
             tgae_id = "v2_PID_";
@@ -1531,7 +1531,7 @@ void TBlastWaveGUI::DoSetSingleParticle(Int_t i_particle, Int_t i_type)
             vec_tgae_id_dNdpt_fit.push_back(tgae_id.Copy());
             tgae_id.Clear();
         }
-    }
+   // }
 
 }
 //______________________________________________________________________________
@@ -1615,12 +1615,18 @@ void TBlastWaveGUI::PlotData()
     h_dummy_plot_data->GetYaxis()->SetNdivisions(505,'N');
     h_dummy_plot_data->SetLineColor(10);
     h_dummy_plot_data->GetXaxis()->SetRangeUser(-0.03,6.5);
-    h_dummy_plot_data->GetYaxis()->SetRangeUser(-0.1999,2);
+    h_dummy_plot_data->GetYaxis()->SetRangeUser(-0.1999,4);
     h_dummy_plot_data->DrawCopy();
 
     PlotLine(0.0,20,0,0,1,1,2); // x1_val, x2_val, y1_val, y2_val, Line_Col, LineWidth, LineStyle
     plotTopLegend((char*)"p_{T} (GeV/c)",0.475,0.03,0.05,1,0.0,42,1);
     plotTopLegend((char*)"dN/dp_{T}",0.03,0.5,0.05,1,90,42,1);
+
+    if(legend_v2_plot_data) delete legend_v2_plot_data;
+    legend_v2_plot_data = new TLegend(0.15,0.73,0.3,0.82); // x1,y1,x2,y2
+    legend_v2_plot_data->SetBorderSize(0);
+    legend_v2_plot_data->SetFillColor(0);
+    legend_v2_plot_data->SetTextSize(0.03);
 
     c_1X1_v2 ->GetCanvas() ->cd();
     for (Int_t i_tgae_name = 0; i_tgae_name < (Int_t) vec_tgae_name_full.size(); i_tgae_name++)
@@ -1630,15 +1636,19 @@ void TBlastWaveGUI::PlotData()
         {
             if ( vec_tgae_id_v2[i_tgae_id] == vec_tgae_name_full[i_tgae_name] && vec_error_type[i_tgae_name] =="stat")
             {
+                Int_t i_mass = vec_index_pid[i_tgae_name];
+                if (!fCheckBox_pid_plot[i_mass]->IsDown()) continue;
                 vec_tgae[i_tgae_name]->SetMarkerSize(0.75);
                 vec_tgae[i_tgae_name]->SetMarkerStyle(20);
                 vec_tgae[i_tgae_name]->SetMarkerColor(arr_color_mass[i_tgae_id]);
                 vec_tgae[i_tgae_name]->Draw("same PZ");
+                legend_v2_plot_data->AddEntry(vec_tgae[i_tgae_name],label_full_pid_spectra[i_mass],"p");
             }
 
         }
     }
-
+    //legend_v2_plot_data->Draw();
+    //legend_v2_plot_data->SetEntrySeparation(0.5);
 
     c_1X1_dNdpt ->GetCanvas() ->cd();
     for (Int_t i_tgae_name = 0; i_tgae_name < (Int_t) vec_tgae_name_full.size(); i_tgae_name++)
@@ -2003,6 +2013,7 @@ void TBlastWaveGUI::DoMinimize_ana()
         for(Int_t i_tgae = 0; i_tgae < (Int_t) tgae_v2_vs_pT_data.size(); i_tgae++)
         {
             Int_t i_mass = index_pid_v2_vs_pT_data[i_tgae];
+            //cout << "Index i_mass v2: " << i_mass  <<endl;
             //if(!(fCheckBox_pid[i_mass]->GetState() == kButtonDown)) continue;
             Double_t min_val_pT;
             Double_t max_val_pT;
@@ -2033,9 +2044,8 @@ void TBlastWaveGUI::DoMinimize_ana()
             // v2 chi2
             if((fCheckBox_v2_dNdpT[0]->GetState() == kButtonDown))
             {
+                //cout << "v2 chi2" <<endl;
                 Int_t i_point_ana = 0;
-                Int_t test = tgae_v2_vs_pT_data[i_tgae]->GetN();
-                //cout <<"Number of points: " << test << endl;
                 for(int i_point = 0; i_point < tgae_v2_vs_pT_data[i_tgae]->GetN(); ++i_point)
                 {
                     double v2_data = 0.0;
@@ -2061,6 +2071,8 @@ void TBlastWaveGUI::DoMinimize_ana()
                         //blastwave_yield_and_v2(pt_BW, m, T, rho0, rho2, RxOverRy, inv_yield_BW, v2_BW);
 
                         tg_v2_BW_ana_pid_min[i_mass] ->SetPoint(i_point_ana,pt_BW,v2_BW);
+                        //Int_t test = tg_v2_BW_ana_pid_min[i_mass]->GetN();
+                        //cout <<"Number of points: " << test << endl;
 
                         // cout << "i_point = " << i_point << ", pt_BW = " << pt_BW << ", v2_BW = " << v2_BW << endl;
                         double diff   = (v2_data - v2_BW)/v2_err;
@@ -2081,7 +2093,7 @@ void TBlastWaveGUI::DoMinimize_ana()
         for(Int_t i_tgae = 0; i_tgae < (Int_t) tgae_dN_dpT_data.size(); i_tgae++)
         {
             Int_t i_mass = index_pid_dN_dpT_data[i_tgae];
-            //cout << "Test B" << endl;
+           // cout << "Index i_mass dNdpt: " << i_mass  <<endl;
             //if(!(fCheckBox_pid[i_mass]->GetState() == kButtonDown)) continue;
             Double_t min_val_pT;
             Double_t max_val_pT;
@@ -2112,6 +2124,7 @@ void TBlastWaveGUI::DoMinimize_ana()
             // dNdpT chi2
             if((fCheckBox_v2_dNdpT[1]->GetState() == kButtonDown))
             {
+                //cout << "chi2 dNdpt" <<endl;
                 Double_t integral_ana = 0.0;
                 vector< vector<Double_t> > vec_data_BW;
                 vec_data_BW.resize(4); // data, BW, err, pT
@@ -2197,7 +2210,6 @@ void TBlastWaveGUI::DoMinimize_ana()
         //printf("chi2 (ana): %4.3f \n",chi2);
         if(TLatex_chi2_ana) delete TLatex_chi2_ana;
         TLatex_chi2_ana = plotTopLegend((char*)HistName.Data(),0.18,0.80,0.045,kBlack,0.0,42,1,1); // char* label,Float_t x=-1,Float_t y=-1, Float_t size=0.06,Int_t color=1,Float_t angle=0.0, Int_t font = 42, Int_t NDC = 1, Int_t align = 1
-
         for(int i_mass = 0; i_mass < N_masses_all; ++i_mass)
         {
             if(!tg_v2_BW_ana_pid_min[i_mass]) continue;
@@ -2209,7 +2221,6 @@ void TBlastWaveGUI::DoMinimize_ana()
 
         c_1X1_v2->GetCanvas()->Modified();
         c_1X1_v2->GetCanvas()->Update();
-
         c_1X1_dNdpt ->GetCanvas()->cd();
         for(int i_mass = 0; i_mass < N_masses_all; ++i_mass)
         {
@@ -2716,17 +2727,17 @@ void TBlastWaveGUI::Plot_curves_ana(Double_t T_BW,Double_t  Rho0_BW,Double_t  Rh
 
     //--------------------------------------------------------------------
     Double_t min_max_pT_range_pid_plot_ana[2][N_masses_all];
-    min_max_pT_range_pid_plot_ana[0][0] = 0.1; // pi
+    min_max_pT_range_pid_plot_ana[0][0] = 0.1; // pi+
     min_max_pT_range_pid_plot_ana[1][0] = 3.5;
-    min_max_pT_range_pid_plot_ana[0][1] = 0.1; // pi
+    min_max_pT_range_pid_plot_ana[0][1] = 0.1; // pi-
     min_max_pT_range_pid_plot_ana[1][1] = 3.5;
-    min_max_pT_range_pid_plot_ana[0][2] = 0.1; // K
+    min_max_pT_range_pid_plot_ana[0][2] = 0.1; // K+
     min_max_pT_range_pid_plot_ana[1][2] = 4.0;
-    min_max_pT_range_pid_plot_ana[0][3] = 0.1; // K
+    min_max_pT_range_pid_plot_ana[0][3] = 0.1; // K-
     min_max_pT_range_pid_plot_ana[1][3] = 4.0;
     min_max_pT_range_pid_plot_ana[0][4] = 0.1; // p
     min_max_pT_range_pid_plot_ana[1][4] = 5.0;
-    min_max_pT_range_pid_plot_ana[0][5] = 0.1; // p
+    min_max_pT_range_pid_plot_ana[0][5] = 0.1; // pbar
     min_max_pT_range_pid_plot_ana[1][5] = 5.0;
     min_max_pT_range_pid_plot_ana[0][6] = 0.1; // phi
     min_max_pT_range_pid_plot_ana[1][6] = 5.0;
@@ -2790,7 +2801,8 @@ void TBlastWaveGUI::Plot_curves_ana(Double_t T_BW,Double_t  Rho0_BW,Double_t  Rh
                 tg_v2_BW_ana_pid[i_mass] ->SetPoint(i_pT,pt_BW,v2_BW);
             }
         }
-        tg_v2_BW_ana_pid[i_mass] -> SetLineColor(arr_color_mass[i_mass]);
+        //tg_v2_BW_ana_pid[i_mass] -> SetLineColor(arr_color_mass[i_mass]);
+        tg_v2_BW_ana_pid[i_mass] -> SetLineColor(kBlack);
         tg_v2_BW_ana_pid[i_mass] -> SetLineWidth(3);
         tg_v2_BW_ana_pid[i_mass] -> SetLineStyle(9);
         //if(!(fCheckBox_pid[i_mass]->GetState() == kButtonDown)) tg_v2_BW_ana_pid[i_mass] -> SetLineStyle(9);
