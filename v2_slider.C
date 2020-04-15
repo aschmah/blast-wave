@@ -658,6 +658,7 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
     fGroupFrames[0]->AddFrame(Button_plot_data, new TGLayoutHints(kLHintsCenterX,5,5,3,4));
 
     h_dummy_plot_data = new TH1D("h_dummy_plot_data","h_dummy_plot_data" , 200,0,20);
+    /*
     //--------------
     // A horizontal frame
     hVframeD3  = new TGVerticalFrame(FrameD,200,100);
@@ -673,7 +674,7 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
 
     //--------------
     // A horizontal frame
-    /*
+
     printf("Add minimize buttons \n");
     hframeD2  = new TGHorizontalFrame(FrameD,200,100);
 
@@ -697,7 +698,7 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
     //--------------
 
 
-
+    */
     //--------------
     // A horizontal frame
     printf("Add progress bar \n");
@@ -713,7 +714,7 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
     FrameD ->AddFrame(hVframeD4, new TGLayoutHints(kLHintsCenterX,2,2,2,2));
     fHProg2->Reset();
 
-    */
+
     //--------------
 
 
@@ -985,7 +986,7 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
 
     FrameD ->MapSubwindows();
     FrameD ->MapWindow();
-    FrameD ->Resize(1050,980); // size of frame
+    FrameD ->Resize(1050,900); // size of frame
     FrameD ->Move(1250,850); // position of frame
 
 
@@ -1583,20 +1584,7 @@ void TBlastWaveGUI::PlotData()
     plotTopLegend((char*)"#it{v}_{2}",0.03,0.5,0.05,1,90,42,1);
 
 
-    for (Int_t i_tgae_name = 0; i_tgae_name < (Int_t) vec_tgae_name_full.size(); i_tgae_name++)
-    {
-        for (Int_t i_tgae_id = 0; i_tgae_id < (Int_t) vec_tgae_id_v2.size(); i_tgae_id++)
-        {
-            if ( vec_tgae_id_v2[i_tgae_id] == vec_tgae_name_full[i_tgae_name] && vec_error_type[i_tgae_name] =="stat")
-            {
-                vec_tgae[i_tgae_name]->SetMarkerSize(0.75);
-                vec_tgae[i_tgae_name]->SetMarkerStyle(20);
-                vec_tgae[i_tgae_name]->SetMarkerColor(arr_color_mass[i_tgae_id]);
-                vec_tgae[i_tgae_name]->Draw("same PZ");
-            }
-
-        }
-    }
+    
     if(!c_1X1_dNdpt)
     {
         c_1X1_dNdpt = new TCanvas("c_1X1_dNdpt","c_1X1_dNdpt",50,100,1400,900);
@@ -1634,9 +1622,28 @@ void TBlastWaveGUI::PlotData()
     plotTopLegend((char*)"p_{T} (GeV/c)",0.475,0.03,0.05,1,0.0,42,1);
     plotTopLegend((char*)"dN/dp_{T}",0.03,0.5,0.05,1,90,42,1);
 
-    
+    c_1X1_v2 ->GetCanvas() ->cd();
     for (Int_t i_tgae_name = 0; i_tgae_name < (Int_t) vec_tgae_name_full.size(); i_tgae_name++)
     {
+        Int_t i_mass = vec_index_pid[i_tgae_name];
+        for (Int_t i_tgae_id = 0; i_tgae_id < (Int_t) vec_tgae_id_v2.size(); i_tgae_id++)
+        {
+            if ( vec_tgae_id_v2[i_tgae_id] == vec_tgae_name_full[i_tgae_name] && vec_error_type[i_tgae_name] =="stat")
+            {
+                vec_tgae[i_tgae_name]->SetMarkerSize(0.75);
+                vec_tgae[i_tgae_name]->SetMarkerStyle(20);
+                vec_tgae[i_tgae_name]->SetMarkerColor(arr_color_mass[i_tgae_id]);
+                vec_tgae[i_tgae_name]->Draw("same PZ");
+            }
+
+        }
+    }
+
+
+    c_1X1_dNdpt ->GetCanvas() ->cd();
+    for (Int_t i_tgae_name = 0; i_tgae_name < (Int_t) vec_tgae_name_full.size(); i_tgae_name++)
+    {
+        Int_t i_mass = vec_index_pid[i_tgae_name];
         for (Int_t i_tgae_id = 0; i_tgae_id < (Int_t) vec_tgae_id_dNdpt.size(); i_tgae_id++)
         {
             if ( vec_tgae_id_dNdpt[i_tgae_id] == vec_tgae_name_full[i_tgae_name]&& vec_error_type[i_tgae_name] =="stat")
@@ -1646,9 +1653,7 @@ void TBlastWaveGUI::PlotData()
                 vec_tgae[i_tgae_name]->SetMarkerColor(arr_color_mass[i_tgae_id]);
                 vec_tgae[i_tgae_name]->Draw("same PZ");
             }
-
         }
-
     }
 }
 
@@ -1942,7 +1947,7 @@ void TBlastWaveGUI::DoMinimize_ana()
     Int_t id_bw_hypersurface = fCombo ->GetSelected();
     printf("id_bw_hypersurface: %d \n",id_bw_hypersurface);
 
-    // fHProg2 ->Reset();
+    fHProg2 ->Reset();
 
     Pixel_t yellow;
     gClient->GetColorByName("yellow", yellow);
@@ -1951,6 +1956,12 @@ void TBlastWaveGUI::DoMinimize_ana()
 
     vector <TGraphAsymmErrors*> tgae_v2_vs_pT_data;
     vector <TGraphAsymmErrors*> tgae_dN_dpT_data;
+    vector <Int_t> index_pid_v2_vs_pT_data;
+    vector <Int_t> index_pid_dN_dpT_data;
+    index_pid_v2_vs_pT_data.clear();
+    index_pid_dN_dpT_data.clear();
+    tgae_v2_vs_pT_data.clear();
+    tgae_dN_dpT_data.clear();
     for (Int_t i_tgae_name = 0; i_tgae_name < (Int_t) vec_tgae_name_full.size(); i_tgae_name++)
     {
         for (Int_t i_tgae_id = 0; i_tgae_id < (Int_t) vec_tgae_id_v2_fit.size(); i_tgae_id++)
@@ -1958,6 +1969,7 @@ void TBlastWaveGUI::DoMinimize_ana()
             if ( vec_tgae_id_v2_fit[i_tgae_id] == vec_tgae_name_full[i_tgae_name] && vec_error_type[i_tgae_name] =="stat")
             {
                 tgae_v2_vs_pT_data.push_back((TGraphAsymmErrors*)vec_tgae[i_tgae_name]->Clone());
+                index_pid_v2_vs_pT_data.push_back(vec_index_pid[i_tgae_name]);
             }
 
         }
@@ -1969,15 +1981,14 @@ void TBlastWaveGUI::DoMinimize_ana()
             if ( vec_tgae_id_dNdpt_fit[i_tgae_id] == vec_tgae_name_full[i_tgae_name] && vec_error_type[i_tgae_name] =="stat")
             {
                 tgae_dN_dpT_data.push_back((TGraphAsymmErrors*)vec_tgae[i_tgae_name]->Clone());
+                index_pid_dN_dpT_data.push_back(vec_index_pid[i_tgae_name]);
             }
 
         }
     }
-    cout << "tgae_v2_vs_pT_data size: " << tgae_v2_vs_pT_data.size() << endl;
-
+    
     auto chi2Function = [&](const Double_t *par)
     {
-        cout << "Test A" << endl;
         //minimisation function computing the sum of squares of residuals
         N_calls_BW_ana++;
 
@@ -1989,41 +2000,50 @@ void TBlastWaveGUI::DoMinimize_ana()
         const double RxOverRy = par[3]; // fit parameter: ratio of the radii Rx and Ry of the freeze-out ellipse in the transverse plane
 
 
-        for(int i_mass = 0; i_mass < N_masses_all; ++i_mass)
+        for(Int_t i_tgae = 0; i_tgae < (Int_t) tgae_v2_vs_pT_data.size(); i_tgae++)
         {
-            cout << "Test B" << endl;
-            if(!(fCheckBox_pid[i_mass]->GetState() == kButtonDown)) continue;
-            Double_t min_val_pT = arr_NEntry_limits[0][i_mass]->GetNumberEntry()->GetNumber();
-            Double_t max_val_pT = arr_NEntry_limits[1][i_mass]->GetNumberEntry()->GetNumber();
-
+            Int_t i_mass = index_pid_v2_vs_pT_data[i_tgae];
+            //if(!(fCheckBox_pid[i_mass]->GetState() == kButtonDown)) continue;
+            Double_t min_val_pT;
+            Double_t max_val_pT;
+            if ( i_mass < 11)
+            {
+                min_val_pT = arr_NEntry_limits[0][i_mass]->GetNumberEntry()->GetNumber();
+                max_val_pT = arr_NEntry_limits[1][i_mass]->GetNumberEntry()->GetNumber();
+            }
+            if ( i_mass >= 11)
+            {
+                min_val_pT = arr_NEntry_limits_A[0][i_mass]->GetNumberEntry()->GetNumber();
+                max_val_pT = arr_NEntry_limits_A[1][i_mass]->GetNumberEntry()->GetNumber();
+            }
             individual_chi2_ana[i_mass][0]   = 0.0; // v2
-            individual_chi2_ana[i_mass][1]   = 0.0; // dN/dpT
+            //individual_chi2_ana[i_mass][1]   = 0.0; // dN/dpT
             N_individual_chi2_ana[i_mass][0] = 0.0; // v2
-            N_individual_chi2_ana[i_mass][1] = 0.0; // dN/dpT
+            //N_individual_chi2_ana[i_mass][1] = 0.0; // dN/dpT
 
             const double m = arr_quark_mass_meson[i_mass];       // in GeV
 
             if(tg_v2_BW_ana_pid_min[i_mass])    delete tg_v2_BW_ana_pid_min[i_mass];
-            if(tg_dNdpT_BW_ana_pid_min[i_mass]) delete tg_dNdpT_BW_ana_pid_min[i_mass];
+            //if(tg_dNdpT_BW_ana_pid_min[i_mass]) delete tg_dNdpT_BW_ana_pid_min[i_mass];
 
             tg_v2_BW_ana_pid_min[i_mass]    = new TGraph();
-            tg_dNdpT_BW_ana_pid_min[i_mass] = new TGraph();
+            //tg_dNdpT_BW_ana_pid_min[i_mass] = new TGraph();
 
             //--------------------------------------------------
             // v2 chi2
             if((fCheckBox_v2_dNdpT[0]->GetState() == kButtonDown))
             {
                 Int_t i_point_ana = 0;
-                Int_t test = tgae_v2_vs_pT_data[i_mass]->GetN();
-                cout <<"Number of points: " << test << endl;
-                for(int i_point = 0; i_point < tgae_v2_vs_pT_data[i_mass]->GetN(); ++i_point)
+                Int_t test = tgae_v2_vs_pT_data[i_tgae]->GetN();
+                //cout <<"Number of points: " << test << endl;
+                for(int i_point = 0; i_point < tgae_v2_vs_pT_data[i_tgae]->GetN(); ++i_point)
                 {
                     double v2_data = 0.0;
                     double pt_data = 0.0;
 
-                    tgae_v2_vs_pT_data[i_mass]->GetPoint(i_point,pt_data,v2_data);
-                    double v2_err = tgae_v2_vs_pT_data[i_mass]->GetErrorYhigh(i_point);
-                    cout << "i_point = " << i_point << ", pt_data = " << pt_data << "v2 = " << v2_data << " +/- " << v2_err << endl;
+                    tgae_v2_vs_pT_data[i_tgae]->GetPoint(i_point,pt_data,v2_data);
+                    double v2_err = tgae_v2_vs_pT_data[i_tgae]->GetErrorYhigh(i_point);
+                    //cout << "i_point = " << i_point << ", pt_data = " << pt_data << "v2 = " << v2_data << " +/- " << v2_err << endl;
 
                     if(pt_data > max_val_pT) break;
 
@@ -2052,10 +2072,41 @@ void TBlastWaveGUI::DoMinimize_ana()
                     }
                 }
             }
-            cout << "Test C" << endl;
-            /*
-            //--------------------------------------------------
+        }
 
+        //--------------------------------------------------
+
+
+        //--------------------------------------------------
+        for(Int_t i_tgae = 0; i_tgae < (Int_t) tgae_dN_dpT_data.size(); i_tgae++)
+        {
+            Int_t i_mass = index_pid_dN_dpT_data[i_tgae];
+            //cout << "Test B" << endl;
+            //if(!(fCheckBox_pid[i_mass]->GetState() == kButtonDown)) continue;
+            Double_t min_val_pT;
+            Double_t max_val_pT;
+            if ( i_mass < 11)
+            {
+                min_val_pT = arr_NEntry_limits[0][i_mass]->GetNumberEntry()->GetNumber();
+                max_val_pT = arr_NEntry_limits[1][i_mass]->GetNumberEntry()->GetNumber();
+            }
+            if ( i_mass >= 11)
+            {
+                min_val_pT = arr_NEntry_limits_A[0][i_mass]->GetNumberEntry()->GetNumber();
+                max_val_pT = arr_NEntry_limits_A[1][i_mass]->GetNumberEntry()->GetNumber();
+            }
+           // individual_chi2_ana[i_mass][0]   = 0.0; // v2
+            individual_chi2_ana[i_mass][1]   = 0.0; // dN/dpT
+           // N_individual_chi2_ana[i_mass][0] = 0.0; // v2
+            N_individual_chi2_ana[i_mass][1] = 0.0; // dN/dpT
+
+            const double m = arr_quark_mass_meson[i_mass];       // in GeV
+
+            //if(tg_v2_BW_ana_pid_min[i_mass])    delete tg_v2_BW_ana_pid_min[i_mass];
+            if(tg_dNdpT_BW_ana_pid_min[i_mass]) delete tg_dNdpT_BW_ana_pid_min[i_mass];
+
+            //tg_v2_BW_ana_pid_min[i_mass]    = new TGraph();
+            tg_dNdpT_BW_ana_pid_min[i_mass] = new TGraph();
 
             //--------------------------------------------------
             // dNdpT chi2
@@ -2065,19 +2116,19 @@ void TBlastWaveGUI::DoMinimize_ana()
                 vector< vector<Double_t> > vec_data_BW;
                 vec_data_BW.resize(4); // data, BW, err, pT
                 // First the integral of BW needs to be calculated to do a shape comparison to the data
-                for(int i_point = 0; i_point < tgae_dN_dpT_data[i_mass]->GetN(); ++i_point)
+                for(int i_point = 0; i_point < tgae_dN_dpT_data[i_tgae]->GetN(); ++i_point)
                 {
                     double dNdpT_data = 0.0;
                     double pt_data    = 0.0;
 
-                    tgae_dN_dpT_data[i_mass]->GetPoint(i_point,pt_data,dNdpT_data);
-                    double dNdpT_err = tgae_dN_dpT_data[i_mass]->GetErrorYhigh(i_point);
+                    tgae_dN_dpT_data[i_tgae]->GetPoint(i_point,pt_data,dNdpT_data);
+                    double dNdpT_err = tgae_dN_dpT_data[i_tgae]->GetErrorYhigh(i_point);
 
-                    Double_t x_err_low_data  = fabs(tgae_dN_dpT_data[i_mass] ->GetErrorXlow(i_point));
-                    Double_t x_err_high_data = fabs(tgae_dN_dpT_data[i_mass] ->GetErrorXhigh(i_point));
+                    Double_t x_err_low_data  = fabs(tgae_dN_dpT_data[i_tgae] ->GetErrorXlow(i_point));
+                    Double_t x_err_high_data = fabs(tgae_dN_dpT_data[i_tgae] ->GetErrorXhigh(i_point));
                     Double_t bin_width = x_err_low_data + x_err_high_data;
 
-                    cout << "i_point = " << i_point << ", pt_data = " << pt_data << "v2 = " << dNdpT_data << " +/- " << dNdpT_err << endl;
+                    //cout << "i_point = " << i_point << ", pt_data = " << pt_data << "v2 = " << dNdpT_data << " +/- " << dNdpT_err << endl;
 
                     //if(pt_data > max_val_pT) break;
 
@@ -2104,7 +2155,7 @@ void TBlastWaveGUI::DoMinimize_ana()
                         //chi2 += diff*diff;
                     }
                 }
-                cout << "Test D" << endl;
+
                 Double_t scale_factor_ana = get_norm_scaling_factor_calc(vec_data_BW,min_val_pT,max_val_pT);
 
                 // Calculate chi2 for dNdpT
@@ -2128,18 +2179,18 @@ void TBlastWaveGUI::DoMinimize_ana()
                         }
                     }
                 }
-            }  */
+            }
 
             //integration_range_pid[i_mass][0] = x_val_data_first - x_err_low_data;
             //integration_range_pid[i_mass][1] = x_val_data_last  + x_err_high_data;
             //--------------------------------------------------
         }
-        /*
+
         if(N_calls_BW_ana % 5 == 0) fHProg2->Increment(5);
         printf("N_calls_BW_ana: %d \n",N_calls_BW_ana);
         //printf("fraction total: %4.2f%%, fraction added: %4.2f%% \n",fraction_total*100.0,fraction_use*100.0);
-        cout << "Test C" << endl;
-        fCanvas->GetCanvas()->cd();
+
+        c_1X1_v2->GetCanvas()->cd();
         HistName = "#chi_{Ana}^{2}/ndf = ";
         sprintf(NoP,"%4.2f",chi2);
         HistName += NoP;
@@ -2156,25 +2207,26 @@ void TBlastWaveGUI::DoMinimize_ana()
             tg_v2_BW_ana_pid_min[i_mass] ->Draw("same L");
         }
 
-        fCanvas->GetCanvas()->Modified();
-        fCanvas->GetCanvas()->Update();
+        c_1X1_v2->GetCanvas()->Modified();
+        c_1X1_v2->GetCanvas()->Update();
 
+        c_1X1_dNdpt ->GetCanvas()->cd();
         for(int i_mass = 0; i_mass < N_masses_all; ++i_mass)
         {
             if(!tg_dNdpT_BW_ana_pid_min[i_mass]) continue;
-            fCanvasB ->GetCanvas()->cd(i_mass+1);
+            //fCanvasB ->GetCanvas()->cd(i_mass+1);
             tg_dNdpT_BW_ana_pid_min[i_mass] ->SetLineColor(kAzure-2);
             tg_dNdpT_BW_ana_pid_min[i_mass] ->SetLineWidth(3);
             tg_dNdpT_BW_ana_pid_min[i_mass] ->SetLineStyle(1);
             tg_dNdpT_BW_ana_pid_min[i_mass] ->Draw("same L");
         }
 
-        fCanvasB->GetCanvas()->Modified();
-        fCanvasB->GetCanvas()->Update();
+        c_1X1_dNdpt ->GetCanvas()->Modified();
+        c_1X1_dNdpt ->GetCanvas()->Update();
 
         gSystem->Sleep(100);
         gSystem->ProcessEvents();
-        */
+
         if(chi2 < chi2_final_min_ana)
         {
             chi2_final_min_ana = chi2;
@@ -2230,7 +2282,7 @@ void TBlastWaveGUI::DoMinimize_ana()
     if (!ok) {
         Error("BWFit","BlastWave Fit failed");
     }
-    /*
+
     const ROOT::Fit::FitResult &resultB = fitter.Result();
     ROOT::Fit::FitResult result(resultB);
     resultC = result;
@@ -2274,12 +2326,11 @@ void TBlastWaveGUI::DoMinimize_ana()
         }
     }
 
-    //Plot_curves_ana(T_BW,Rho0_BW,Rho2_BW,RxOverRy_BW);
-    */
+    Plot_curves_ana(T_BW,Rho0_BW,Rho2_BW,RxOverRy_BW);
+
     Pixel_t green;
     gClient->GetColorByName("green", green);
     Button_minimize_ana->ChangeBackground(green);
-
 
 
 #if 0
@@ -2664,34 +2715,60 @@ void TBlastWaveGUI::Plot_curves_ana(Double_t T_BW,Double_t  Rho0_BW,Double_t  Rh
     printf("id_bw_hypersurface: %d \n",id_bw_hypersurface);
 
     //--------------------------------------------------------------------
-    Double_t min_max_pT_range_pid_plot_ana[2][N_masses];
+    Double_t min_max_pT_range_pid_plot_ana[2][N_masses_all];
     min_max_pT_range_pid_plot_ana[0][0] = 0.1; // pi
     min_max_pT_range_pid_plot_ana[1][0] = 3.5;
-    min_max_pT_range_pid_plot_ana[0][1] = 0.1; // K
-    min_max_pT_range_pid_plot_ana[1][1] = 4.0;
-    min_max_pT_range_pid_plot_ana[0][2] = 0.1; // p
-    min_max_pT_range_pid_plot_ana[1][2] = 5.0;
-    min_max_pT_range_pid_plot_ana[0][3] = 0.1; // phi
-    min_max_pT_range_pid_plot_ana[1][3] = 5.0;
-    min_max_pT_range_pid_plot_ana[0][4] = 0.1; // Omega
-    min_max_pT_range_pid_plot_ana[1][4] = 6.0;
-    min_max_pT_range_pid_plot_ana[0][5] = 0.1; // D0
-    min_max_pT_range_pid_plot_ana[1][5] = 12.5;
-    min_max_pT_range_pid_plot_ana[0][6] = 0.1; // J/Psi
-    min_max_pT_range_pid_plot_ana[1][6] = 15.0;
-    min_max_pT_range_pid_plot_ana[0][7] = 0.1; // Upsilon
-    min_max_pT_range_pid_plot_ana[1][7] = 15.0;
-    min_max_pT_range_pid_plot_ana[0][8] = 0.1; // d
-    min_max_pT_range_pid_plot_ana[1][8] = 15.0;
+    min_max_pT_range_pid_plot_ana[0][1] = 0.1; // pi
+    min_max_pT_range_pid_plot_ana[1][1] = 3.5;
+    min_max_pT_range_pid_plot_ana[0][2] = 0.1; // K
+    min_max_pT_range_pid_plot_ana[1][2] = 4.0;
+    min_max_pT_range_pid_plot_ana[0][3] = 0.1; // K
+    min_max_pT_range_pid_plot_ana[1][3] = 4.0;
+    min_max_pT_range_pid_plot_ana[0][4] = 0.1; // p
+    min_max_pT_range_pid_plot_ana[1][4] = 5.0;
+    min_max_pT_range_pid_plot_ana[0][5] = 0.1; // p
+    min_max_pT_range_pid_plot_ana[1][5] = 5.0;
+    min_max_pT_range_pid_plot_ana[0][6] = 0.1; // phi
+    min_max_pT_range_pid_plot_ana[1][6] = 5.0;
+    min_max_pT_range_pid_plot_ana[0][7] = 0.1; // xi-
+    min_max_pT_range_pid_plot_ana[1][7] = 5.0;
+    min_max_pT_range_pid_plot_ana[0][8] = 0.1; // xibar+
+    min_max_pT_range_pid_plot_ana[1][8] = 5.0;
+    min_max_pT_range_pid_plot_ana[0][9] = 0.1; // Omega-
+    min_max_pT_range_pid_plot_ana[1][9] = 6.0;
+    min_max_pT_range_pid_plot_ana[0][10] = 0.1; // Omegabar+
+    min_max_pT_range_pid_plot_ana[1][10] = 6.0;
+    min_max_pT_range_pid_plot_ana[0][11] = 0.1; // Lambda
+    min_max_pT_range_pid_plot_ana[1][11] = 6.0;
+    min_max_pT_range_pid_plot_ana[0][12] = 0.1; //Lambdabar
+    min_max_pT_range_pid_plot_ana[1][12] = 6.0;
+    min_max_pT_range_pid_plot_ana[0][13] = 0.1; // K0S
+    min_max_pT_range_pid_plot_ana[1][13] = 4.0;
+    min_max_pT_range_pid_plot_ana[0][14] = 0.1; // D0
+    min_max_pT_range_pid_plot_ana[1][14] = 12.5;
+    min_max_pT_range_pid_plot_ana[0][15] = 0.1; // J/Psi
+    min_max_pT_range_pid_plot_ana[1][15] = 15.0;
+    min_max_pT_range_pid_plot_ana[0][16] = 0.1; // Upsilon
+    min_max_pT_range_pid_plot_ana[1][16] = 15.0;
+    min_max_pT_range_pid_plot_ana[0][17] = 0.1; // d
+    min_max_pT_range_pid_plot_ana[1][17] = 15.0;
+    min_max_pT_range_pid_plot_ana[0][18] = 0.1; // dbar
+    min_max_pT_range_pid_plot_ana[1][18] = 15.0;
+    min_max_pT_range_pid_plot_ana[0][19] = 0.1; // He3
+    min_max_pT_range_pid_plot_ana[1][19] = 15.0;
+    min_max_pT_range_pid_plot_ana[0][20] = 0.1; // He3bar
+    min_max_pT_range_pid_plot_ana[1][20] = 15.0;
+    min_max_pT_range_pid_plot_ana[0][21] = 0.1; // t
+    min_max_pT_range_pid_plot_ana[1][21] = 15.0;
     //--------------------------------------------------------------------
 
 
     //------------------------------------------------------
     // v2 plots
-    fCanvas ->GetCanvas() ->cd();
+    c_1X1_v2 ->GetCanvas() ->cd();
 
     const Int_t N_points_BW_ana = 35;
-    for(int i_mass = 0; i_mass < N_masses; ++i_mass)
+    for(int i_mass = 0; i_mass < N_masses_all; ++i_mass)
     {
         Double_t delta_pT = (Double_t)((min_max_pT_range_pid_plot_ana[1][i_mass] - min_max_pT_range_pid_plot_ana[0][i_mass])/(Double_t)(N_points_BW_ana-1));
         //Double_t min_pT = arr_NEntry_limits[0][i_mass]->GetNumberEntry()->GetNumber();
@@ -2717,28 +2794,28 @@ void TBlastWaveGUI::Plot_curves_ana(Double_t T_BW,Double_t  Rho0_BW,Double_t  Rh
         tg_v2_BW_ana_pid[i_mass] -> SetLineWidth(3);
         tg_v2_BW_ana_pid[i_mass] -> SetLineStyle(9);
         //if(!(fCheckBox_pid[i_mass]->GetState() == kButtonDown)) tg_v2_BW_ana_pid[i_mass] -> SetLineStyle(9);
-        if(fCheckBox_sel[1]->GetState() == kButtonDown) tg_v2_BW_ana_pid[i_mass] -> Draw("same L");
+        if(fCheckBox_sel[1]->GetState() == kButtonDown && fCheckBox_pid[i_mass]->GetState() == kButtonDown) tg_v2_BW_ana_pid[i_mass] -> Draw("same L");
     }
 
     printf("v2 ana plotted \n");
-    fCanvas->GetCanvas()->Modified();
-    fCanvas->GetCanvas()->Update();
+    c_1X1_v2->GetCanvas()->Modified();
+    c_1X1_v2->GetCanvas()->Update();
     //------------------------------------------------------
 
 
 
     //------------------------------------------------------
     // dNdpT plots
-    fCanvasB ->GetCanvas() ->cd();
+    c_1X1_dNdpt ->GetCanvas() ->cd();
 
-    for(int i_mass = 0; i_mass < N_masses; ++i_mass)
+    for(int i_mass = 0; i_mass < N_masses_all; ++i_mass)
     {
         //Double_t delta_pT = (Double_t)((integration_range_pid[i_mass][1] - 0.0)/(Double_t)N_points_BW_ana);
         Double_t delta_pT = (Double_t)((min_max_pT_range_pid_plot_ana[1][i_mass] - min_max_pT_range_pid_plot_ana[0][i_mass])/(Double_t)(N_points_BW_ana-1));
         //Double_t min_pT = arr_NEntry_limits[0][i_mass]->GetNumberEntry()->GetNumber();
         //Double_t max_pT = arr_NEntry_limits[1][i_mass]->GetNumberEntry()->GetNumber();
 
-        fCanvasB ->GetCanvas()->cd(i_mass + 1);
+        //fCanvasB ->GetCanvas()->cd(i_mass + 1);
         if(tg_dNdpT_BW_ana_pid[i_mass]) delete tg_dNdpT_BW_ana_pid[i_mass];
         tg_dNdpT_BW_ana_pid[i_mass] = new TGraph();
         Double_t integral_BW = 0.0;
@@ -2771,15 +2848,12 @@ void TBlastWaveGUI::Plot_curves_ana(Double_t T_BW,Double_t  Rho0_BW,Double_t  Rh
         tg_dNdpT_BW_ana_pid[i_mass] -> SetLineWidth(3);
         tg_dNdpT_BW_ana_pid[i_mass] -> SetLineStyle(1);
         if(!(fCheckBox_pid[i_mass]->GetState() == kButtonDown)) tg_dNdpT_BW_ana_pid[i_mass] -> SetLineStyle(9);
-        if(fCheckBox_sel[1]->GetState() == kButtonDown)
-        {
-            tg_dNdpT_BW_ana_pid[i_mass] -> Draw("same L");
-        }
+        if(fCheckBox_sel[1]->GetState() == kButtonDown && fCheckBox_pid_fit_dNdpt[i_mass]->GetState() == kButtonDown)  tg_dNdpT_BW_ana_pid[i_mass] -> Draw("same L");
     }
 
     printf("dNdpT ana plotted \n");
-    fCanvasB->GetCanvas()->Modified();
-    fCanvasB->GetCanvas()->Update();
+    c_1X1_dNdpt->GetCanvas()->Modified();
+    c_1X1_dNdpt->GetCanvas()->Update();
     //------------------------------------------------------
 }
 //______________________________________________________________________________
@@ -3696,7 +3770,7 @@ void TBlastWaveGUI::CalcMaxPtLimits()
         beta_max = 0.5;
     }
     calFitRange(beta_max);
-    for(int i_pid = 0; i_pid < N_masses; ++i_pid)
+    for(int i_pid = 0; i_pid < N_masses_all; ++i_pid)
     {
         if (i_pid < 10 ) arr_NEntry_limits[1][i_pid] ->SetNumber(pT_fit_max[i_pid]);
         if (i_pid >= 10) arr_NEntry_limits_A[1][i_pid] ->SetNumber(pT_fit_max[i_pid]);
