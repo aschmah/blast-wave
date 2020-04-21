@@ -16,6 +16,12 @@
 // Can now switch between stat_error and syst_error or select both
 // 03/30/2020
 
+
+// Add combo box to select graph number (hep files)
+// 04/17/2020
+
+// Add function Multiply_pT. Multiply dNdpt with pt if checkbox dNdpt is clicked
+// 04/20/2020
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -125,11 +131,11 @@ private:
     TGButton            *Exit, *Add_entry, *Remove_entry, *Add_file, *Save, *Plot;
     TGCheckButton       *dNdptpt;
     TGTextEntry         *Add_output_file_name;
-    TGCompositeFrame    *hframebutton, *hframefiles, *hframeoutput,  *hframe, *V2frame, *PIDframe, *Energyframe, *Centralityframe, *Tableframe, *Centrality_labelframe;
+    TGCompositeFrame    *hframebutton, *hframefiles, *hframeoutput,  *hframe, *V2frame, *PIDframe, *Energyframe, *Centralityframe, *Tableframe,*Graphframe, *Centrality_labelframe;
     TGRadioButton       *v2, *dNdpt;
     TGLayoutHints       *fL_main, *fL_framebutton, *fL_framefiles, *fL_button,  *fL_hframe, *fL_Energyframe, *fL_Centralityframe, *fL_upperlower;
     TGComboBox          *fCombo;
-    TGNumberEntry       *table, *energy_entry, *centrality_lower, *centrality_upper;
+    TGNumberEntry       *table, *graph, *energy_entry, *centrality_lower, *centrality_upper;
     TGVButtonGroup      *fButtonGroup;
     TGLabel             *label_PID, *label_Energy, *label_Table, *label_Centrality, *label_upper, *label_lower, *label_space;
     TCanvas             *c_3X3 = NULL;
@@ -139,12 +145,12 @@ private:
     TString              HistName;
 
 
-    vector<TGCompositeFrame*> vec_hframe, vec_V2frame, vec_PIDframe, vec_Tableframe, vec_Centrality_labelframe, vec_Centralityframe, vec_Energyframe;
+    vector<TGCompositeFrame*> vec_hframe, vec_V2frame, vec_PIDframe, vec_Tableframe, vec_Graphframe, vec_Centrality_labelframe, vec_Centralityframe, vec_Energyframe;
     vector<TGRadioButton*>    vec_v2, vec_dNdpt;
     vector<TGComboBox*>       vec_fCombo;
-    vector<TGNumberEntry*>    vec_table, vec_energy_entry, vec_centrality_lower, vec_centrality_upper;
+    vector<TGNumberEntry*>    vec_table, vec_graph, vec_energy_entry, vec_centrality_lower, vec_centrality_upper;
     vector<TGVButtonGroup*>   vec_fButtonGroup;
-    vector<TGLabel*>          vec_label_PID, vec_label_Energy, vec_label_Table, vec_label_Centrality, vec_label_upper, vec_label_lower, vec_label_space;
+    vector<TGLabel*>          vec_label_PID, vec_label_Energy, vec_label_Table,vec_label_Graph, vec_label_Centrality, vec_label_upper, vec_label_lower, vec_label_space;
     vector<TString>           vec_HistName;
     vector<TGraphAsymmErrors*> vec_tgae ,vec_tgae_syst;
 
@@ -166,6 +172,7 @@ public:
     Int_t DoSave();
     Int_t DoAddEntry();
     Int_t DoRemoveEntry();
+    void Multiply_pT(Int_t);
 
     ClassDef(MyMainFrame, 0)
 };
@@ -202,6 +209,7 @@ public:
    void pt_clicked();
    void pt_low_high_clicked();
    void syst_error_clicked();
+
 };
 //-----------------------------------------------------------------------------------------------------------------------------------------------
 //-----------------------------------------------------------------------------------------------------------------------------------------------
@@ -365,9 +373,35 @@ Int_t MyMainFrame::DoFillGraph()
             {
                 std::size_t found = str.find("#");
                 str.replace(0, found+1, "");
-                found = str.find("\n");
-                sub_str = str.substr(0,found);
+
+                found = str.find("_");
+                sub_str = str.substr(0,found+1);
                 HistName = sub_str;
+                str.replace(0, found+1, "");
+
+                for (Int_t i_test = 0; i_test < 7; i_test++)
+                {
+                    found = str.find("_");
+                    sub_str = str.substr(0,found+1);
+                    HistName += sub_str;
+                    str.replace(0, found+1, "");
+                }
+                sub_str = str.substr(0,1);
+                if ( sub_str != " ") HistName+= sub_str;
+                str.replace(0, 1, "");
+                sub_str = str.substr(0,1);
+                if ( sub_str != " ") HistName+= sub_str;
+                str.replace(0, 1, "");
+                sub_str = str.substr(0,1);
+                if ( sub_str != " ") HistName+= sub_str;
+                str.replace(0, 1, "");
+                sub_str = str.substr(0,1);
+                if ( sub_str != " ") HistName+= sub_str;
+                //HistName += sub_str;
+
+                //found = str.find("\n");
+                //sub_str = str.substr(0,found);
+                //HistName = sub_str;
                 cout << HistName.Data() << endl;
                 if(i_name>=0)
                 {
@@ -431,6 +465,11 @@ Int_t MyMainFrame::DoFillGraph()
                         y_low_err_syst = extracted_values[4];
                         y_up_err_syst  = extracted_values[5];
                     }
+                    if(input_type == 2) // without systematic error
+                    {
+                        y_low_err_syst = 0.0;
+                        y_up_err_syst  = 0.0;
+                    }
                 }
                 else // pt value direct
                 {
@@ -454,6 +493,11 @@ Int_t MyMainFrame::DoFillGraph()
                     {
                         y_low_err_syst = extracted_values[3]*yvalue*0.01;
                         y_up_err_syst  = extracted_values[3]*yvalue*0.01;
+                    }
+                    if(input_type == 3) // without systematic error
+                    {
+                        y_low_err_syst = 0.0;
+                        y_up_err_syst  = 0.0;
                     }
 
                 }
@@ -868,10 +912,10 @@ Int_t MyMainFrame::DoFillGraph()
     }
 #endif
 
-    printf("Test E \n");
+   // printf("Test E \n");
     if (hep->IsDown())
     {
-        printf("Test F \n");
+     //   printf("Test F \n");
         for(Int_t i_entry=0 ; i_entry < (Int_t)vec_fCombo.size(); i_entry++)
         {
             TString table_name;
@@ -879,12 +923,45 @@ Int_t MyMainFrame::DoFillGraph()
             if(i_select_table == 0) return 0;
             table_name += "Table ";
             table_name += table_name.Format("%d", i_select_table);
-            table_name += "/Graph1D_y1";
+            table_name += "/Graph1D_y";
+            Int_t i_select_graph = vec_graph[i_entry]->GetNumber();   //Get number of selected graph
+            table_name += table_name.Format("%d", i_select_graph);
             cout <<table_name <<endl;
             vec_tgae.push_back( (TGraphAsymmErrors*)newfile->Get(table_name.Data())); //Fill vector vec_tgae
+            if(dNdptpt->IsDown())
+            {
+                Multiply_pT(i_entry);
+
+            }
+           // for (Int_t i_point = 0; i_point < vec_tgae[i_entry] ->GetN(); i_point++)
+           // {
+
+             //   vec_tgae[i_entry]->GetPoint(i_point,pT,y_val);
+        //}
         }
     }
     return 1;
+
+}
+//-------------------------------------------------------------------------------------------------------------------------------------------
+void MyMainFrame::Multiply_pT(Int_t i_entry)
+{
+    for (Int_t i_point = 0; i_point < vec_tgae[i_entry] ->GetN(); i_point++)
+    {
+        //printf("Test E \n");
+        Double_t pT,y_val,err_X_high,err_X_low,err_Y_high,err_Y_low;
+        vec_tgae[i_entry]->GetPoint(i_point,pT,y_val);
+        err_X_high = fabs(vec_tgae[i_entry] ->GetErrorXhigh(i_point));
+        err_X_low  = fabs(vec_tgae[i_entry] ->GetErrorXlow(i_point));
+        err_Y_high = fabs(vec_tgae[i_entry] ->GetErrorYhigh(i_point));
+        err_Y_low  = fabs(vec_tgae[i_entry] ->GetErrorYlow(i_point));
+        vec_tgae[i_entry] ->SetPoint(i_point,pT,y_val*pT);
+        vec_tgae[i_entry] ->SetPointEYhigh(i_point,err_Y_high*pT);
+        vec_tgae[i_entry] ->SetPointEYlow(i_point,err_Y_low*pT);
+        vec_tgae[i_entry] ->SetPointEXhigh(i_point,err_X_high);
+        vec_tgae[i_entry] ->SetPointEXlow(i_point,err_X_low);
+    }
+
 
 }
 //-------------------------------------------------------------------------------------------------------------------------------------------
@@ -896,7 +973,6 @@ void MyMainFrame::DoFillHistName()
     vec_HistName.clear();
     for(Int_t i_entry=0 ; i_entry < (Int_t)vec_fCombo.size(); i_entry++)
     {
-
         if (vec_v2[i_entry]->IsDown()) HistName = "v2_";
         if (vec_dNdpt[i_entry]->IsDown()) HistName = "dNdpt_";
 
@@ -909,12 +985,12 @@ void MyMainFrame::DoFillHistName()
         if (i_select == 4)  HistName += "P";
         if (i_select == 5)  HistName += "Pbar";
         if (i_select == 6)  HistName += "Phi";
-        if (i_select == 7)  HistName += "Lambd";
+        if (i_select == 7)  HistName += "Lambda";
         if (i_select == 8)  HistName += "Lambdabar";
         if (i_select == 9)  HistName += "Xi-";
         if (i_select == 10) HistName += "Xibar+";
-        if (i_select == 11) HistName += "Omega";
-        if (i_select == 12) HistName += "Omegabar";
+        if (i_select == 11) HistName += "Omega-";
+        if (i_select == 12) HistName += "Omegabar+";
         if (i_select == 13) HistName += "D0";
         if (i_select == 14) HistName += "J/Psi";
         if (i_select == 15) HistName += "K0S";
@@ -922,17 +998,22 @@ void MyMainFrame::DoFillHistName()
         if (i_select == 17) HistName += "dbar";
         if (i_select == 18) HistName += "He3";
         if (i_select == 19) HistName += "He3bar";
+        if (i_select == 20) HistName += "t";
+        if (i_select == 21) HistName += "Upsilon";
         Double_t i_select_energy = vec_energy_entry[i_entry]->GetNumber();
         HistName += "_E_";
         HistName += HistName.Format("%.1f", i_select_energy);
 
         Double_t i_select_C_lower = vec_centrality_lower[i_entry]->GetNumber();
         HistName += "_C_";
-        HistName += HistName.Format("%.1f", i_select_C_lower);
+        HistName += i_select_C_lower;
+        //HistName += HistName.Format("%d", i_select_C_lower);
 
         Double_t i_select_C_upper = vec_centrality_upper[i_entry]->GetNumber();
         HistName += "_";
-        HistName += HistName.Format("%.1f", i_select_C_upper);
+        HistName += i_select_C_upper;
+         HistName += "_stat";
+        //HistName += HistName.Format("%d", i_select_C_upper);
 
         vec_HistName.push_back(HistName.Copy());           //Fill vector vec_HistName
         cout << HistName<<endl;
@@ -972,8 +1053,8 @@ Int_t MyMainFrame::DoSave()
 
     if (text->IsDown())
     {
-        if (stat_error->IsDown() && syst_error->IsDown())
-        {
+        //if (stat_error->IsDown() && syst_error->IsDown())
+        //{
             for(Int_t index_vector = 0; index_vector < (Int_t)vec_tgae.size(); index_vector++)
             {
                 RootFile->cd();
@@ -985,8 +1066,8 @@ Int_t MyMainFrame::DoSave()
                 vec_tgae_syst[index_vector]->Write(HistName_syst);
             }
 
-        }
-
+       // }
+       /*
         if (stat_error->IsDown() && !syst_error->IsDown())
         {
             for(Int_t index_vector = 0; index_vector < (Int_t)vec_tgae.size(); index_vector++)
@@ -997,7 +1078,7 @@ Int_t MyMainFrame::DoSave()
                 vec_tgae[index_vector]->Write(HistName_stat);
             }
 
-        }
+        } */
     }
 
     return 1;
@@ -1064,22 +1145,33 @@ Int_t MyMainFrame::DoAddEntry()
         vec_Energyframe.push_back(new TGCompositeFrame(vec_hframe[index_frame], kVerticalFrame));
         vec_Centrality_labelframe.push_back(new TGCompositeFrame(vec_hframe[index_frame], kVerticalFrame));
         vec_Centralityframe.push_back(new TGCompositeFrame(vec_hframe[index_frame], kVerticalFrame));
+        vec_Graphframe.push_back(new TGCompositeFrame(vec_hframe[index_frame], kVerticalFrame));
 
         // Buttons to select v2 or dNdpt
         vec_fButtonGroup.push_back(new TGVButtonGroup(vec_V2frame[index_frame]));
         vec_v2.push_back(new TGRadioButton(vec_V2frame[index_frame], "v2"));
         vec_dNdpt.push_back( new TGRadioButton(vec_V2frame[index_frame], "dN/dpt"));
 
-        // Number entry (integer) to select table number
+        // Number entry (integer) to select table and graph number and centrality
         vec_table.push_back(new TGNumberEntry(vec_Tableframe[index_frame],0,9,99, TGNumberFormat::kNESInteger,
                                               TGNumberFormat::kNEANonNegative,
                                               TGNumberFormat::kNELLimitMinMax,
                                               0, 99999));
+        vec_graph.push_back(new TGNumberEntry(vec_Graphframe[index_frame],1,9,99, TGNumberFormat::kNESInteger,
+                                              TGNumberFormat::kNEANonNegative,
+                                              TGNumberFormat::kNELLimitMinMax,
+                                              0, 99999));
+        vec_centrality_lower.push_back(new TGNumberEntry(vec_Centralityframe[index_frame],0,9,99, TGNumberFormat::kNESInteger,
+                                              TGNumberFormat::kNEANonNegative,
+                                              TGNumberFormat::kNELLimitMinMax,
+                                              0, 99999));
+        vec_centrality_upper.push_back(new TGNumberEntry(vec_Centralityframe[index_frame],0,9,99, TGNumberFormat::kNESInteger,
+                                              TGNumberFormat::kNEANonNegative,
+                                              TGNumberFormat::kNELLimitMinMax,
+                                              0, 99999));
 
-        // Number(float) entries to select energy and centrality
+        // Number(float) entries to select energy
         vec_energy_entry.push_back(new TGNumberEntry(vec_Energyframe[index_frame],0.1,TGNumberFormat::kNESRealOne));
-        vec_centrality_lower.push_back(new TGNumberEntry(vec_Centralityframe[index_frame],0.1, TGNumberFormat::kNESRealOne));
-        vec_centrality_upper.push_back(new TGNumberEntry(vec_Centralityframe[index_frame],0.1, TGNumberFormat::kNESRealOne));
 
         // Combobox for PID
         vec_fCombo.push_back(new TGComboBox(vec_PIDframe[index_frame]));
@@ -1088,6 +1180,7 @@ Int_t MyMainFrame::DoAddEntry()
         vec_label_PID.push_back(new TGLabel(vec_PIDframe[index_frame], "PID"));
         vec_label_Energy.push_back(new TGLabel(vec_Energyframe[index_frame], "Energy"));
         vec_label_Table.push_back(new TGLabel(vec_Tableframe[index_frame], "Table"));
+        vec_label_Graph.push_back(new TGLabel(vec_Graphframe[index_frame], "Graph"));
         vec_label_Centrality.push_back(new TGLabel(vec_Centralityframe[index_frame], "Centrality"));
         vec_label_upper.push_back(new TGLabel(vec_Centrality_labelframe[index_frame], "upper"));
         vec_label_lower.push_back(new TGLabel(vec_Centrality_labelframe[index_frame], "lower"));
@@ -1113,8 +1206,8 @@ Int_t MyMainFrame::DoAddEntry()
         vec_fCombo[index_frame]->AddEntry("Lambdabar", 8);
         vec_fCombo[index_frame]->AddEntry("Xi-", 9);
         vec_fCombo[index_frame]->AddEntry("Xibar+", 10);
-        vec_fCombo[index_frame]->AddEntry("Omega", 11);
-        vec_fCombo[index_frame]->AddEntry("Omegabar", 12);
+        vec_fCombo[index_frame]->AddEntry("Omega-", 11);
+        vec_fCombo[index_frame]->AddEntry("Omegabar+", 12);
         vec_fCombo[index_frame]->AddEntry("D0", 13);
         vec_fCombo[index_frame]->AddEntry("J/Psi", 14);
         vec_fCombo[index_frame]->AddEntry("K0S", 15);
@@ -1122,10 +1215,15 @@ Int_t MyMainFrame::DoAddEntry()
         vec_fCombo[index_frame]->AddEntry("dbar", 17);
         vec_fCombo[index_frame]->AddEntry("He3", 18);
         vec_fCombo[index_frame]->AddEntry("He3bar", 19);
+        vec_fCombo[index_frame]->AddEntry("t", 20);
+        vec_fCombo[index_frame]->AddEntry("Upsilon", 21);
         vec_fCombo[index_frame]->Resize(100, 20);
 
         vec_Tableframe[index_frame]->AddFrame(vec_label_Table[index_frame]);
         vec_Tableframe[index_frame]->AddFrame(vec_table[index_frame], fL_Energyframe);
+
+        vec_Graphframe[index_frame]->AddFrame(vec_label_Graph[index_frame]);
+        vec_Graphframe[index_frame]->AddFrame(vec_graph[index_frame], fL_Energyframe);
 
         vec_Energyframe[index_frame]->AddFrame(vec_label_Energy[index_frame]);
         vec_Energyframe[index_frame]->AddFrame(vec_energy_entry[index_frame], fL_Energyframe);
@@ -1141,12 +1239,14 @@ Int_t MyMainFrame::DoAddEntry()
         vec_hframe[index_frame]->AddFrame(vec_V2frame[index_frame],fL_hframe );
         vec_hframe[index_frame]->AddFrame(vec_PIDframe[index_frame],fL_hframe );
         vec_hframe[index_frame]->AddFrame(vec_Tableframe[index_frame],fL_hframe );
+        vec_hframe[index_frame]->AddFrame(vec_Graphframe[index_frame],fL_hframe );
         vec_hframe[index_frame]->AddFrame(vec_Energyframe[index_frame],fL_hframe);
         vec_hframe[index_frame]->AddFrame(vec_Centrality_labelframe[index_frame], new TGLayoutHints( 0, 0, 0, 31));
         vec_hframe[index_frame]->AddFrame(vec_Centralityframe[index_frame],fL_hframe);
 
         vec_Centralityframe[index_frame]->Resize(100, 50);
         vec_Tableframe[index_frame]->Resize(100,50);
+        vec_Graphframe[index_frame]->Resize(100,50);
         vec_hframe[index_frame]->Resize(650,200);
 
         fMain->AddFrame(vec_hframe[index_frame]);
