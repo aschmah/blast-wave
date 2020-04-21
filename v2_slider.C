@@ -149,6 +149,7 @@ private:
     TGTextButton *Button_make_plot_v2;
     TGTextButton *Button_make_plot_dNdpT;
     TGTextButton *Button_plot_data;
+    TGTextButton *Button_write_params;
     TGTextButton *Set_energy_centrality;
 
     TFile* inputfiles[2];
@@ -156,11 +157,13 @@ private:
     TH1D* h_dummy_plot_v2[3] = {NULL};
     TH1D* h_dummy_dNdpT;
     TH1D* h_dummy_plot_data;
+    TH1D* h_fit_params;
     TLegend* leg_v2_vs_pT_A = NULL;
     TLegend* leg_v2_vs_pT_B = NULL;
     TLegend* leg_dNdpT_vs_pT = NULL;
     TLegend* leg_v2_vs_pT_C = NULL;
     TLegend* legend_v2_plot_data = NULL;
+    TLegend* legend_dNdpt_plot_data = NULL;
     TGraph* tg_leg = NULL;
     Int_t flag_stop_minimize = 0;
     Int_t flag_minimization_ana = 0;
@@ -226,6 +229,8 @@ private:
     vector <TString> vec_tgae_id_dNdpt_fit;
 
     Int_t i_transient_frame[2][N_masses_all] = {0,0};
+    Double_t fit_params[4];
+    TFile* RootFileFitParams;
 
 public:
     TBlastWaveGUI();
@@ -251,6 +256,7 @@ public:
     void PlotData();
     Int_t DoSetSingleParticle(Int_t i_particle, Int_t i_type);
     void DoFillTgaeID();
+    void WriteParams();
     ClassDef(TBlastWaveGUI, 0)
 };
 
@@ -658,6 +664,14 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
     fGroupFrames[0]->AddFrame(Button_plot_data, new TGLayoutHints(kLHintsCenterX,5,5,3,4));
 
     h_dummy_plot_data = new TH1D("h_dummy_plot_data","h_dummy_plot_data" , 200,0,20);
+    //--------------
+
+    // write params button
+
+    Button_write_params = new TGTextButton(fGroupFrames[0], "Write params",10);
+    Button_write_params ->Connect("Clicked()", "TBlastWaveGUI", this, "WriteParams()");
+    fGroupFrames[0]->AddFrame(Button_write_params, new TGLayoutHints(kLHintsCenterX,5,5,3,4));
+
     /*
     //--------------
     // A horizontal frame
@@ -1481,6 +1495,8 @@ Int_t TBlastWaveGUI::DoSetSingleParticle(Int_t i_particle, Int_t i_type)
 
     //for (Int_t i_particle= 0; i_particle< N_masses_all; i_particle++)
     //{
+    if (i_type ==0)
+    {
         if (fCheckBox_pid_plot[i_particle]->IsDown() )   // pid plot v2
         {
             tgae_id = "v2_PID_";
@@ -1509,7 +1525,9 @@ Int_t TBlastWaveGUI::DoSetSingleParticle(Int_t i_particle, Int_t i_type)
             vec_tgae_id_v2_fit.push_back(tgae_id.Copy());
             tgae_id.Clear();
         }
-
+    }
+    if (i_type ==1)
+    {
         if (fCheckBox_pid_plot_dNdpt[i_particle]->IsDown())    // pid plot dNdpt
         {
             tgae_id = "dNdpt_PID_";
@@ -1524,6 +1542,7 @@ Int_t TBlastWaveGUI::DoSetSingleParticle(Int_t i_particle, Int_t i_type)
             vec_tgae_id_dNdpt.push_back(tgae_id.Copy());
             tgae_id.Clear();
         }
+
         if ( fCheckBox_pid_fit_dNdpt[i_particle]->IsDown())       // pid fit dNdpt
         {
             tgae_id = "dNdpt_PID_";
@@ -1538,7 +1557,7 @@ Int_t TBlastWaveGUI::DoSetSingleParticle(Int_t i_particle, Int_t i_type)
             vec_tgae_id_dNdpt_fit.push_back(tgae_id.Copy());
             tgae_id.Clear();
         }
-   // }
+    }
    return 1;
 }
 //______________________________________________________________________________
@@ -1582,7 +1601,7 @@ void TBlastWaveGUI::PlotData()
     h_dummy_plot_data->GetXaxis()->SetNdivisions(505,'N');
     h_dummy_plot_data->GetYaxis()->SetNdivisions(505,'N');
     h_dummy_plot_data->SetLineColor(10);
-    h_dummy_plot_data->GetXaxis()->SetRangeUser(-0.03,4.5);
+    h_dummy_plot_data->GetXaxis()->SetRangeUser(-0.03,10);
     h_dummy_plot_data->GetYaxis()->SetRangeUser(-0.1999,0.38);
     h_dummy_plot_data->DrawCopy();
 
@@ -1622,20 +1641,20 @@ void TBlastWaveGUI::PlotData()
     h_dummy_plot_data->GetYaxis()->SetNdivisions(505,'N');
     h_dummy_plot_data->SetLineColor(10);
     h_dummy_plot_data->GetXaxis()->SetRangeUser(-0.03,6.5);
-    h_dummy_plot_data->GetYaxis()->SetRangeUser(-0.1999,10);
+    h_dummy_plot_data->GetYaxis()->SetRangeUser(-0.1999,15);
     h_dummy_plot_data->DrawCopy();
 
     PlotLine(0.0,20,0,0,1,1,2); // x1_val, x2_val, y1_val, y2_val, Line_Col, LineWidth, LineStyle
     plotTopLegend((char*)"p_{T} (GeV/c)",0.475,0.03,0.05,1,0.0,42,1);
     plotTopLegend((char*)"dN/dp_{T}",0.03,0.5,0.05,1,90,42,1);
 
+    c_1X1_v2 ->GetCanvas() ->cd();
     if(legend_v2_plot_data) delete legend_v2_plot_data;
     legend_v2_plot_data = new TLegend(0.9,0.73,0.8,0.82); // x1,y1,x2,y2
     legend_v2_plot_data->SetBorderSize(0);
     legend_v2_plot_data->SetFillColor(0);
     legend_v2_plot_data->SetTextSize(0.03);
 
-    c_1X1_v2 ->GetCanvas() ->cd();
     for (Int_t i_tgae_name = 0; i_tgae_name < (Int_t) vec_tgae_name_full.size(); i_tgae_name++)
     {
         Int_t i_mass = vec_index_pid[i_tgae_name];
@@ -1643,21 +1662,25 @@ void TBlastWaveGUI::PlotData()
         {
             if ( vec_tgae_id_v2[i_tgae_id] == vec_tgae_name_full[i_tgae_name] && vec_error_type[i_tgae_name] =="stat")
             {
-                Int_t i_mass = vec_index_pid[i_tgae_name];
                 if (!fCheckBox_pid_plot[i_mass]->IsDown()) continue;
                 vec_tgae[i_tgae_name]->SetMarkerSize(0.75);
                 vec_tgae[i_tgae_name]->SetMarkerStyle(20);
                 vec_tgae[i_tgae_name]->SetMarkerColor(arr_color_mass[i_mass]);
                 vec_tgae[i_tgae_name]->Draw("same PZ");
                 legend_v2_plot_data->AddEntry(vec_tgae[i_tgae_name],label_full_pid_spectra[i_mass],"p");
+                legend_v2_plot_data->Draw();
             }
 
         }
     }
-    legend_v2_plot_data->Draw();
-    //legend_v2_plot_data->SetEntrySeparation(0.5);
 
     c_1X1_dNdpt ->GetCanvas() ->cd();
+    if(legend_dNdpt_plot_data) delete legend_dNdpt_plot_data;
+    legend_dNdpt_plot_data = new TLegend(0.9,0.73,0.8,0.82); // x1,y1,x2,y2
+    legend_dNdpt_plot_data->SetBorderSize(0);
+    legend_dNdpt_plot_data->SetFillColor(0);
+    legend_dNdpt_plot_data->SetTextSize(0.03);
+
     for (Int_t i_tgae_name = 0; i_tgae_name < (Int_t) vec_tgae_name_full.size(); i_tgae_name++)
     {
         Int_t i_mass = vec_index_pid[i_tgae_name];
@@ -1670,6 +1693,8 @@ void TBlastWaveGUI::PlotData()
                 vec_tgae[i_tgae_name]->SetMarkerStyle(20);
                 vec_tgae[i_tgae_name]->SetMarkerColor(arr_color_mass[i_mass]);
                 vec_tgae[i_tgae_name]->Draw("same PZ");
+                legend_dNdpt_plot_data->AddEntry(vec_tgae[i_tgae_name],label_full_pid_spectra[i_mass],"p");
+                legend_dNdpt_plot_data->Draw();
             }
         }
     }
@@ -2035,13 +2060,15 @@ void TBlastWaveGUI::DoMinimize_ana()
                 min_val_pT_v2 = arr_NEntry_limits_A[0][i_mass_v2]->GetNumberEntry()->GetNumber();
                 max_val_pT_v2 = arr_NEntry_limits_A[1][i_mass_v2]->GetNumberEntry()->GetNumber();
             }
+
+            cout << "min_val_pT_v2: " << min_val_pT_v2 << "max_val_pT_v2: " << max_val_pT_v2  <<endl;
             individual_chi2_ana[i_mass_v2][0]   = 0.0; // v2
             //individual_chi2_ana[i_mass_v2][1]   = 0.0; // dN/dpT
             N_individual_chi2_ana[i_mass_v2][0] = 0.0; // v2
             //N_individual_chi2_ana[i_mass_v2][1] = 0.0; // dN/dpT
 
             const double m = arr_quark_mass_meson[i_mass_v2];       // in GeV
-
+            cout << "mass: " << m <<endl;
             if(tg_v2_BW_ana_pid_min[i_mass_v2])    delete tg_v2_BW_ana_pid_min[i_mass_v2];
             //if(tg_dNdpT_BW_ana_pid_min[i_mass]) delete tg_dNdpT_BW_ana_pid_min[i_mass];
 
@@ -2114,13 +2141,14 @@ void TBlastWaveGUI::DoMinimize_ana()
                 min_val_pT = arr_NEntry_limits_A[0][i_mass]->GetNumberEntry()->GetNumber();
                 max_val_pT = arr_NEntry_limits_A[1][i_mass]->GetNumberEntry()->GetNumber();
             }
+            cout << "min_val_pT: " << min_val_pT<< "max_val_pT: " << max_val_pT  <<endl;
            // individual_chi2_ana[i_mass][0]   = 0.0; // v2
             individual_chi2_ana[i_mass][1]   = 0.0; // dN/dpT
            // N_individual_chi2_ana[i_mass][0] = 0.0; // v2
             N_individual_chi2_ana[i_mass][1] = 0.0; // dN/dpT
 
             const double m = arr_quark_mass_meson[i_mass];       // in GeV
-
+            cout << "mass: " << m <<endl;
             //if(tg_v2_BW_ana_pid_min[i_mass])    delete tg_v2_BW_ana_pid_min[i_mass];
             if(tg_dNdpT_BW_ana_pid_min[i_mass]) delete tg_dNdpT_BW_ana_pid_min[i_mass];
 
@@ -2274,6 +2302,7 @@ void TBlastWaveGUI::DoMinimize_ana()
     // ROOT::Math::MinimizerOptions::SetDefaultPrintLevel(1);
 
     double pStart[4] = {0.14,0.925,0.05,0.9};
+    //double pStart[4] = {0.107,1.13,0.076,0.83};
     fitter.SetFCN(fcn, pStart);
 
     fitter.Config().ParSettings(0).SetName("T"); // set parameters name
@@ -2346,6 +2375,12 @@ void TBlastWaveGUI::DoMinimize_ana()
     }
 
     //Plot_curves_ana(T_BW,Rho0_BW,Rho2_BW,RxOverRy_BW);
+
+    fit_params[0] = T_BW;
+    fit_params[1] = Rho0_BW;
+    fit_params[2] = Rho2_BW;
+    fit_params[3] = RxOverRy_BW;
+
 
     Pixel_t green;
     gClient->GetColorByName("green", green);
@@ -2867,10 +2902,11 @@ void TBlastWaveGUI::Plot_curves_ana(Double_t T_BW,Double_t  Rho0_BW,Double_t  Rh
                 cout << "i_pT = " << i_pT << ", pt_BW= " << pt_BW << ", y_val_BW= " << y_val_BW << ", y_val_BW/integral_BW= " << y_val_BW/integral_BW << endl;
             }
         }
+        cout << "integral_BW" <<integral_BW <<endl;
         tg_dNdpT_BW_ana_pid[i_mass] -> SetLineColor(arr_color_mass[i_mass]);
         tg_dNdpT_BW_ana_pid[i_mass] -> SetLineWidth(3);
         tg_dNdpT_BW_ana_pid[i_mass] -> SetLineStyle(1);
-        if(!(fCheckBox_pid[i_mass]->GetState() == kButtonDown)) tg_dNdpT_BW_ana_pid[i_mass] -> SetLineStyle(9);
+        //if(!(fCheckBox_pid[i_mass]->GetState() == kButtonDown)) tg_dNdpT_BW_ana_pid[i_mass] -> SetLineStyle(9);
         if(fCheckBox_sel[1]->GetState() == kButtonDown && fCheckBox_pid_fit_dNdpt[i_mass]->GetState() == kButtonDown)  tg_dNdpT_BW_ana_pid[i_mass] -> Draw("same L");
     }
 
@@ -3823,6 +3859,39 @@ void TBlastWaveGUI::DoSave()
         c_3X3 ->Write();
         c_3X3 ->SaveAs("dNdpT_vs_pT_BW_fits.png");
     }
+
+}
+//______________________________________________________________________________
+
+
+
+//______________________________________________________________________________
+void TBlastWaveGUI::WriteParams()
+{
+    printf("WriteParams \n");
+
+    h_fit_params = new TH1D("fit_params", "fit_params", 10, 1,10);
+    //cout  <<"temp " << fit_params[0]  <<" rho0 " << fit_params[1]  << " rho2 " << fit_params[2]  <<" RxOverRy " << fit_params[3] <<endl;
+    Double_t test[4];
+    test[0] = 1;
+    test[1]= 2;
+    test[2] = 3;
+    test[3]= 4;
+    for (Int_t i_params=0; i_params < 4; i_params++)
+    {
+        h_fit_params -> AddBinContent(i_params+1, fit_params[i_params]);
+    }
+    Double_t temp =  h_fit_params -> GetBinContent(1);
+    Double_t rho =  h_fit_params -> GetBinContent(2);
+    Double_t rho_2 =  h_fit_params -> GetBinContent(3);
+    Double_t R =  h_fit_params -> GetBinContent(4);
+    cout  <<"T: " <<temp  <<", rho0: " <<rho  << ", rho2: " << rho_2  <<", RxOverRy: " << R  <<endl;
+
+    RootFileFitParams = new TFile("FitParams.root", "RECREATE");
+    if ( RootFileFitParams->IsOpen() ) printf("File opened successfully\n");
+    RootFileFitParams->cd();
+    h_fit_params->Write("h_fit_params");
+
 
 }
 //______________________________________________________________________________
