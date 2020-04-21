@@ -84,13 +84,13 @@ static Double_t arr_pt_low_cut[N_v2_vs_pt_BW+3];
 static Double_t arr_pt_high_cut[N_v2_vs_pt_BW+3];
 static Int_t arr_color[N_v2_vs_pt_BW+3] = {kBlack,kGreen+1,kRed,kMagenta+1,kCyan+1,kOrange,kRed,kGray,kYellow+2,kRed,kMagenta,kGreen+1};
 
-static const Int_t    N_masses         = 9; // 9->21
+static const Int_t    N_masses         = 9;
 static const Int_t    N_masses_all      = 22;
 static TH2D* h2D_geometric_shape = NULL;
 static TF1 *f_LevyFitFunc        = NULL;
 static TF1 *f_FitBessel          = NULL;
 static TF1 *f_JetPtFunc          = NULL;
-static Double_t arr_quark_mass_meson[N_masses_all]         = {0.13957,0.13957,0.497648,0.497648,0.938272,0.938272,1.019460,1.32171, 1.32171, 1.67245,1.67245,1.115683,1.115683,0.497611,1.86962,3.096916,9.46030,1.875612,
+static Double_t arr_quark_mass_meson[N_masses_all]         = {0.13957,0.13957,0.493677,0.493677,0.938272,0.938272,1.019460,1.32171, 1.32171, 1.67245,1.67245,1.115683,1.115683,0.497611,1.86962,3.096916,9.46030,1.875612,
 1.875612, 2.8094313, 2.8094313, 2.80945};
 static Double_t pT_fit_max[N_masses_all]                   = {1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0};
 static Int_t    arr_color_mass[N_masses_all]               = {kBlack,kGreen+2,kRed,kMagenta+1,kCyan+1,kOrange,kYellow+2,kAzure-2,kOrange+2,kGray, kRed+2,kGreen,kViolet+1,kMagenta-9,kCyan+2,kOrange+4,kYellow,kBlue+2,kRed-6,kGray+1, kBlack};
