@@ -158,6 +158,11 @@ static vector<TGraphAsymmErrors*> vec_tgae;
 static vector<TString> vec_tgae_name_full;
 static vector<Int_t> vec_index_pid;
 static vector<TString> vec_error_type;
+static vector<TString> vec_type;
+static vector<TString> vec_pid;
+static vector<TString> vec_energy;
+static vector<TString> vec_centrality_lower;
+static vector<TString> vec_centrality_upper;
 //------------------------------------------------------------------------------------------------------------
 static const Float_t Pi = TMath::Pi();
 static TRandom ran;
@@ -1052,11 +1057,7 @@ void load_data(const char *dirname="./Out/", const char *ext=".root")
             }
         }
         TString type, pid, energy, centrality_lower, centrality_upper, tgae_name_full, error_type;
-        vector<TString> vec_type;
-        vector<TString> vec_pid;
-        vector<TString> vec_energy;
-        vector<TString> vec_centrality_lower;
-        vector<TString> vec_centrality_upper;
+        
 
         for (Int_t i_graph = 0; i_graph < (Int_t)vec_tgae_name.size(); i_graph++ )
         {
@@ -1140,6 +1141,8 @@ void load_data(const char *dirname="./Out/", const char *ext=".root")
             centrality_upper.Clear();
             tgae_name_full.Clear();
             error_type.Clear();
+
+            //cout<< vec_tgae_name_full[i_graph]<< " , index: "<< vec_index_pid[i_graph] <<endl;
         }
         vec_pid_energy_v2.resize(N_masses_all);
         vec_pid_cent_upper_v2.resize(N_masses_all);
@@ -1179,8 +1182,7 @@ void load_data(const char *dirname="./Out/", const char *ext=".root")
                  }
              }
         }
-        //cout<< vec_pid_energy_v2[20][1]<<endl;
-
+       
     }
 
 
