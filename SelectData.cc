@@ -22,6 +22,9 @@
 
 // Add function Multiply_pT. Multiply dNdpt with pt if checkbox dNdpt is clicked
 // 04/20/2020
+
+// Add check boxes mt. dNdmt, 1/mt*dNdmt
+// 04/24/2020
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -117,10 +120,10 @@ void PlotLine(Double_t x1_val, Double_t x2_val, Double_t y1_val, Double_t y2_val
 
 
 static TFile *newfile; // Input file
-static TGRadioButton *hep, *text,*pt, *pt_high_low;
+static TGRadioButton *hep, *text,*pt, *pt_high_low, *mt, *mt_low_high;
 static std::fstream myfile;
 Int_t flag_file_opened = 0;
-static TGCheckButton *stat_error, *syst_error, *syst_percent, *syst_low_high;
+static TGCheckButton *stat_error, *syst_error, *syst_percent, *syst_low_high, *pt_error;
 //--------------------------------------------------------------------------------------------------------------------------------------------------
 //--------------------------------------------------------------------------------------------------------------------------------------------------
 class MyMainFrame : public TGMainFrame
@@ -129,12 +132,12 @@ class MyMainFrame : public TGMainFrame
 private:
     TGMainFrame         *fMain;
     TGButton            *Exit, *Add_entry, *Remove_entry, *Add_file, *Save, *Plot;
-    TGCheckButton       *dNdptpt;
+    TGCheckButton       *dNdptpt, *dNdmt, *dNdmtmt;
     TGTextEntry         *Add_output_file_name;
     TGCompositeFrame    *hframebutton, *hframefiles, *hframeoutput,  *hframe, *V2frame, *PIDframe, *Energyframe, *Centralityframe, *Tableframe,*Graphframe, *Centrality_labelframe;
     TGRadioButton       *v2, *dNdpt;
     TGLayoutHints       *fL_main, *fL_framebutton, *fL_framefiles, *fL_button,  *fL_hframe, *fL_Energyframe, *fL_Centralityframe, *fL_upperlower;
-    TGComboBox          *fCombo;
+    TGComboBox          *fCombo, *ComboPID;
     TGNumberEntry       *table, *graph, *energy_entry, *centrality_lower, *centrality_upper;
     TGVButtonGroup      *fButtonGroup;
     TGLabel             *label_PID, *label_Energy, *label_Table, *label_Centrality, *label_upper, *label_lower, *label_space;
@@ -143,6 +146,10 @@ private:
     TH1D                *h_dummy;
     Int_t                N_used_entries = 0;
     TString              HistName;
+    Double_t mass_pid[22] = {0.13957,0.13957,0.493677,0.493677,0.938272,0.938272,1.019460,1.32171, 1.32171, 1.67245,1.67245,1.115683,1.115683,0.497611,1.86962,3.096916,9.46030,1.875612,1.875612, 2.8094313, 2.8094313, 2.80945};
+    TString label_full_pid_spectra[22] = {"Pi+","Pi-","K+","K-","P","Pbar", "Phi","Xi-","Xibar+","Omega-","Omegabar+","Lambda","Lambdabar","K0S","D0", "J/Psi","Upsilon","d","dbar","He3", "He3bar", "t"}; // 9 -> 21
+
+
 
 
     vector<TGCompositeFrame*> vec_hframe, vec_V2frame, vec_PIDframe, vec_Tableframe, vec_Graphframe, vec_Centrality_labelframe, vec_Centralityframe, vec_Energyframe;
@@ -208,6 +215,8 @@ public:
    void text_clicked();
    void pt_clicked();
    void pt_low_high_clicked();
+   void mt_clicked();
+   void mt_low_high_clicked();
    void syst_error_clicked();
 
 };
@@ -250,6 +259,19 @@ MyMainFrame::MyMainFrame(const TGWindow *p,UInt_t w,UInt_t h)
 
     dNdptpt = new TGCheckButton(hframeoutput, "1/pt*dN/dpt");
     hframeoutput->AddFrame(dNdptpt, fL_framefiles);
+    dNdmt = new TGCheckButton(hframeoutput, "dN/dmt");
+    hframeoutput->AddFrame(dNdmt, fL_framefiles);
+    dNdmtmt = new TGCheckButton(hframeoutput, "1/mt*dN/dmt");
+    hframeoutput->AddFrame(dNdmtmt, fL_framefiles);
+
+    ComboPID = new TGComboBox(hframeoutput,200);
+    for(Int_t i_pid = 0; i_pid < 22; ++i_pid)
+    {
+        ComboPID->AddEntry(label_full_pid_spectra[i_pid], i_pid);
+    }
+    hframeoutput->AddFrame(ComboPID, fL_framefiles);
+    ComboPID->Resize(100,20);
+    ComboPID->Select(0);
 
     // Create composite frame containing text buttons: Add entry, Remove entry and Exit
     hframebutton = new TGCompositeFrame(fMain,60,20, kHorizontalFrame);
@@ -316,31 +338,55 @@ Int_t MyMainFrame::DoFillGraph()
     vec_tgae_syst.clear();
     // text files
     //--------------------------------------------------
-    Int_t arr_N_columns[6] = {5,4,4,3, 6, 5}; // number of columns dependent on the input type
+    Int_t arr_N_columns[12] = {5,4,4,3, 6, 5, 6,5,5,4,7,6}; // number of columns dependent on the input type
 
     if(text->IsDown()) // text input file selected
     {
+        Int_t i_entry_combo_pid = ComboPID->GetSelected();
+        Double_t mass = mass_pid[i_entry_combo_pid];
+        cout << "mass: " << mass  << endl;
         TGraphAsymmErrors *tgae = new TGraphAsymmErrors();
         TGraphAsymmErrors *tgae_syst = new TGraphAsymmErrors();
 
         Int_t input_type = -1;
-        if(stat_error->IsDown() && syst_error->IsDown() && !syst_low_high->IsDown())
+
+
+        if(stat_error->IsDown() && syst_error->IsDown() && !syst_low_high->IsDown() && !pt_error->IsDown() )
         {
-            if(pt_high_low->IsDown())  input_type = 0;
-            if(pt->IsDown())           input_type = 1;
+            if(pt_high_low ->IsDown() || mt_low_high ->IsDown())  input_type = 0;
+            if(pt ->IsDown() || mt ->IsDown())           input_type = 1;
         }
-        if(stat_error->IsDown() && !syst_error->IsDown())
+        if(stat_error->IsDown() && syst_error->IsDown() && !syst_low_high->IsDown() && pt_error->IsDown() )
         {
-            if(pt_high_low->IsDown())  input_type = 2;
-            if(pt->IsDown())           input_type = 3;
-        }
-        if(stat_error->IsDown() && syst_error->IsDown() && syst_low_high->IsDown())
-        {
-            if(pt_high_low->IsDown())  input_type = 4;
-            if(pt->IsDown())           input_type = 5;
+            if(pt_high_low ->IsDown() || mt_low_high ->IsDown())  input_type = 6;
+            if(pt ->IsDown() || mt ->IsDown())           input_type = 7;
         }
 
-        if(!(input_type >= 0 && input_type <= 5))
+
+        if(stat_error->IsDown() && !syst_error->IsDown() && !pt_error->IsDown())
+        {
+            if(pt_high_low->IsDown() || mt_low_high->IsDown())  input_type = 2;
+            if(pt->IsDown() || mt->IsDown())           input_type = 3;
+        }
+        if(stat_error->IsDown() && !syst_error->IsDown() && pt_error->IsDown())
+        {
+            if(pt_high_low->IsDown() || mt_low_high->IsDown())  input_type = 8;
+            if(pt->IsDown() || mt->IsDown())           input_type = 9;
+        }
+
+
+        if(stat_error->IsDown() && syst_error->IsDown() && syst_low_high->IsDown() && !pt_error->IsDown())
+        {
+            if(pt_high_low->IsDown() || mt_low_high->IsDown())  input_type = 4;
+            if(pt->IsDown() || mt->IsDown())           input_type = 5;
+        }
+        if(stat_error->IsDown() && syst_error->IsDown() && syst_low_high->IsDown() && pt_error->IsDown())
+        {
+            if(pt_high_low->IsDown() || mt_low_high->IsDown())  input_type = 10;
+            if(pt->IsDown() || mt->IsDown())           input_type = 11;
+        }
+
+        if(!(input_type >= 0 && input_type <= 11))
         {
             printf("ERROR: MyMainFrame::DoFillGraph(), wrong input_type!");
             return -1;
@@ -349,6 +395,7 @@ Int_t MyMainFrame::DoFillGraph()
 
         //------------------
         // Loop over text file
+       
         Int_t i_point = 0;
         Int_t i_block = 0;
         Int_t i_name  = 0;
@@ -440,15 +487,27 @@ Int_t MyMainFrame::DoFillGraph()
                 Double_t y_up_err_syst  = 0.0;
                 Double_t yvalue         = 0.0;
 
-                if(input_type == 0 || input_type == 2 || input_type == 4) // pt high low selected
+                if(input_type == 0 || input_type == 2 || input_type == 4   ) // pt high low selected
                 {
-                    mean      = 0.5*(extracted_values[0] + extracted_values[1]);
-                    x_low_err = fabs(mean - extracted_values[0]);
-                    x_up_err  = fabs(mean - extracted_values[1]);
-                    yvalue    = extracted_values[2];
+                    if (pt_high_low->IsDown())
+                    {
+                        mean = 0.5*(extracted_values[0] + extracted_values[1]);
+                        x_low_err = fabs(mean - extracted_values[0]);
+                        x_up_err  = fabs(mean - extracted_values[1]);
+                    }
+                    if (mt_low_high->IsDown())
+                    {
+                        Double_t x_high = TMath::Sqrt(extracted_values[1]*extracted_values[1]-mass*mass);
+                        Double_t x_low = TMath::Sqrt(extracted_values[0]*extracted_values[0]-mass*mass);
+                        mean = 0.5*(x_high + x_low);
+                        x_low_err = fabs(mean - x_low);
+                        x_up_err  = fabs(mean - x_high);
+                    }
 
+                    yvalue    = extracted_values[2];
                     y_low_err_stat = extracted_values[3];
                     y_up_err_stat  = extracted_values[3];
+
 
                     if(input_type == 0 && !syst_percent->IsDown()) // with systematic error
                     {
@@ -465,7 +524,7 @@ Int_t MyMainFrame::DoFillGraph()
                         y_low_err_syst = extracted_values[4];
                         y_up_err_syst  = extracted_values[5];
                     }
-                    if(input_type == 2) // without systematic error
+                    if(input_type == 2 || input_type == 8) // without systematic error
                     {
                         y_low_err_syst = 0.0;
                         y_up_err_syst  = 0.0;
@@ -473,42 +532,109 @@ Int_t MyMainFrame::DoFillGraph()
                 }
                 else // pt value direct
                 {
-                    mean    = extracted_values[0];
-                    yvalue  = extracted_values[1];
+                    if (pt->IsDown()) mean    = extracted_values[0];
+                    if (mt->IsDown()) mean    = TMath::Sqrt(extracted_values[0]*extracted_values[0]-mass*mass);
+                    if (!pt_error->IsDown())
+                    {
+                        yvalue  = extracted_values[1];
+                        y_low_err_stat = extracted_values[2];
+                        y_up_err_stat  = extracted_values[2];
+                    }
 
-                    y_low_err_stat = extracted_values[2];
-                    y_up_err_stat  = extracted_values[2];
+                    if (pt_error->IsDown())
+                    {
+                        printf("Test A \n");
+                        yvalue  = extracted_values[2];
+                        y_low_err_stat = extracted_values[3];
+                        y_up_err_stat  = extracted_values[3];
+                        x_low_err = extracted_values[1];
+                        x_up_err  = extracted_values[1];
 
+                    }
                     if(input_type == 1 && !syst_percent->IsDown()) // with systematic error
                     {
+                        printf("Test B \n");
                         y_low_err_syst = extracted_values[3];
                         y_up_err_syst  = extracted_values[3];
+
+                    }
+                    if(input_type == 7 && !syst_percent->IsDown()) // with systematic error
+                    {
+                        printf("Test C \n");
+                        y_low_err_syst = extracted_values[4];
+                        y_up_err_syst  = extracted_values[4];
                     }
                     if(input_type == 5 && !syst_percent->IsDown()) // with systematic error
                     {
+                        printf("Test D \n");
                         y_low_err_syst = extracted_values[3];
                         y_up_err_syst  = extracted_values[4];
                     }
+                    if(input_type == 11 && !syst_percent->IsDown()) // with systematic error
+                    {
+                        printf("Test E \n");
+                        y_low_err_syst = extracted_values[4];
+                        y_up_err_syst  = extracted_values[5];
+                    }
                     if(input_type == 1 && syst_percent->IsDown()) // with systematic error percent
                     {
+                        printf("Test F \n");
                         y_low_err_syst = extracted_values[3]*yvalue*0.01;
                         y_up_err_syst  = extracted_values[3]*yvalue*0.01;
+
                     }
-                    if(input_type == 3) // without systematic error
+                    if(input_type == 7 && syst_percent->IsDown()) // with systematic error percent
                     {
+                        printf("Test G \n");
+                        y_low_err_syst = extracted_values[4]*yvalue*0.01;
+                        y_up_err_syst  = extracted_values[4]*yvalue*0.01;
+                    }
+                    if(input_type == 3 || input_type == 9) // without systematic error
+                    {
+                        printf("Test H \n");
                         y_low_err_syst = 0.0;
                         y_up_err_syst  = 0.0;
                     }
 
                 }
 
-                if(dNdptpt->IsDown()) yvalue *= mean; // times pT
+                if (dNdmt->IsDown())
+                {
+                    printf("Test A \n");
+                    yvalue         *= mean*1/(TMath::Sqrt(mean*mean+mass*mass)); // dNdmT
+                    y_low_err_stat *= mean*1/(TMath::Sqrt(TMath::Power(mean, 2) + TMath::Power(mass, 2)));
+                    y_up_err_stat  *= mean*1/(TMath::Sqrt(mean*mean+mass*mass));
+                    y_low_err_syst *= mean*1/(TMath::Sqrt(mean*mean+mass*mass));
+                    y_up_err_syst  *= mean*1/(TMath::Sqrt(mean*mean+mass*mass));
+                    //cout << "yvalue " << yvalue<< "y_low_error_stat " << y_low_err_stat<< "y_up_err_stat " << y_up_err_stat << endl;
+                }
+                if (dNdmtmt->IsDown())
+                {
+                    printf("Test B \n");
+                    yvalue *= TMath::Sqrt(mean*mean+mass*mass); // * mT
+                    y_low_err_stat *=  TMath::Sqrt(mean*mean+mass*mass) ;
+                    y_up_err_stat  *=  TMath::Sqrt(mean*mean+mass*mass);
+                    y_low_err_syst *=  TMath::Sqrt(mean*mean+mass*mass);
+                    y_up_err_syst  *=  TMath::Sqrt(mean*mean+mass*mass);
+                    //cout << "yvalue " << yvalue<< "y_low_error_stat " << y_low_err_stat<< "y_up_err_stat " << y_up_err_stat << endl;
+                }
+                if (dNdptpt->IsDown())
+                {
+                    yvalue *= mean; // * pT
+                    y_low_err_stat *= mean;
+                    y_up_err_stat *= mean;
+                    y_low_err_syst *= mean;
+                    y_up_err_syst *= mean;
+                }
 
                 tgae      ->SetPoint(i_point, mean, yvalue);
                 tgae_syst ->SetPoint(i_point, mean, yvalue);
                 tgae      ->SetPointError(i_point, x_low_err, x_up_err, y_low_err_stat, y_up_err_stat);
                 tgae_syst ->SetPointError(i_point, x_low_err, x_up_err, y_low_err_syst, y_up_err_syst);
                 i_point++;
+
+                cout << "xvalue: " << mean << ", x_low_error: " << x_low_err<< ", x_up_err: " << x_up_err << ", yvalue: " << yvalue<< ", y_low_error_stat: " << y_low_err_stat<< ", y_up_err_stat: " << y_up_err_stat << endl;
+
             }
 
         }
@@ -911,7 +1037,6 @@ Int_t MyMainFrame::DoFillGraph()
         }
     }
 #endif
-
    // printf("Test E \n");
     if (hep->IsDown())
     {
@@ -1064,6 +1189,8 @@ Int_t MyMainFrame::DoSave()
                 HistName_syst += "_syst";
                 vec_tgae[index_vector]->Write(HistName_stat);
                 vec_tgae_syst[index_vector]->Write(HistName_syst);
+                cout  << HistName_stat.Data() << endl;
+                cout  << HistName_syst.Data() << endl;
             }
 
        // }
@@ -1406,9 +1533,21 @@ TestFileList::TestFileList(const TGWindow *p, const TGWindow *main, UInt_t w, UI
    pt  = new TGRadioButton(fpt, "pt");
    fpt->AddFrame(pt);
    pt->Connect("Clicked()", "TestFileList", this, "pt_clicked()");
+
    pt_high_low  = new TGRadioButton(fpt, "pt_low_high");
    fpt->AddFrame(pt_high_low);
    pt_high_low->Connect("Clicked()", "TestFileList", this, "pt_low_high_clicked()");
+
+   mt  = new TGRadioButton(fpt, "mt");
+   fpt->AddFrame(mt);
+   mt->Connect("Clicked()", "TestFileList", this, "mt_clicked()");
+
+   mt_low_high  = new TGRadioButton(fpt, "mt_low_high");
+   fpt->AddFrame(mt_low_high);
+   mt_low_high->Connect("Clicked()", "TestFileList", this, "mt_low_high_clicked()");
+
+   pt_error = new TGCheckButton(fpt, "pt_error");
+   fpt->AddFrame(pt_error);
 
    ferrors = new TGCompositeFrame(foptions, 60,20,kVerticalFrame);
    foptions->AddFrame(ferrors, lo);
@@ -1638,6 +1777,8 @@ void TestFileList::pt_clicked()
 
     printf("pt_clicked \n");
     pt_high_low ->SetState(kButtonUp);
+    mt_low_high ->SetState(kButtonUp);
+    mt->SetState(kButtonUp);
 }
 //-------------------------------------------------------------------------------------------------------------------------------------------
 void TestFileList::pt_low_high_clicked()
@@ -1647,6 +1788,31 @@ void TestFileList::pt_low_high_clicked()
 
     printf("pt_low_high_clicked \n");
     pt->SetState(kButtonUp);
+    mt_low_high ->SetState(kButtonUp);
+    mt->SetState(kButtonUp);
+}
+//-------------------------------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------------------------------
+void TestFileList::mt_clicked()
+{
+    // Handle hep file button
+    // See v2_clicked()
+
+    printf("mt_clicked \n");
+    mt_low_high ->SetState(kButtonUp);
+    pt->SetState(kButtonUp);
+    pt_high_low ->SetState(kButtonUp);
+}
+//-------------------------------------------------------------------------------------------------------------------------------------------
+void TestFileList::mt_low_high_clicked()
+{
+    // Handle text file button
+    // See v2_clicked()
+
+    printf("mt_low_high_clicked \n");
+    mt->SetState(kButtonUp);
+    pt->SetState(kButtonUp);
+    pt_high_low ->SetState(kButtonUp);
 }
 //-------------------------------------------------------------------------------------------------------------------------------------------
 void TestFileList::syst_error_clicked()
