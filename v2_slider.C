@@ -1692,7 +1692,7 @@ void TBlastWaveGUI::PlotData()
 
     c_1X1_v2 ->GetCanvas() ->cd();
     if(legend_v2_plot_data) delete legend_v2_plot_data;
-    legend_v2_plot_data = new TLegend(0.9,0.73,0.8,0.82); // x1,y1,x2,y2
+    legend_v2_plot_data = new TLegend(0.9,0.5,0.8,0.82); // x1,y1,x2,y2
     legend_v2_plot_data->SetBorderSize(0);
     legend_v2_plot_data->SetFillColor(0);
     legend_v2_plot_data->SetTextSize(0.03);
@@ -1720,7 +1720,7 @@ void TBlastWaveGUI::PlotData()
 
     c_1X1_dNdpt ->GetCanvas() ->cd();
     if(legend_dNdpt_plot_data) delete legend_dNdpt_plot_data;
-    legend_dNdpt_plot_data = new TLegend(0.9,0.73,0.8,0.82); // x1,y1,x2,y2
+    legend_dNdpt_plot_data = new TLegend(0.9,0.4,0.8,0.82); // x1,y1,x2,y2
     legend_dNdpt_plot_data->SetBorderSize(0);
     legend_dNdpt_plot_data->SetFillColor(0);
     legend_dNdpt_plot_data->SetTextSize(0.03);
