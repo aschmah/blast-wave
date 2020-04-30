@@ -151,6 +151,7 @@ private:
     TGTextButton *Button_plot_data;
     TGTextButton *Button_write_params;
     TGTextButton *Set_energy_centrality;
+    TGTextEntry  *Add_output_file_name;
 
     TFile* inputfiles[2];
     TH1D* h_dummy;
@@ -158,6 +159,10 @@ private:
     TH1D* h_dummy_dNdpT;
     TH1D* h_dummy_plot_data;
     TH1D* h_fit_params;
+    TH1D* h_min_val_pT;
+    TH1D* h_max_val_pT;
+    vector<Double_t> vec_min_val_pT;
+    vector<Double_t> vec_max_val_pT;
     TLegend* leg_v2_vs_pT_A = NULL;
     TLegend* leg_v2_vs_pT_B = NULL;
     TLegend* leg_dNdpT_vs_pT = NULL;
@@ -231,6 +236,8 @@ private:
     Int_t i_transient_frame[2][N_masses_all] = {0,0};
     Double_t fit_params[4];
     TFile* RootFileFitParams;
+    TString cent_upper, cent_lower;
+    TString combo_energy;
 
 public:
     TBlastWaveGUI();
@@ -476,6 +483,11 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
 
     char buf[32];
     SetCleanup(kDeepCleanup);
+
+    // output
+    h_fit_params = new TH1D("fit_params", "fit_params", 4, 1,10);
+    h_min_val_pT = new TH1D("min_val_pT", "min_val_pT", 22,1,10);
+    h_max_val_pT = new TH1D("max_val_pT", "max_val_pT", 22,1,10);
     //------------------------------------------------------------
 
 
@@ -667,6 +679,8 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
     //--------------
 
     // write params button
+    Add_output_file_name = new TGTextEntry(fGroupFrames[0], "OutputFileName");
+    fGroupFrames[0]->AddFrame(Add_output_file_name, new TGLayoutHints(kLHintsCenterX,5,5,3,4));
 
     Button_write_params = new TGTextButton(fGroupFrames[0], "Write params",10);
     Button_write_params ->Connect("Clicked()", "TBlastWaveGUI", this, "WriteParams()");
@@ -1109,12 +1123,12 @@ void TBlastWaveGUI::CloseWindow()
 void TBlastWaveGUI::DoSetTextButton()
 {
     // Handle text button Set, rough selection of energy and centrality
+
     cout << "DoSetTextButton()" << endl;
-    Int_t i_select_energy = ComboEnergy->GetSelected();
+    Int_t i_select_energy    = ComboEnergy->GetSelected();
     Int_t i_select_centrality = ComboCentrality->GetSelected();
-   // cout << i_select_energy << endl;
-    TString ComboEnergyLabel[10] = {"7.7","11.5","14.5","19.6","27","39","62.4","200", "2760", "5020"};
-    TString ComboEnergyLabel_float[10] = {"7.7","11.5","14.5","19.6","27.0", "39.0","62.4", "200.0", "2760.0", "5020.0"};
+    TString ComboEnergyLabel[10]           = {"7.7","11.5","14.5","19.6","27","39","62.4","200", "2760", "5020"};
+    TString ComboEnergyLabel_float[10]     = {"7.7","11.5","14.5","19.6","27.0", "39.0","62.4", "200.0", "2760.0", "5020.0"};
     TString ComboCentralityLabel_upper[18] = {"5","10","20","30","80","10","20", "30","40","40", "40", "50", "60","80", "60", "70","80", "80"};
     TString ComboCentralityLabel_lower[18] = {"0", "0", "0", "0", "0", "5","10", "20","10","20", "30", "40", "40","40", "50", "60","60", "70"};
 
@@ -1125,10 +1139,10 @@ void TBlastWaveGUI::DoSetTextButton()
 
     for (Int_t i_particle= 0; i_particle< N_masses_all; i_particle++)
         {
-            fCheckBox_pid[i_particle]           ->ChangeBackground(red);
-            fCheckBox_pid_fit_dNdpt[i_particle] ->ChangeBackground(red);
-            fCheckBox_pid_plot[i_particle]      ->ChangeBackground(red);
-            fCheckBox_pid_plot_dNdpt[i_particle]->ChangeBackground(red);
+            fCheckBox_pid[i_particle]           ->ChangeBackground(red);       // Check box PID fit v2
+            fCheckBox_pid_fit_dNdpt[i_particle] ->ChangeBackground(red);       // Check box PID fit dNdpt
+            fCheckBox_pid_plot[i_particle]      ->ChangeBackground(red);       // Check box PID plot v2
+            fCheckBox_pid_plot_dNdpt[i_particle]->ChangeBackground(red);       // Check box PID plot dNdpt
             fCheckBox_pid[i_particle]           ->SetState(kButtonUp);
             fCheckBox_pid_fit_dNdpt[i_particle] ->SetState(kButtonUp);
             fCheckBox_pid_plot[i_particle]      ->SetState(kButtonUp);
@@ -1178,7 +1192,7 @@ void TBlastWaveGUI::DoSetTextButton()
 //______________________________________________________________________________
 void TBlastWaveGUI::DoFillTgaeID()
 {
-    // Creates identifier of the selected  particles
+    // Creates identifiers of the selected  particles
 
     TGTextLBEntry *cent_text_entry = (TGTextLBEntry *)ComboCentrality->GetSelectedEntry();
     const char *selected_centrality = cent_text_entry->GetTitle();
@@ -1186,18 +1200,19 @@ void TBlastWaveGUI::DoFillTgaeID()
     TString select_centrality = selected_centrality ;
     Ssiz_t found = select_centrality.First("-");
     TSubString sub_str = select_centrality(0,found);
-    TString cent_lower = sub_str;
+    cent_lower = sub_str;
 
     select_centrality.Replace(0, found+1, "");
     found  = select_centrality.First(" ");
     sub_str = select_centrality(0,found);
-    TString cent_upper = sub_str;
+    cent_upper = sub_str;
 
     TGTextLBEntry *energy_text_entry = (TGTextLBEntry *)ComboEnergy->GetSelectedEntry();
     const char *selected_Energy = energy_text_entry->GetTitle();
     TString select_Energy = selected_Energy ;
     found = select_Energy.First(" ");
     TSubString sub_str_Energy = select_Energy(0,found);
+    combo_energy = sub_str_Energy;
 
     vec_tgae_id_v2.clear();
     vec_tgae_id_dNdpt.clear();
@@ -1285,18 +1300,18 @@ void TBlastWaveGUI::DoSetClicked(Int_t i_particle, Int_t i_type)
         Set_energy[i_type][i_particle]         = new TGTextButton(fVSetClicked[i_type][i_particle], "Set energy");
         ComboCentrality_PID[i_type][i_particle]= new TGComboBox(fVSetClicked[i_type][i_particle], "Centrality");
         Set_centrality[i_type][i_particle]     = new TGTextButton(fVSetClicked[i_type][i_particle], "Set centrality");
-        TransientFrame_Set[i_type][i_particle]  ->AddFrame(fVSetClicked[i_type][i_particle],        new TGLayoutHints(kLHintsCenterX,5,5,5,5));
-        fVSetClicked[i_type][i_particle]        ->AddFrame(ComboEnergy_PID[i_type][i_particle],     new TGLayoutHints(kLHintsCenterX,5,5,3,4));
-        fVSetClicked[i_type][i_particle]        ->AddFrame(Set_energy[i_type][i_particle],          new TGLayoutHints(kLHintsCenterX,5,5,3,4));
-        fVSetClicked[i_type][i_particle]        ->AddFrame(ComboCentrality_PID[i_type][i_particle], new TGLayoutHints(kLHintsCenterX,5,5,3,4));
-        fVSetClicked[i_type][i_particle]        ->AddFrame(Set_centrality[i_type][i_particle],      new TGLayoutHints(kLHintsCenterX,5,5,3,4));
-        Set_centrality[i_type][i_particle]->Connect("Clicked()", "TBlastWaveGUI", this, Form("DoSetSingleParticle(Int_t= %d, %d)", i_particle,i_type));
+        TransientFrame_Set[i_type][i_particle] ->AddFrame(fVSetClicked[i_type][i_particle],        new TGLayoutHints(kLHintsCenterX,5,5,5,5));
+        fVSetClicked[i_type][i_particle]       ->AddFrame(ComboEnergy_PID[i_type][i_particle],     new TGLayoutHints(kLHintsCenterX,5,5,3,4));
+        fVSetClicked[i_type][i_particle]       ->AddFrame(Set_energy[i_type][i_particle],          new TGLayoutHints(kLHintsCenterX,5,5,3,4));
+        fVSetClicked[i_type][i_particle]       ->AddFrame(ComboCentrality_PID[i_type][i_particle], new TGLayoutHints(kLHintsCenterX,5,5,3,4));
+        fVSetClicked[i_type][i_particle]       ->AddFrame(Set_centrality[i_type][i_particle],      new TGLayoutHints(kLHintsCenterX,5,5,3,4));
+        Set_centrality[i_type][i_particle]     ->Connect("Clicked()", "TBlastWaveGUI", this, Form("DoSetSingleParticle(Int_t= %d, %d)", i_particle,i_type));
 
         ComboCentrality_PID[i_type][i_particle] ->Resize(100,20);
         ComboCentrality_PID[i_type][i_particle] ->Select(0);
         ComboEnergy_PID[i_type][i_particle]     ->Resize(100,20);
         ComboEnergy_PID[i_type][i_particle]     ->Select(0);
-        TransientFrame_Set[i_type][i_particle]->SetWindowName(label_full_pid_spectra[i_particle].Data());
+        TransientFrame_Set[i_type][i_particle]  ->SetWindowName(label_full_pid_spectra[i_particle].Data());
 
         TString ComboEnergyLabel_PID;
         if (i_type == 0)
@@ -1378,7 +1393,6 @@ Int_t TBlastWaveGUI::DoCentralityCombo(Int_t i_particle, Int_t i_type)
     Int_t i_entry = ComboEnergy_PID[i_type][i_particle]->GetSelected();
     if (i_entry == -1) return 0;
 
-
     cout << "DoCentralityCombo()" << endl;
     vector<TString> vec_ComboCentralityLabel_PID;
     TString ComboCentralityLabel_PID;
@@ -1390,7 +1404,7 @@ Int_t TBlastWaveGUI::DoCentralityCombo(Int_t i_particle, Int_t i_type)
     Ssiz_t found = select_energy.First(" ");
     TSubString sub_str = select_energy(0,found);
 
-    Int_t i_number = 0;
+    Int_t i_number  = 0;
     Int_t i_entries = ComboCentrality_PID[i_type][i_particle]->GetNumberOfEntries();
     ComboCentrality_PID[i_type][i_particle]->RemoveAll();
     if (i_type == 0)
@@ -1447,20 +1461,54 @@ Int_t TBlastWaveGUI::DoCentralityCombo(Int_t i_particle, Int_t i_type)
 Int_t TBlastWaveGUI::DoSetSingleParticle(Int_t i_particle, Int_t i_type)
 {
     // Called when energy and centrality is selected for a single particle.
+
     Int_t i_entry_energy = ComboEnergy_PID[i_type][i_particle]->GetSelected();
     if (i_entry_energy == -1) return 0;
     Int_t i_entry_centrality = ComboCentrality_PID[i_type][i_particle]->GetSelected();
     if (i_entry_centrality == -1) return 0;
+    if (i_type == 0)
+    {
+        for ( Int_t i_entry = 0; i_entry < vec_tgae_id_v2.size(); i_entry++)
+        {
+            TString tgae_id_v2 = vec_tgae_id_v2[i_entry];
+            Ssiz_t found = tgae_id_v2.First("_");
+            tgae_id_v2.Replace(0, found+1, "");
+            found = tgae_id_v2.First("_");
+            tgae_id_v2.Replace(0, found+1, "");
+            found = tgae_id_v2.First("_");
+            TSubString sub_str =  tgae_id_v2(0,found);
+            TString particle = sub_str;
+            // cout <<"particle "  << particle <<label_full_pid_spectra[i_particle]  << endl;
+            if ( particle  == label_full_pid_spectra[i_particle]) vec_tgae_id_v2.erase(vec_tgae_id_v2.begin()+i_entry);
+        }
+    }
+    if ( i_type ==1)
+    {
+        for ( Int_t i_entry = 0; i_entry < vec_tgae_id_dNdpt.size(); i_entry++)
+        {
+            TString tgae_id_dNdpt = vec_tgae_id_dNdpt[i_entry];
+            Ssiz_t found = tgae_id_dNdpt.First("_");
+            tgae_id_dNdpt.Replace(0, found+1, "");
+            found = tgae_id_dNdpt.First("_");
+            tgae_id_dNdpt.Replace(0, found+1, "");
+            found = tgae_id_dNdpt.First("_");
+            TSubString sub_str =  tgae_id_dNdpt(0,found);
+            TString particle = sub_str;
+            // cout <<"particle "  << particle <<label_full_pid_spectra[i_particle]  << endl;
+            if ( particle  == label_full_pid_spectra[i_particle]) vec_tgae_id_dNdpt.erase(vec_tgae_id_dNdpt.begin()+i_entry);
+        }
+    }
+
 
     ULong_t green;
     gClient->GetColorByName("green", green);
 
     if (i_type ==0)
     {
-        fCheckBox_pid[i_particle] ->ChangeBackground(green);
-        fCheckBox_pid[i_particle] ->SetState(kButtonDown);
+        fCheckBox_pid[i_particle]     ->ChangeBackground(green);
+        fCheckBox_pid[i_particle]     ->SetState(kButtonDown);
         fCheckBox_pid_plot[i_particle]->ChangeBackground(green);
-        fCheckBox_pid_plot[i_particle] ->SetState(kButtonDown);
+        fCheckBox_pid_plot[i_particle]->SetState(kButtonDown);
     }
 
     if (i_type ==1)
@@ -1468,7 +1516,7 @@ Int_t TBlastWaveGUI::DoSetSingleParticle(Int_t i_particle, Int_t i_type)
         fCheckBox_pid_fit_dNdpt[i_particle] ->ChangeBackground(green);
         fCheckBox_pid_fit_dNdpt[i_particle] ->SetState(kButtonDown);
         fCheckBox_pid_plot_dNdpt[i_particle]->ChangeBackground(green);
-        fCheckBox_pid_plot_dNdpt[i_particle] ->SetState(kButtonDown);
+        fCheckBox_pid_plot_dNdpt[i_particle]->SetState(kButtonDown);
     }
 
     TGTextLBEntry *cent_text_entry = (TGTextLBEntry *) ComboCentrality_PID[i_type][i_particle]->GetSelectedEntry();
@@ -1493,8 +1541,6 @@ Int_t TBlastWaveGUI::DoSetSingleParticle(Int_t i_particle, Int_t i_type)
     TString tgae_id;
 
 
-    //for (Int_t i_particle= 0; i_particle< N_masses_all; i_particle++)
-    //{
     if (i_type ==0)
     {
         if (fCheckBox_pid_plot[i_particle]->IsDown() )   // pid plot v2
@@ -1562,10 +1608,6 @@ Int_t TBlastWaveGUI::DoSetSingleParticle(Int_t i_particle, Int_t i_type)
 }
 //______________________________________________________________________________
 
-
-//______________________________________________________________________________
-
-//______________________________________________________________________________
 
 //______________________________________________________________________________
 void TBlastWaveGUI::PlotData()
@@ -1641,7 +1683,7 @@ void TBlastWaveGUI::PlotData()
     h_dummy_plot_data->GetYaxis()->SetNdivisions(505,'N');
     h_dummy_plot_data->SetLineColor(10);
     h_dummy_plot_data->GetXaxis()->SetRangeUser(-0.03,6.5);
-    h_dummy_plot_data->GetYaxis()->SetRangeUser(-0.1999,15);
+    h_dummy_plot_data->GetYaxis()->SetRangeUser(-0.1999,7);
     h_dummy_plot_data->DrawCopy();
 
     PlotLine(0.0,20,0,0,1,1,2); // x1_val, x2_val, y1_val, y2_val, Line_Col, LineWidth, LineStyle
@@ -1662,13 +1704,15 @@ void TBlastWaveGUI::PlotData()
         {
             if ( vec_tgae_id_v2[i_tgae_id] == vec_tgae_name_full[i_tgae_name] && vec_error_type[i_tgae_name] =="stat")
             {
-                if (!fCheckBox_pid_plot[i_mass]->IsDown()) continue;
-                vec_tgae[i_tgae_name]->SetMarkerSize(0.75);
-                vec_tgae[i_tgae_name]->SetMarkerStyle(20);
-                vec_tgae[i_tgae_name]->SetMarkerColor(arr_color_mass[i_mass]);
-                vec_tgae[i_tgae_name]->Draw("same PZ");
-                legend_v2_plot_data->AddEntry(vec_tgae[i_tgae_name],label_full_pid_spectra[i_mass],"p");
-                legend_v2_plot_data->Draw();
+                if (fCheckBox_pid_plot[i_mass]->IsDown())
+                {
+                    vec_tgae[i_tgae_name]->SetMarkerSize(0.75);
+                    vec_tgae[i_tgae_name]->SetMarkerStyle(20);
+                    vec_tgae[i_tgae_name]->SetMarkerColor(arr_color_mass[i_mass]);
+                    vec_tgae[i_tgae_name]->Draw("same PZ");
+                    legend_v2_plot_data->AddEntry(vec_tgae[i_tgae_name],label_full_pid_spectra[i_mass],"p");
+                    legend_v2_plot_data->Draw();
+                }
             }
 
         }
@@ -2008,6 +2052,8 @@ void TBlastWaveGUI::DoMinimize_ana()
 
     for (Int_t i_tgae_name = 0; i_tgae_name < (Int_t) vec_tgae_name_full.size(); i_tgae_name++)
     {
+        Int_t index_pid = vec_index_pid[i_tgae_name];
+        if (!fCheckBox_pid[index_pid]->IsDown()) continue;
         for (Int_t i_tgae_id = 0; i_tgae_id < (Int_t) vec_tgae_id_v2_fit.size(); i_tgae_id++)
         {
             if ( vec_tgae_id_v2_fit[i_tgae_id] == vec_tgae_name_full[i_tgae_name] && vec_error_type[i_tgae_name] =="stat")
@@ -2020,6 +2066,8 @@ void TBlastWaveGUI::DoMinimize_ana()
     }
     for (Int_t i_tgae_name = 0; i_tgae_name < (Int_t) vec_tgae_name_full.size(); i_tgae_name++)
     {
+        Int_t index_pid = vec_index_pid[i_tgae_name];
+        if (!fCheckBox_pid_fit_dNdpt[index_pid]->IsDown()) continue;
         for (Int_t i_tgae_id = 0; i_tgae_id < (Int_t) vec_tgae_id_dNdpt_fit.size(); i_tgae_id++)
         {
             if ( vec_tgae_id_dNdpt_fit[i_tgae_id] == vec_tgae_name_full[i_tgae_name] && vec_error_type[i_tgae_name] =="stat")
@@ -2063,22 +2111,18 @@ void TBlastWaveGUI::DoMinimize_ana()
 
             cout << "min_val_pT_v2: " << min_val_pT_v2 << "max_val_pT_v2: " << max_val_pT_v2  <<endl;
             individual_chi2_ana[i_mass_v2][0]   = 0.0; // v2
-            //individual_chi2_ana[i_mass_v2][1]   = 0.0; // dN/dpT
             N_individual_chi2_ana[i_mass_v2][0] = 0.0; // v2
-            //N_individual_chi2_ana[i_mass_v2][1] = 0.0; // dN/dpT
 
             const double m = arr_quark_mass_meson[i_mass_v2];       // in GeV
             cout << "mass: " << m <<endl;
             if(tg_v2_BW_ana_pid_min[i_mass_v2])    delete tg_v2_BW_ana_pid_min[i_mass_v2];
-            //if(tg_dNdpT_BW_ana_pid_min[i_mass]) delete tg_dNdpT_BW_ana_pid_min[i_mass];
 
             tg_v2_BW_ana_pid_min[i_mass_v2]    = new TGraph();
-            //tg_dNdpT_BW_ana_pid_min[i_mass] = new TGraph();
 
             //--------------------------------------------------
             // v2 chi2
-            if((fCheckBox_v2_dNdpT[0]->GetState() == kButtonDown))
-            {
+            //if((fCheckBox_v2_dNdpT[0]->GetState() == kButtonDown))
+            //{
                 //cout << "v2 chi2" <<endl;
                 Int_t i_point_ana = 0;
                 for(int i_point = 0; i_point < tgae_v2_vs_pT_data[i_tgae]->GetN(); ++i_point)
@@ -2117,7 +2161,7 @@ void TBlastWaveGUI::DoMinimize_ana()
 
                     }
                 }
-            }
+           // }
         }
 
         //--------------------------------------------------
@@ -2142,23 +2186,19 @@ void TBlastWaveGUI::DoMinimize_ana()
                 max_val_pT = arr_NEntry_limits_A[1][i_mass]->GetNumberEntry()->GetNumber();
             }
             cout << "min_val_pT: " << min_val_pT<< "max_val_pT: " << max_val_pT  <<endl;
-           // individual_chi2_ana[i_mass][0]   = 0.0; // v2
             individual_chi2_ana[i_mass][1]   = 0.0; // dN/dpT
-           // N_individual_chi2_ana[i_mass][0] = 0.0; // v2
             N_individual_chi2_ana[i_mass][1] = 0.0; // dN/dpT
 
             const double m = arr_quark_mass_meson[i_mass];       // in GeV
             cout << "mass: " << m <<endl;
-            //if(tg_v2_BW_ana_pid_min[i_mass])    delete tg_v2_BW_ana_pid_min[i_mass];
             if(tg_dNdpT_BW_ana_pid_min[i_mass]) delete tg_dNdpT_BW_ana_pid_min[i_mass];
 
-            //tg_v2_BW_ana_pid_min[i_mass]    = new TGraph();
             tg_dNdpT_BW_ana_pid_min[i_mass] = new TGraph();
 
             //--------------------------------------------------
             // dNdpT chi2
-            if((fCheckBox_v2_dNdpT[1]->GetState() == kButtonDown))
-            {
+            //if((fCheckBox_v2_dNdpT[1]->GetState() == kButtonDown))
+            //{
                 //cout << "chi2 dNdpt" <<endl;
                 Double_t integral_ana = 0.0;
                 vector< vector<Double_t> > vec_data_BW;
@@ -2228,7 +2268,7 @@ void TBlastWaveGUI::DoMinimize_ana()
                         }
                     }
                 }
-            }
+           // }
 
             //integration_range_pid[i_mass][0] = x_val_data_first - x_err_low_data;
             //integration_range_pid[i_mass][1] = x_val_data_last  + x_err_high_data;
@@ -2302,7 +2342,6 @@ void TBlastWaveGUI::DoMinimize_ana()
     // ROOT::Math::MinimizerOptions::SetDefaultPrintLevel(1);
 
     double pStart[4] = {0.14,0.925,0.05,0.9};
-    //double pStart[4] = {0.107,1.13,0.076,0.83};
     fitter.SetFCN(fcn, pStart);
 
     fitter.Config().ParSettings(0).SetName("T"); // set parameters name
@@ -2380,6 +2419,23 @@ void TBlastWaveGUI::DoMinimize_ana()
     fit_params[1] = Rho0_BW;
     fit_params[2] = Rho2_BW;
     fit_params[3] = RxOverRy_BW;
+
+    Double_t min_val_pT, max_val_pT;
+    for ( Int_t i_mass =0; i_mass < N_masses_all; i_mass++)
+    {
+        if ( i_mass < 11)
+        {
+            min_val_pT = arr_NEntry_limits[0][i_mass]->GetNumberEntry()->GetNumber();
+            max_val_pT = arr_NEntry_limits[1][i_mass]->GetNumberEntry()->GetNumber();
+        }
+        if ( i_mass >= 11)
+        {
+            min_val_pT = arr_NEntry_limits_A[0][i_mass]->GetNumberEntry()->GetNumber();
+            max_val_pT = arr_NEntry_limits_A[1][i_mass]->GetNumberEntry()->GetNumber();
+        }
+        vec_min_val_pT.push_back(min_val_pT);
+        vec_max_val_pT.push_back(max_val_pT);
+    }
 
 
     Pixel_t green;
@@ -3870,27 +3926,62 @@ void TBlastWaveGUI::WriteParams()
 {
     printf("WriteParams \n");
 
-    h_fit_params = new TH1D("fit_params", "fit_params", 10, 1,10);
+    
+
     //cout  <<"temp " << fit_params[0]  <<" rho0 " << fit_params[1]  << " rho2 " << fit_params[2]  <<" RxOverRy " << fit_params[3] <<endl;
-    Double_t test[4];
-    test[0] = 1;
-    test[1]= 2;
-    test[2] = 3;
-    test[3]= 4;
+    for (Int_t i_mass =0; i_mass < N_masses_all; i_mass++)
+    {
+        h_min_val_pT -> AddBinContent(i_mass+1, vec_min_val_pT[i_mass]);
+        h_max_val_pT -> AddBinContent(i_mass+1, vec_max_val_pT[i_mass]);
+    }
     for (Int_t i_params=0; i_params < 4; i_params++)
     {
         h_fit_params -> AddBinContent(i_params+1, fit_params[i_params]);
     }
+
     Double_t temp =  h_fit_params -> GetBinContent(1);
     Double_t rho =  h_fit_params -> GetBinContent(2);
     Double_t rho_2 =  h_fit_params -> GetBinContent(3);
     Double_t R =  h_fit_params -> GetBinContent(4);
     cout  <<"T: " <<temp  <<", rho0: " <<rho  << ", rho2: " << rho_2  <<", RxOverRy: " << R  <<endl;
 
-    RootFileFitParams = new TFile("FitParams.root", "RECREATE");
+    Double_t min_pt_Pi = h_min_val_pT -> GetBinContent(1);
+    Double_t min_pt_t = h_min_val_pT -> GetBinContent(22);
+    Double_t max_pt_Pi = h_max_val_pT -> GetBinContent(1);
+    Double_t max_pt_t = h_max_val_pT -> GetBinContent(22);
+    cout  <<"min_pt_pi+: " << min_pt_Pi  <<", min_pt_t: " << min_pt_t  << ", max_pt_pi+: " << max_pt_Pi  <<", max_pt_t: " << max_pt_t  <<endl;
+
+    TString output_file_name;
+    //output_file_name.Clear();
+    output_file_name = combo_energy.Data();
+    output_file_name += "_";
+    output_file_name += cent_lower.Data();
+    output_file_name += "_";
+    output_file_name += cent_upper.Data();
+    for ( Int_t i_mass = 0; i_mass < N_masses_all; i_mass ++)
+    {
+        if (!fCheckBox_pid[i_mass] ->IsDown()) continue;
+        output_file_name += "_";
+        if (i_mass == 15)
+        {
+            if (fCheckBox_pid[i_mass] ->IsDown() || fCheckBox_pid_fit_dNdpt[i_mass] ->IsDown()) output_file_name += "JPsi";
+
+        }
+        if (i_mass != 15)
+        {
+            if (fCheckBox_pid[i_mass] ->IsDown() || fCheckBox_pid_fit_dNdpt[i_mass] ->IsDown()) output_file_name += label_full_pid_spectra[i_mass];
+        }
+    }
+    output_file_name += "_";
+    output_file_name += Add_output_file_name->GetDisplayText();
+    output_file_name += ".root";
+    cout << "output_file_name: " << output_file_name.Data() << endl;
+    RootFileFitParams = new TFile(output_file_name.Data(), "RECREATE");
     if ( RootFileFitParams->IsOpen() ) printf("File opened successfully\n");
     RootFileFitParams->cd();
     h_fit_params->Write("h_fit_params");
+    h_min_val_pT->Write("h_min_val_pT");
+    h_max_val_pT->Write("h_max_val_pT");
 
 
 }
