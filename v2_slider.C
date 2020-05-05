@@ -902,10 +902,6 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
     fLCheckBox = new TGLayoutHints(kLHintsTop | kLHintsLeft,2, 2, 5, 0);
     fLGroupFrames_particles = new TGLayoutHints(kLHintsCenterX,2,2,2,2);
 
-    //fCompositeFrame_pid[4] = new TGCompositeFrame(fGroupFrames[5],60,20, kHorizontalFrame);
-    //fCompositeFrame_pid[5] = new TGCompositeFrame(fGroupFrames[5],60,20, kHorizontalFrame);
-    //fGroupFrames[5]->AddFrame(fCompositeFrame_pid[4]);
-    //fGroupFrames[5]->AddFrame(fCompositeFrame_pid[5]);
 
     for(Int_t i_particle = 0; i_particle < 12; i_particle++)
     {
@@ -1122,7 +1118,7 @@ void TBlastWaveGUI::CloseWindow()
 //______________________________________________________________________________
 void TBlastWaveGUI::DoSetTextButton()
 {
-    // Handle text button Set, rough selection of energy and centrality
+    // Handle text button Set, selection of energy and centrality for all particles at the same time
 
     cout << "DoSetTextButton()" << endl;
     Int_t i_select_energy    = ComboEnergy->GetSelected();
@@ -1192,7 +1188,7 @@ void TBlastWaveGUI::DoSetTextButton()
 //______________________________________________________________________________
 void TBlastWaveGUI::DoFillTgaeID()
 {
-    // Creates identifiers of the selected  particles
+    // Create identifiers of the selected  particles
 
     TGTextLBEntry *cent_text_entry = (TGTextLBEntry *)ComboCentrality->GetSelectedEntry();
     const char *selected_centrality = cent_text_entry->GetTitle();
@@ -1234,7 +1230,7 @@ void TBlastWaveGUI::DoFillTgaeID()
             tgae_id += cent_upper.Data();
 
             cout << tgae_id << endl;
-            vec_tgae_id_v2.push_back(tgae_id.Copy());
+            vec_tgae_id_v2.push_back(tgae_id.Copy());  // v2 plot
             tgae_id.Clear();
         }
         if (fCheckBox_pid[i_particle]->IsDown())
@@ -1249,7 +1245,7 @@ void TBlastWaveGUI::DoFillTgaeID()
             tgae_id += cent_upper.Data();
 
             cout << tgae_id << endl;
-            vec_tgae_id_v2_fit.push_back(tgae_id.Copy());
+            vec_tgae_id_v2_fit.push_back(tgae_id.Copy());   // v2 fit
             tgae_id.Clear();
         }
 
@@ -1264,7 +1260,7 @@ void TBlastWaveGUI::DoFillTgaeID()
             tgae_id += "_";
             tgae_id += cent_upper.Data();
             cout << tgae_id << endl;
-            vec_tgae_id_dNdpt.push_back(tgae_id.Copy());
+            vec_tgae_id_dNdpt.push_back(tgae_id.Copy());   // dNdpt plot
             tgae_id.Clear();
         }
         if (fCheckBox_pid_fit_dNdpt[i_particle]->IsDown())
@@ -1278,7 +1274,7 @@ void TBlastWaveGUI::DoFillTgaeID()
             tgae_id += "_";
             tgae_id += cent_upper.Data();
             cout << tgae_id << endl;
-            vec_tgae_id_dNdpt_fit.push_back(tgae_id.Copy());
+            vec_tgae_id_dNdpt_fit.push_back(tgae_id.Copy());   // dNdpt fit
             tgae_id.Clear();
         }
     }
@@ -1379,7 +1375,6 @@ void TBlastWaveGUI::DoSetClicked(Int_t i_particle, Int_t i_type)
         i_transient_frame[i_type][i_particle] = i_transient_frame[i_type][i_particle] -2;
     }
     i_transient_frame[i_type][i_particle] ++;
-    cout << i_transient_frame[i_type][i_particle] << endl;
     //TransientFrame_Set[i_type][i_particle]->Move(500,650); // position of frame
 
 
@@ -1452,8 +1447,6 @@ Int_t TBlastWaveGUI::DoCentralityCombo(Int_t i_particle, Int_t i_type)
         }
 
     }
-    //cout << i_entries << endl;
-    //ComboCentrality_PID[i_type][i_particle]->Select(0);
     return 1;
 }
 //______________________________________________________________________________
@@ -2041,19 +2034,22 @@ void TBlastWaveGUI::DoMinimize_ana()
     Button_minimize_ana->ChangeBackground(yellow);
     Button_take_params_MC_to_ana->ChangeBackground(yellow);
 
-    vector <TGraphAsymmErrors*> tgae_v2_vs_pT_data;
-    vector <TGraphAsymmErrors*> tgae_dN_dpT_data;
-    vector <Int_t> index_pid_v2_vs_pT_data;
-    vector <Int_t> index_pid_dN_dpT_data;
+    //-------------------------------------------------
+    // create and fill vectors with data for the fit
+    vector <TGraphAsymmErrors*> tgae_v2_vs_pT_data;    // v2
+    vector <TGraphAsymmErrors*> tgae_dN_dpT_data;      // dNdpt
+    vector <Int_t> index_pid_v2_vs_pT_data;            // index of particles v2 (0-21)
+    vector <Int_t> index_pid_dN_dpT_data;              // index of particles dNdpt (0-21)
     index_pid_v2_vs_pT_data.clear();
     index_pid_dN_dpT_data.clear();
     tgae_v2_vs_pT_data.clear();
     tgae_dN_dpT_data.clear();
 
+
     for (Int_t i_tgae_name = 0; i_tgae_name < (Int_t) vec_tgae_name_full.size(); i_tgae_name++)
     {
         Int_t index_pid = vec_index_pid[i_tgae_name];
-        if (!fCheckBox_pid[index_pid]->IsDown()) continue;
+        if (!fCheckBox_pid[index_pid]->IsDown()) continue;  // only the particles with clicked PID fit v2 check boxes are considered
         for (Int_t i_tgae_id = 0; i_tgae_id < (Int_t) vec_tgae_id_v2_fit.size(); i_tgae_id++)
         {
             if ( vec_tgae_id_v2_fit[i_tgae_id] == vec_tgae_name_full[i_tgae_name] && vec_error_type[i_tgae_name] =="stat")
@@ -2061,13 +2057,13 @@ void TBlastWaveGUI::DoMinimize_ana()
                 tgae_v2_vs_pT_data.push_back((TGraphAsymmErrors*)vec_tgae[i_tgae_name]->Clone());
                 index_pid_v2_vs_pT_data.push_back(vec_index_pid[i_tgae_name]);
             }
-
         }
     }
+
     for (Int_t i_tgae_name = 0; i_tgae_name < (Int_t) vec_tgae_name_full.size(); i_tgae_name++)
     {
         Int_t index_pid = vec_index_pid[i_tgae_name];
-        if (!fCheckBox_pid_fit_dNdpt[index_pid]->IsDown()) continue;
+        if (!fCheckBox_pid_fit_dNdpt[index_pid]->IsDown()) continue;  // only the particles with clicked PID fit dNdpt check boxes are considered
         for (Int_t i_tgae_id = 0; i_tgae_id < (Int_t) vec_tgae_id_dNdpt_fit.size(); i_tgae_id++)
         {
             if ( vec_tgae_id_dNdpt_fit[i_tgae_id] == vec_tgae_name_full[i_tgae_name] && vec_error_type[i_tgae_name] =="stat")
@@ -2075,10 +2071,11 @@ void TBlastWaveGUI::DoMinimize_ana()
                 tgae_dN_dpT_data.push_back((TGraphAsymmErrors*)vec_tgae[i_tgae_name]->Clone());
                 index_pid_dN_dpT_data.push_back(vec_index_pid[i_tgae_name]);
             }
-
         }
     }
-    
+    //--------------------------------------------------
+
+
     auto chi2Function = [&](const Double_t *par)
     {
         //minimisation function computing the sum of squares of residuals
@@ -2091,21 +2088,22 @@ void TBlastWaveGUI::DoMinimize_ana()
         const double rho2 = par[2];     // fit parameter: azimuthal modulation of transverse rapidity
         const double RxOverRy = par[3]; // fit parameter: ratio of the radii Rx and Ry of the freeze-out ellipse in the transverse plane
 
-
+        // v2
+        // loop over all graphs
         for(Int_t i_tgae = 0; i_tgae < (Int_t) tgae_v2_vs_pT_data.size(); i_tgae++)
         {
-            Int_t i_mass_v2 = index_pid_v2_vs_pT_data[i_tgae];
+            Int_t i_mass_v2 = index_pid_v2_vs_pT_data[i_tgae];   // index to get the pT range (min_val_pT_v2, max_val_pT_v2)
             Double_t min_val_pT_v2;
             Double_t max_val_pT_v2;
             if(!(fCheckBox_pid[i_mass_v2]->GetState() == kButtonDown)) continue;
             if ( i_mass_v2 < 11)
             {
-                min_val_pT_v2 = arr_NEntry_limits[0][i_mass_v2]->GetNumberEntry()->GetNumber();
+                min_val_pT_v2 = arr_NEntry_limits[0][i_mass_v2]->GetNumberEntry()->GetNumber();   // number entries for particles 0-10
                 max_val_pT_v2 = arr_NEntry_limits[1][i_mass_v2]->GetNumberEntry()->GetNumber();
             }
             if ( i_mass_v2 >= 11)
             {
-                min_val_pT_v2 = arr_NEntry_limits_A[0][i_mass_v2]->GetNumberEntry()->GetNumber();
+                min_val_pT_v2 = arr_NEntry_limits_A[0][i_mass_v2]->GetNumberEntry()->GetNumber();  // number entries for particle 11-21
                 max_val_pT_v2 = arr_NEntry_limits_A[1][i_mass_v2]->GetNumberEntry()->GetNumber();
             }
 
@@ -2114,161 +2112,157 @@ void TBlastWaveGUI::DoMinimize_ana()
             N_individual_chi2_ana[i_mass_v2][0] = 0.0; // v2
 
             const double m = arr_quark_mass_meson[i_mass_v2];       // in GeV
-            cout << "mass: " << m <<endl;
+            //cout << "mass: " << m <<endl;
             if(tg_v2_BW_ana_pid_min[i_mass_v2])    delete tg_v2_BW_ana_pid_min[i_mass_v2];
 
-            tg_v2_BW_ana_pid_min[i_mass_v2]    = new TGraph();
+            tg_v2_BW_ana_pid_min[i_mass_v2]    = new TGraph();    // fit
 
             //--------------------------------------------------
             // v2 chi2
-            //if((fCheckBox_v2_dNdpT[0]->GetState() == kButtonDown))
-            //{
-                //cout << "v2 chi2" <<endl;
-                Int_t i_point_ana = 0;
-                for(int i_point = 0; i_point < tgae_v2_vs_pT_data[i_tgae]->GetN(); ++i_point)
+            Int_t i_point_ana = 0;
+            // loop over all data points
+            for(int i_point = 0; i_point < tgae_v2_vs_pT_data[i_tgae]->GetN(); ++i_point)
+            {
+                double v2_data = 0.0;
+                double pt_data = 0.0;
+
+                tgae_v2_vs_pT_data[i_tgae]->GetPoint(i_point,pt_data,v2_data);   // data
+                double v2_err = tgae_v2_vs_pT_data[i_tgae]->GetErrorYhigh(i_point);
+                cout << "i_point = " << i_point << ", pt_data = " << pt_data << ", v2_data = " << v2_data << " +/- " << v2_err << endl;
+
+                if(pt_data > max_val_pT_v2) break;
+
+                if(pt_data > min_val_pT_v2)
                 {
-                    double v2_data = 0.0;
-                    double pt_data = 0.0;
+                    double v2_BW = 0;
+                    double inv_yield_BW = 0;
 
-                    tgae_v2_vs_pT_data[i_tgae]->GetPoint(i_point,pt_data,v2_data);
-                    double v2_err = tgae_v2_vs_pT_data[i_tgae]->GetErrorYhigh(i_point);
-                    cout << "i_point = " << i_point << ", pt_data = " << pt_data << ", v2_data = " << v2_data << " +/- " << v2_err << endl;
+                    // blast wave parameters
+                    const double pt_BW = pt_data;         // in GeV
 
-                    if(pt_data > max_val_pT_v2) break;
+                    if(id_bw_hypersurface == 1) bw_ana.calc_blastwave_yield_and_v2_fos1(pt_BW, m, T, rho0, rho2, RxOverRy, inv_yield_BW, v2_BW);
+                    if(id_bw_hypersurface == 2) bw_ana.calc_blastwave_yield_and_v2_fos2(pt_BW, m, T, rho0, rho2, RxOverRy, inv_yield_BW, v2_BW);
+                    if(id_bw_hypersurface == 3) bw_ana.calc_blastwave_yield_and_v2_fos3(pt_BW, m, T, rho0, rho2, RxOverRy, inv_yield_BW, v2_BW);
+                    //blastwave_yield_and_v2(pt_BW, m, T, rho0, rho2, RxOverRy, inv_yield_BW, v2_BW);
 
-                    if(pt_data > min_val_pT_v2)
-                    {
-                        double v2_BW = 0;
-                        double inv_yield_BW = 0;
+                    tg_v2_BW_ana_pid_min[i_mass_v2] ->SetPoint(i_point_ana,pt_BW,v2_BW);
 
-                        // blast wave parameters
-                        const double pt_BW = pt_data;         // in GeV
+                    cout << "i_point = " << i_point <<  ", pt_BW = " << pt_BW << ", v2_BW = " << v2_BW<< ", chi2 = " << chi2 << ", T = " << T << ", rho0 = " << rho0 <<", rho2 = " << rho2 << ", RxOverRy = " << RxOverRy << endl;
+                    double diff   = (v2_data - v2_BW)/v2_err;
+                    //double diff_yield = (inv_yield_BW - inv_yield_data)/yield_err;
+                    chi2 += diff*diff;
+                    individual_chi2_ana[i_mass_v2][0]   += diff*diff;
+                    N_individual_chi2_ana[i_mass_v2][0] += 1.0;
+                    i_point_ana++;
 
-                        if(id_bw_hypersurface == 1) bw_ana.calc_blastwave_yield_and_v2_fos1(pt_BW, m, T, rho0, rho2, RxOverRy, inv_yield_BW, v2_BW);
-                        if(id_bw_hypersurface == 2) bw_ana.calc_blastwave_yield_and_v2_fos2(pt_BW, m, T, rho0, rho2, RxOverRy, inv_yield_BW, v2_BW);
-                        if(id_bw_hypersurface == 3) bw_ana.calc_blastwave_yield_and_v2_fos3(pt_BW, m, T, rho0, rho2, RxOverRy, inv_yield_BW, v2_BW);
-                        //blastwave_yield_and_v2(pt_BW, m, T, rho0, rho2, RxOverRy, inv_yield_BW, v2_BW);
-
-                        tg_v2_BW_ana_pid_min[i_mass_v2] ->SetPoint(i_point_ana,pt_BW,v2_BW);
-
-                        cout << "i_point = " << i_point <<  ", pt_BW = " << pt_BW << ", v2_BW = " << v2_BW<< ", chi2 = " << chi2 << ", T = " << T << ", rho0 = " << rho0 <<", rho2 = " << rho2 << ", RxOverRy = " << RxOverRy << endl;
-                        double diff   = (v2_data - v2_BW)/v2_err;
-                        //double diff_yield = (inv_yield_BW - inv_yield_data)/yield_err;
-                        chi2 += diff*diff;
-                        individual_chi2_ana[i_mass_v2][0]   += diff*diff;
-                        N_individual_chi2_ana[i_mass_v2][0] += 1.0;
-                        i_point_ana++;
-
-                    }
                 }
-           // }
+            }
         }
 
         //--------------------------------------------------
 
 
         //--------------------------------------------------
+        // dNdpt
+        //loop over all graphs in tgae_dN_dpT_data
         for(Int_t i_tgae = 0; i_tgae < (Int_t) tgae_dN_dpT_data.size(); i_tgae++)
         {
             Int_t i_mass = index_pid_dN_dpT_data[i_tgae];
-           // cout << "Index i_mass dNdpt: " << i_mass  <<endl;
             if(!(fCheckBox_pid_fit_dNdpt[i_mass]->GetState() == kButtonDown)) continue;
+
+            // pT range
             Double_t min_val_pT;
             Double_t max_val_pT;
             if ( i_mass < 11)
             {
-                min_val_pT = arr_NEntry_limits[0][i_mass]->GetNumberEntry()->GetNumber();
+                min_val_pT = arr_NEntry_limits[0][i_mass]->GetNumberEntry()->GetNumber();   // number entries for particles 0-10
                 max_val_pT = arr_NEntry_limits[1][i_mass]->GetNumberEntry()->GetNumber();
             }
             if ( i_mass >= 11)
             {
-                min_val_pT = arr_NEntry_limits_A[0][i_mass]->GetNumberEntry()->GetNumber();
+                min_val_pT = arr_NEntry_limits_A[0][i_mass]->GetNumberEntry()->GetNumber(); // number entries for particles 11-21
                 max_val_pT = arr_NEntry_limits_A[1][i_mass]->GetNumberEntry()->GetNumber();
             }
             cout << "min_val_pT: " << min_val_pT<< "max_val_pT: " << max_val_pT  <<endl;
+
+
             individual_chi2_ana[i_mass][1]   = 0.0; // dN/dpT
             N_individual_chi2_ana[i_mass][1] = 0.0; // dN/dpT
 
             const double m = arr_quark_mass_meson[i_mass];       // in GeV
-            cout << "mass: " << m <<endl;
+
             if(tg_dNdpT_BW_ana_pid_min[i_mass]) delete tg_dNdpT_BW_ana_pid_min[i_mass];
 
             tg_dNdpT_BW_ana_pid_min[i_mass] = new TGraph();
 
             //--------------------------------------------------
             // dNdpT chi2
-            //if((fCheckBox_v2_dNdpT[1]->GetState() == kButtonDown))
-            //{
-                //cout << "chi2 dNdpt" <<endl;
-                Double_t integral_ana = 0.0;
-                vector< vector<Double_t> > vec_data_BW;
-                vec_data_BW.resize(4); // data, BW, err, pT
-                // First the integral of BW needs to be calculated to do a shape comparison to the data
-                for(int i_point = 0; i_point < tgae_dN_dpT_data[i_tgae]->GetN(); ++i_point)
+
+            Double_t integral_ana = 0.0;
+            vector< vector<Double_t> > vec_data_BW;
+            vec_data_BW.resize(4); // data, BW, err, pT
+
+            // First the integral of BW needs to be calculated to do a shape comparison to the data
+            // loop over all data points
+            for(int i_point = 0; i_point < tgae_dN_dpT_data[i_tgae]->GetN(); ++i_point) 
+            {
+                double dNdpT_data = 0.0;
+                double pt_data    = 0.0;
+
+                tgae_dN_dpT_data[i_tgae]->GetPoint(i_point,pt_data,dNdpT_data);      // data dNdpt
+                double dNdpT_err = tgae_dN_dpT_data[i_tgae]->GetErrorYhigh(i_point);
+
+                Double_t x_err_low_data  = fabs(tgae_dN_dpT_data[i_tgae] ->GetErrorXlow(i_point));
+                Double_t x_err_high_data = fabs(tgae_dN_dpT_data[i_tgae] ->GetErrorXhigh(i_point));
+                Double_t bin_width = x_err_low_data + x_err_high_data;
+
+                cout << "i_point = " << i_point << ", pt_data = " << pt_data << ", dNdpt_data = " << dNdpT_data << " +/- " << dNdpT_err << endl;
+
+                double v2_BW = 0;
+                double inv_yield_BW = 0;
+
+                // blast wave parameters
+                const double pt_BW = pt_data;         // in GeV
+
+                if(id_bw_hypersurface == 1) bw_ana.calc_blastwave_yield_and_v2_fos1(pt_BW, m, T, rho0, rho2, RxOverRy, inv_yield_BW, v2_BW); // invariant yield: (1/pT) (dN/dpT)
+                if(id_bw_hypersurface == 2) bw_ana.calc_blastwave_yield_and_v2_fos2(pt_BW, m, T, rho0, rho2, RxOverRy, inv_yield_BW, v2_BW); // invariant yield: (1/pT) (dN/dpT)
+                if(id_bw_hypersurface == 3) bw_ana.calc_blastwave_yield_and_v2_fos3(pt_BW, m, T, rho0, rho2, RxOverRy, inv_yield_BW, v2_BW); // invariant yield: (1/pT) (dN/dpT)
+                vec_data_BW[0].push_back(dNdpT_data);
+                vec_data_BW[1].push_back(inv_yield_BW*pt_BW);
+                vec_data_BW[2].push_back(dNdpT_err);
+                vec_data_BW[3].push_back(pt_BW);
+
+                integral_ana += inv_yield_BW*bin_width*pt_BW;
+                cout << "i_point = " << i_point << ", pt_BW = " << pt_BW << ", v2_BW = " << v2_BW << ", T = " << T <<", rho0 = " << rho0 <<", rho2 = " << rho2 <<", RxOverRy = " << RxOverRy <<", inv_yield_BW = " << inv_yield_BW << endl;
+                //double diff   = (dNdpT_data - inv_yield_BW)/dNdpT_err;
+                //double diff_yield = (inv_yield_BW - inv_yield_data)/yield_err;
+                //chi2 += diff*diff;
+            }
+
+            Double_t scale_factor_ana = get_norm_scaling_factor_calc(vec_data_BW,min_val_pT,max_val_pT);
+
+            // Calculate chi2 for dNdpT
+            if(scale_factor_ana > 0.0)
+            {
+                Int_t i_point_ana = 0;
+                for(Int_t i_point = 0; i_point < (Int_t)vec_data_BW[0].size(); i_point++)
                 {
-                    double dNdpT_data = 0.0;
-                    double pt_data    = 0.0;
+                    Double_t pt_data = vec_data_BW[3][i_point];
+                    if(pt_data > max_val_pT) break;
 
-                    tgae_dN_dpT_data[i_tgae]->GetPoint(i_point,pt_data,dNdpT_data);
-                    double dNdpT_err = tgae_dN_dpT_data[i_tgae]->GetErrorYhigh(i_point);
-
-                    Double_t x_err_low_data  = fabs(tgae_dN_dpT_data[i_tgae] ->GetErrorXlow(i_point));
-                    Double_t x_err_high_data = fabs(tgae_dN_dpT_data[i_tgae] ->GetErrorXhigh(i_point));
-                    Double_t bin_width = x_err_low_data + x_err_high_data;
-
-                    cout << "i_point = " << i_point << ", pt_data = " << pt_data << ", dNdpt_data = " << dNdpT_data << " +/- " << dNdpT_err << endl;
-
-                    //if(pt_data > max_val_pT) break;
-
-                    //if(pt_data > min_val_pT)
+                    if(pt_data > min_val_pT)
                     {
-                        double v2_BW = 0;
-                        double inv_yield_BW = 0;
-
-                        // blast wave parameters
-                        const double pt_BW = pt_data;         // in GeV
-
-                        if(id_bw_hypersurface == 1) bw_ana.calc_blastwave_yield_and_v2_fos1(pt_BW, m, T, rho0, rho2, RxOverRy, inv_yield_BW, v2_BW); // invariant yield: (1/pT) (dN/dpT)
-                        if(id_bw_hypersurface == 2) bw_ana.calc_blastwave_yield_and_v2_fos2(pt_BW, m, T, rho0, rho2, RxOverRy, inv_yield_BW, v2_BW); // invariant yield: (1/pT) (dN/dpT)
-                        if(id_bw_hypersurface == 3) bw_ana.calc_blastwave_yield_and_v2_fos3(pt_BW, m, T, rho0, rho2, RxOverRy, inv_yield_BW, v2_BW); // invariant yield: (1/pT) (dN/dpT)
-                        vec_data_BW[0].push_back(dNdpT_data);
-                        vec_data_BW[1].push_back(inv_yield_BW*pt_BW);
-                        vec_data_BW[2].push_back(dNdpT_err);
-                        vec_data_BW[3].push_back(pt_BW);
-
-                        integral_ana += inv_yield_BW*bin_width*pt_BW;
-                        cout << "i_point = " << i_point << ", pt_BW = " << pt_BW << ", v2_BW = " << v2_BW << ", T = " << T <<", rho0 = " << rho0 <<", rho2 = " << rho2 <<", RxOverRy = " << RxOverRy <<", inv_yield_BW = " << inv_yield_BW << endl;
-                        //double diff   = (dNdpT_data - inv_yield_BW)/dNdpT_err;
-                        //double diff_yield = (inv_yield_BW - inv_yield_data)/yield_err;
-                        //chi2 += diff*diff;
+                        // Normalize BW to integral within range of data
+                        double diff   = (vec_data_BW[0][i_point] - (vec_data_BW[1][i_point]*scale_factor_ana))/vec_data_BW[2][i_point];
+                        chi2 += diff*diff;
+                        individual_chi2_ana[i_mass][1]   += diff*diff;
+                        N_individual_chi2_ana[i_mass][1] += 1.0;
+                        tg_dNdpT_BW_ana_pid_min[i_mass] ->SetPoint(i_point_ana,pt_data,vec_data_BW[1][i_point]*scale_factor_ana);
+                        i_point_ana++;
+                        cout << "i_point = " << i_point << ", chi2= " << chi2 << endl;
                     }
                 }
-
-                Double_t scale_factor_ana = get_norm_scaling_factor_calc(vec_data_BW,min_val_pT,max_val_pT);
-
-                // Calculate chi2 for dNdpT
-                if(scale_factor_ana > 0.0)
-                {
-                    Int_t i_point_ana = 0;
-                    for(Int_t i_point = 0; i_point < (Int_t)vec_data_BW[0].size(); i_point++)
-                    {
-                        Double_t pt_data = vec_data_BW[3][i_point];
-                        if(pt_data > max_val_pT) break;
-
-                        if(pt_data > min_val_pT)
-                        {
-                            // Normalize BW to integral within range of data
-                            double diff   = (vec_data_BW[0][i_point] - (vec_data_BW[1][i_point]*scale_factor_ana))/vec_data_BW[2][i_point];
-                            chi2 += diff*diff;
-                            individual_chi2_ana[i_mass][1]   += diff*diff;
-                            N_individual_chi2_ana[i_mass][1] += 1.0;
-                            tg_dNdpT_BW_ana_pid_min[i_mass] ->SetPoint(i_point_ana,pt_data,vec_data_BW[1][i_point]*scale_factor_ana);
-                            i_point_ana++;
-                            cout << "i_point = " << i_point << ", chi2= " << chi2 << endl;
-                        }
-                    }
-                }
-           // }
+            }
 
             //integration_range_pid[i_mass][0] = x_val_data_first - x_err_low_data;
             //integration_range_pid[i_mass][1] = x_val_data_last  + x_err_high_data;
@@ -2279,6 +2273,7 @@ void TBlastWaveGUI::DoMinimize_ana()
         printf("N_calls_BW_ana: %d \n",N_calls_BW_ana);
         //printf("fraction total: %4.2f%%, fraction added: %4.2f%% \n",fraction_total*100.0,fraction_use*100.0);
 
+        // v2 fit plot
         c_1X1_v2->GetCanvas()->cd();
         HistName = "#chi_{Ana}^{2}/ndf = ";
         sprintf(NoP,"%4.2f",chi2);
@@ -2297,6 +2292,8 @@ void TBlastWaveGUI::DoMinimize_ana()
 
         c_1X1_v2->GetCanvas()->Modified();
         c_1X1_v2->GetCanvas()->Update();
+
+        // dNdpt fit plot
         c_1X1_dNdpt ->GetCanvas()->cd();
         for(int i_mass = 0; i_mass < N_masses_all; ++i_mass)
         {
@@ -2415,6 +2412,8 @@ void TBlastWaveGUI::DoMinimize_ana()
 
     //Plot_curves_ana(T_BW,Rho0_BW,Rho2_BW,RxOverRy_BW);
 
+    //-------------------------------------------------------------
+    // save fit parameters and pT ranges (see function WriteParams)
     fit_params[0] = T_BW;
     fit_params[1] = Rho0_BW;
     fit_params[2] = Rho2_BW;
