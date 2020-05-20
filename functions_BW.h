@@ -331,7 +331,27 @@ void Init_Lorentz_Matrices(Double_t y_z, Double_t phis, Double_t y_tp)
 }
 //------------------------------------------------------------------------------------------------------------
 
+Double_t number_density_analytical(Double_t m, Double_t g, Double_t T, Double_t mu, Double_t sign, Int_t n_terms = 20) {
 
+    // caution: at the moment only for mu = 0!!!
+
+    // [0]: degenerary g
+    // [1]: sign, +1 for fermions, -1 for bosons
+    // [2]: chemical potential mu
+    // [3]: temperature T
+    // [4]: mass
+
+    Int_t s = -sign; // fermions have alternating sign in the sum
+
+    Double_t sum_k = 0;
+
+    // n_terms = 1: Boltzmann approximation 
+    for (Int_t k = 1; k < n_terms + 1; ++k) {
+        sum_k += TMath::Power(s, k + 1) / k * m * m * TMath::BesselK(2, k * m / T);
+    }
+
+    return g / (2. * TMath::Pi() * TMath::Pi()) * T * sum_k;
+}
 
 //------------------------------------------------------------------------------------------------------------
 //
@@ -400,14 +420,15 @@ double Tblastwave_yield_and_v2::v2_fos1_numerator(const double *x, const double 
     double RxOverRy = p[5];
     double A = p[6]; // arbitrary factor, can be adjusted to improve numerical stability
 
-    double PhiB = TMath::ATan(RxOverRy * TMath::Tan(PhiHat)); // boost angle
-    double rho = rho0 + rho2 * TMath::Cos(2 * PhiB);          // transverse rapidity
+    double PhiB = TMath::ATan(RxOverRy * TMath::Tan(PhiHat)) +
+                  TMath::Pi() * TMath::Floor((PhiHat + TMath::Pi() / 2.) / TMath::Pi()); // boost angle
+    double mt = TMath::Sqrt(m * m + pt * pt);
+    double rho = rHat * (rho0 + rho2 * TMath::Cos(2 * PhiB)); // transverse rapidity
+    double xip = pt * TMath::SinH(rho) / T;
+    double xim = mt * TMath::CosH(rho) / T;
 
-    return A * rHat * TMath::BesselI(2, (pt * TMath::SinH(rHat * rho)) / T) *
-           TMath::BesselK(1, (TMath::Sqrt(TMath::Power(m, 2) + TMath::Power(pt, 2)) * TMath::CosH(rHat * rho)) / T) *
-           TMath::Cos(2 * PhiB);
+    return A * rHat * TMath::BesselI(2, xip) * TMath::BesselK(1, xim) * TMath::Cos(2 * PhiB);
 }
-
 // denominator of the blastwave v2 formula
 double Tblastwave_yield_and_v2::v2_fos1_denominator(const double *x, const double *p) {
 
@@ -424,17 +445,19 @@ double Tblastwave_yield_and_v2::v2_fos1_denominator(const double *x, const doubl
     double RxOverRy = p[5];
     double A = p[6]; // arbitrary factor, can be adjusted to improve numerical stability
 
-    double PhiB = TMath::ATan(RxOverRy * TMath::Tan(PhiHat)); // boost angle
-    double rho = rho0 + rho2 * TMath::Cos(2 * PhiB);          // transverse rapidity
+    double PhiB = TMath::ATan(RxOverRy * TMath::Tan(PhiHat)) +
+                  TMath::Pi() * TMath::Floor((PhiHat + TMath::Pi() / 2.) / TMath::Pi()); // boost angle
+    double mt = TMath::Sqrt(m * m + pt * pt);
+    double rho = rHat * (rho0 + rho2 * TMath::Cos(2 * PhiB)); // transverse rapidity
+    double xip = pt * TMath::SinH(rho) / T;
+    double xim = mt * TMath::CosH(rho) / T;
 
-    return A * rHat * TMath::BesselI(0, (pt * TMath::SinH(rHat * rho)) / T) *
-           TMath::BesselK(1, (TMath::Sqrt(TMath::Power(m, 2) + TMath::Power(pt, 2)) * TMath::CosH(rHat * rho)) / T);
+    return A * rHat * TMath::BesselI(0, xip) * TMath::BesselK(1, xim);
 }
 
-
 void Tblastwave_yield_and_v2::calc_blastwave_yield_and_v2_fos1(const double &pt, const double &m, const double &T,
-                                                         const double &rho0, const double &rho2, const double &RxOverRy,
-                                                         double &inv_yield, double &v2) {
+                                                              const double &rho0, const double &rho2,
+                                                              const double &RxOverRy, double &inv_yield, double &v2) {
 
     // blast wave parameters:
     // the last number (par[6]) is an arbitrary normalization which we will adjust
@@ -467,9 +490,6 @@ void Tblastwave_yield_and_v2::calc_blastwave_yield_and_v2_fos1(const double &pt,
     double v2_den = ig.Integral(xmin, xmax);
     // if (ig_den.Status() != 0) cout << ig_den.Status() << endl;
 
-    // cout << pt << " " << v2_den << endl;
-    // cout << pt << " " << inv_yield << endl;
-
     if (v2_den != 0) {
         v2 = v2_num / v2_den;
     } else {
@@ -478,7 +498,6 @@ void Tblastwave_yield_and_v2::calc_blastwave_yield_and_v2_fos1(const double &pt,
 
     inv_yield = sf * TMath::Sqrt(m * m + pt * pt) * v2_den;
 }
-
 
 // numerator of the blastwave v2 formula
 // tf = sqrt(tau_cell^2 + r^2 + z^2)
@@ -772,7 +791,45 @@ double v2_denominator(const double *x, const double *p) {
 }
 //------------------------------------------------------------------------------------------------------------
 
+void blastwave_dndpt_and_v2(Double_t *x, Double_t *p, Double_t& dndpt, Double_t& v2) {
 
+    Tblastwave_yield_and_v2 bw;
+
+    Double_t pt = x[0];
+
+    Double_t m = p[0];
+    Double_t spinType = p[1]; // 2 J + 1 where J=0 for pions, J=1/2 for protons, ...
+    Double_t Tkin = p[2];
+    Double_t rho0 = p[3]; // surface velocity
+    Double_t rho2 = p[4];
+    Double_t RxOverRy = p[5];
+    Double_t Tch = p[6];
+
+    // boson or fermion?
+    Double_t sign = 0;
+    if (int(spinType) % 2 == 0) {
+        //  fermions
+        sign = +1;
+    } 
+    else if (int(spinType) % 2 == 1) {
+        // bosons
+        sign = -1;
+    }
+
+    // overall particle ratios determined by chemical freeze-out temperature Tch
+    // arbitrary pre-factor for numerical stability
+    const Double_t preFac = 1e9;
+    Double_t n_Tkin = preFac * number_density_analytical(m, spinType, Tkin, 0, sign, 1); // Boltzmann approximation 
+    Double_t n_Tch = preFac * number_density_analytical(m, spinType, Tch, 0, sign, 10);
+
+    Double_t inv_yield_bw = 0;
+    Double_t v2_bw = 0;
+    bw.calc_blastwave_yield_and_v2_fos1(pt, m, Tkin, rho0, rho2, RxOverRy, inv_yield_bw, v2_bw);
+
+    v2 = v2_bw;
+    dndpt = n_Tch / n_Tkin * spinType * 2. * TMath::Pi() * pt * inv_yield_bw;
+
+}
 
 //------------------------------------------------------------------------------------------------------------
 void blastwave_yield_and_v2(const double &pt, const double &m, const double &T, const double &rho0, const double &rho2,
