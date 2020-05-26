@@ -1,0 +1,40 @@
+#
+# makefile for creating class with root IO support
+# (not needed)
+#
+
+ROOTLIBDIR      = $(shell root-config --libdir)
+ROOTLIBS        = $(shell root-config --libs)
+ROOTINCL        = $(shell root-config --cflags)
+ROOTLDFLAGS     = $(shell root-config --ldflags)
+PLATFORM        = $(shell root-config --platform)
+ARCH            = $(shell root-config --arch)
+
+ifeq ($(ARCH),macosx64)
+	# mac
+	CXX = clang++
+	CXXOPT = -Wall -pipe -fPIC -pthread -g
+	SOFLAGS = -dynamiclib -single_module -undefined dynamic_lookup
+	SOSUFFIX = dylib
+else
+	# linux
+	CXX = g++
+	CXXOPT = -Wall -fPIC -g -c
+	SOFLAGS = -shared -Wl,-soname,
+endif
+
+libpythia8.$(SOSUFFIX): feeddown.h feeddown.cpp feeddown_dict.o
+	$(CXX) $(SOFLAGS) $(CXXOPT) feeddown.cpp `root-config --cflags --glibs` -I ${PYTHIA8}/include ${PYTHIA8}/lib/libpythia8.$(SOSUFFIX) $(ROOTLIBDIR)/libEGPythia8.so feeddown_dict.o -o feeddown.$(SOSUFFIX)
+
+feeddown_dict.o: feeddown_dict.cxx feeddown.h
+	$(CXX) -c -fPIC -std=c++11 -I $(ROOTINCL) feeddown_dict.cxx -I ${PYTHIA8}/include -o feeddown_dict.o
+
+ifeq ($(ARCH),macosx64)
+feeddown_dict.cxx: export DYLD_LIBRARY_PATH = $(ROOTLIBDIR):${PYTHIA8}/lib:
+endif
+
+feeddown_dict.cxx: feeddown.h LinkDef.h
+	rootcling -f feeddown_dict.cxx -c feeddown.h LinkDef.h
+
+make clean:
+	rm -f feeddown_dict.cxx feeddown_dict.o feeddown.dylib
