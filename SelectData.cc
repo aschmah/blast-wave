@@ -25,6 +25,12 @@
 
 // Add check boxes mt. dNdmt, 1/mt*dNdmt
 // 04/24/2020
+
+
+// Add Lambda_c
+// 05/25/2020
+
+// Missing : plot dNdpt, dNdmT only for text files
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -146,8 +152,8 @@ private:
     TH1D                *h_dummy;
     Int_t                N_used_entries = 0;
     TString              HistName;
-    Double_t mass_pid[22] = {0.13957,0.13957,0.493677,0.493677,0.938272,0.938272,1.019460,1.32171, 1.32171, 1.67245,1.67245,1.115683,1.115683,0.497611,1.86962,3.096916,9.46030,1.875612,1.875612, 2.8094313, 2.8094313, 2.80945};
-    TString label_full_pid_spectra[22] = {"Pi+","Pi-","K+","K-","P","Pbar", "Phi","Xi-","Xibar+","Omega-","Omegabar+","Lambda","Lambdabar","K0S","D0", "J/Psi","Upsilon","d","dbar","He3", "He3bar", "t"}; // 9 -> 21
+    Double_t mass_pid[23] = {0.13957,0.13957,0.493677,0.493677,0.938272,0.938272,1.019460,1.32171, 1.32171, 1.67245,1.67245,1.115683,1.115683,2.28646,0.497611,1.86962,3.096916,9.46030,1.875612,1.875612, 2.8094313, 2.8094313, 2.80945};
+    TString label_full_pid_spectra[23] = {"Pi+","Pi-","K+","K-","P","Pbar", "Phi","Xi-","Xibar+","Omega-","Omegabar+","Lambda","Lambdabar","Lambda_C", "K0S","D0", "J/Psi","Upsilon","d","dbar","He3", "He3bar", "t"}; // 9 -> 21
 
 
 
@@ -257,11 +263,11 @@ MyMainFrame::MyMainFrame(const TGWindow *p,UInt_t w,UInt_t h)
     Save->Connect("Clicked()","MyMainFrame",this,"DoSave()");
     hframeoutput->AddFrame(Save, fL_framefiles);
 
-    dNdptpt = new TGCheckButton(hframeoutput, "1/pt*dN/dpt");
+    dNdptpt = new TGCheckButton(hframeoutput, "1/pT*dN/dpT");
     hframeoutput->AddFrame(dNdptpt, fL_framefiles);
-    dNdmt = new TGCheckButton(hframeoutput, "dN/dmt");
+    dNdmt = new TGCheckButton(hframeoutput, "dN/dmT");
     hframeoutput->AddFrame(dNdmt, fL_framefiles);
-    dNdmtmt = new TGCheckButton(hframeoutput, "1/mt*dN/dmt");
+    dNdmtmt = new TGCheckButton(hframeoutput, "1/mT*dN/dmT");
     hframeoutput->AddFrame(dNdmtmt, fL_framefiles);
 
     ComboPID = new TGComboBox(hframeoutput,200);
@@ -294,7 +300,7 @@ MyMainFrame::MyMainFrame(const TGWindow *p,UInt_t w,UInt_t h)
     Exit   = new TGTextButton(hframebutton,"&Exit ","gApplication->Terminate()");
     hframebutton->AddFrame(Exit, fL_framebutton);
 
-    fMain->SetWindowName("GUI");
+    fMain->SetWindowName("Select Data");
     fMain->MapSubwindows();
     fMain->Resize(GetDefaultSize());
     fMain->MapWindow();
@@ -551,6 +557,14 @@ Int_t MyMainFrame::DoFillGraph()
                         x_up_err  = extracted_values[1];
 
                     }
+                    if (mt->IsDown() && pt_error->IsDown())
+                    {
+                        x_low_err = TMath::Sqrt(extracted_values[1]*extracted_values[1]-mass*mass);
+                        x_up_err  = TMath::Sqrt(extracted_values[1]*extracted_values[1]-mass*mass);
+
+
+                    }
+
                     if(input_type == 1 && !syst_percent->IsDown()) // with systematic error
                     {
                         printf("Test B \n");
@@ -602,7 +616,7 @@ Int_t MyMainFrame::DoFillGraph()
                 {
                     printf("Test A \n");
                     yvalue         *= mean*1/(TMath::Sqrt(mean*mean+mass*mass)); // dNdmT
-                    y_low_err_stat *= mean*1/(TMath::Sqrt(TMath::Power(mean, 2) + TMath::Power(mass, 2)));
+                    y_low_err_stat *= mean*1/(TMath::Sqrt(mean*mean+mass*mass));
                     y_up_err_stat  *= mean*1/(TMath::Sqrt(mean*mean+mass*mass));
                     y_low_err_syst *= mean*1/(TMath::Sqrt(mean*mean+mass*mass));
                     y_up_err_syst  *= mean*1/(TMath::Sqrt(mean*mean+mass*mass));
@@ -1125,6 +1139,8 @@ void MyMainFrame::DoFillHistName()
         if (i_select == 19) HistName += "He3bar";
         if (i_select == 20) HistName += "t";
         if (i_select == 21) HistName += "Upsilon";
+        if (i_select == 22) HistName += "LambdaC";
+
         Double_t i_select_energy = vec_energy_entry[i_entry]->GetNumber();
         HistName += "_E_";
         HistName += HistName.Format("%.1f", i_select_energy);
@@ -1344,6 +1360,7 @@ Int_t MyMainFrame::DoAddEntry()
         vec_fCombo[index_frame]->AddEntry("He3bar", 19);
         vec_fCombo[index_frame]->AddEntry("t", 20);
         vec_fCombo[index_frame]->AddEntry("Upsilon", 21);
+        vec_fCombo[index_frame]->AddEntry("LambdaC", 22);
         vec_fCombo[index_frame]->Resize(100, 20);
 
         vec_Tableframe[index_frame]->AddFrame(vec_label_Table[index_frame]);
@@ -1530,23 +1547,23 @@ TestFileList::TestFileList(const TGWindow *p, const TGWindow *main, UInt_t w, UI
    fpt = new TGCompositeFrame(foptions, 60,20,kVerticalFrame);
    foptions->AddFrame(fpt,lo);
 
-   pt  = new TGRadioButton(fpt, "pt");
+   pt  = new TGRadioButton(fpt, "pT");
    fpt->AddFrame(pt);
    pt->Connect("Clicked()", "TestFileList", this, "pt_clicked()");
 
-   pt_high_low  = new TGRadioButton(fpt, "pt_low_high");
+   pt_high_low  = new TGRadioButton(fpt, "pT_low_high");
    fpt->AddFrame(pt_high_low);
    pt_high_low->Connect("Clicked()", "TestFileList", this, "pt_low_high_clicked()");
 
-   mt  = new TGRadioButton(fpt, "mt");
+   mt  = new TGRadioButton(fpt, "mT");
    fpt->AddFrame(mt);
    mt->Connect("Clicked()", "TestFileList", this, "mt_clicked()");
 
-   mt_low_high  = new TGRadioButton(fpt, "mt_low_high");
+   mt_low_high  = new TGRadioButton(fpt, "mT_low_high");
    fpt->AddFrame(mt_low_high);
    mt_low_high->Connect("Clicked()", "TestFileList", this, "mt_low_high_clicked()");
 
-   pt_error = new TGCheckButton(fpt, "pt_error");
+   pt_error = new TGCheckButton(fpt, "pT_error");
    fpt->AddFrame(pt_error);
 
    ferrors = new TGCompositeFrame(foptions, 60,20,kVerticalFrame);
