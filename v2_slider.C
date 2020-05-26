@@ -9,7 +9,11 @@
 #include "TGTripleSlider.h"
 #include <TGSlider.h>
 
+#include "./feeddown/feeddown.h"
 #include "./functions_BW.h"
+
+R__ADD_LIBRARY_PATH(./feeddown/)
+R__LOAD_LIBRARY(libfeeddown.so)
 
 ClassImp(Tblastwave_yield_and_v2)
 
@@ -105,7 +109,7 @@ private:
     TGCheckButton* fCheckBox_pid_plot_dNdpt[N_masses_all];
     TGCheckButton* fCheckBox_pid_set[4][N_masses_all];
     TGCheckButton* fCheckBox_v2_dNdpT[2];
-    TGCheckButton* CheckBoxFeedDown;
+    TGCheckButton* fCheckBoxFeedDown;
     TGLayoutHints* fLCheckBox;
     TGLayoutHints* fLCheckBoxB;
     TGLayoutHints* fLGroupFrames_particles;
@@ -973,9 +977,9 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
 
     //--------------
     // Add feed down check box
-    CheckBoxFeedDown = new TGCheckButton(fGroupFrames[2], "Include Feed-Down");
-    CheckBoxFeedDown->SetState(kButtonDown);
-    fGroupFrames[2]->AddFrame(CheckBoxFeedDown, new TGLayoutHints(kLHintsCenterX,5,5,6,4));
+    fCheckBoxFeedDown = new TGCheckButton(fGroupFrames[2], "Include Feed-Down");
+    fCheckBoxFeedDown->SetState(kButtonDown);
+    fGroupFrames[2]->AddFrame(fCheckBoxFeedDown, new TGLayoutHints(kLHintsCenterX,5,5,6,4));
 
     //Add energy drop down
     TString ComboEnergyLabel[10] = {"7.7    GeV","11.5  GeV","14.5  GeV","19.6  GeV","27.0  GeV","39.0  GeV","62.4  GeV","200   GeV", "2760.0 GeV", "5020.0 GeV"};
@@ -2034,12 +2038,45 @@ void TBlastWaveGUI::DoMinimize_ana()
     Button_minimize_ana->ChangeBackground(yellow);
     Button_take_params_MC_to_ana->ChangeBackground(yellow);
 
+    //Particle Id list
+    const Int_t idPi = 211;
+    const Int_t idKaon = 321;
+    const Int_t idProton = 2212;
+    const Int_t idPhi = 333;
+    const Int_t idXi = 3312;
+    const Int_t idOmega = 3334;
+    const Int_t idLambda = 3122;
+    const Int_t idK0S = 310;
+    const Int_t idD0 = 421;
+    const Int_t idJPsi = 443;
+    const Int_t idUpsilon = 553;
+    const Int_t id_d = 0;
+    const Int_t idHe3 =0;
+    const Int_t id_t = 0;
+    Int_t Partid[22] = {idPi,-idPi,idKaon,-idKaon,idProton,-idProton,idPhi,idXi,-idXi,idOmega,-idOmega,idLambda,-idLambda,idK0S,idD0,idJPsi,idUpsilon,0,0,0,0,0};
+    Double_t Tch = 0.155;
+    const Int_t index_mass_par = 0;
+    const Int_t index_spintype_par = 1;
+    TPythia8 tp;
+    feeddown fd;
+    fd.read_decay_histograms("./decay_histograms/hadron_decays_scan_01.root");
+    fd.set_dndpt_and_v2_model(blastwave_dndpt_and_v2);
+    fd.set_maximum_mother_mass(1.3);
+
     //-------------------------------------------------
     // create and fill vectors with data for the fit
     vector <TGraphAsymmErrors*> tgae_v2_vs_pT_data;    // v2
     vector <TGraphAsymmErrors*> tgae_dN_dpT_data;      // dNdpt
     vector <Int_t> index_pid_v2_vs_pT_data;            // index of particles v2 (0-21)
     vector <Int_t> index_pid_dN_dpT_data;              // index of particles dNdpt (0-21)
+    vector <TH1D*> dndpt_feed_hist;                    // dNdpt feeddown histogram
+    vector <TH1D*> v2_feed_hist;                       // v2 feeddown histogram
+    vector <Int_t> part_id;
+    vector <Int_t> part_id_dndpt;
+    vector <Int_t> part_id_v2;
+    part_id.clear();
+    part_id_dndpt.clear();
+    part_id_v2.clear();
     index_pid_v2_vs_pT_data.clear();
     index_pid_dN_dpT_data.clear();
     tgae_v2_vs_pT_data.clear();
@@ -2056,6 +2093,7 @@ void TBlastWaveGUI::DoMinimize_ana()
             {
                 tgae_v2_vs_pT_data.push_back((TGraphAsymmErrors*)vec_tgae[i_tgae_name]->Clone());
                 index_pid_v2_vs_pT_data.push_back(vec_index_pid[i_tgae_name]);
+                part_id_v2.push_back(Partid[index_pid]);
             }
         }
     }
@@ -2070,6 +2108,7 @@ void TBlastWaveGUI::DoMinimize_ana()
             {
                 tgae_dN_dpT_data.push_back((TGraphAsymmErrors*)vec_tgae[i_tgae_name]->Clone());
                 index_pid_dN_dpT_data.push_back(vec_index_pid[i_tgae_name]);
+                part_id_dndpt.push_back(Partid[index_pid]);
             }
         }
     }
@@ -2080,13 +2119,27 @@ void TBlastWaveGUI::DoMinimize_ana()
     {
         //minimisation function computing the sum of squares of residuals
         N_calls_BW_ana++;
-
+                                                      kLHintsCenterX
         double chi2 = 0;
 
         const double T = par[0];        // fit parameter: Temp in GeV
         const double rho0 = par[1];     // fit parameter: transverse rapidity
         const double rho2 = par[2];     // fit parameter: azimuthal modulation of transverse rapidity
         const double RxOverRy = par[3]; // fit parameter: ratio of the radii Rx and Ry of the freeze-out ellipse in the transverse plane
+
+        //feeddown calculations
+        if(!(fCheckBoxFeedDown->GetState() == kButtonUp)){
+            v2_feed_hist.clear();
+            dndpt_feed_hist.clear();
+            for(Int_t i_tgae = 0; i_tgae < (Int_t) part_id_dndpt.size(); i_tgae++)
+            {
+                Double_t model_pars[7] = {0., 0., T, rho0, rho2, RxOverRy, Tch};
+                fd.set_model_parameters(model_pars,7);
+                fd.calc_feeddown_hist(part_id_dndpt[i_tgae]);
+                dndpt_feed_hist.push_back((TH1D*) fd.get_dndpt_total_hist()->Clone());
+                v2_feed_hist.push_back((TH1D*) fd.get_v2_total_hist()->Clone());
+            }
+        }
 
         // v2
         // loop over all graphs
@@ -2140,9 +2193,15 @@ void TBlastWaveGUI::DoMinimize_ana()
                     // blast wave parameters
                     const double pt_BW = pt_data;         // in GeV
 
-                    if(id_bw_hypersurface == 1) bw_ana.calc_blastwave_yield_and_v2_fos1(pt_BW, m, T, rho0, rho2, RxOverRy, inv_yield_BW, v2_BW);
-                    if(id_bw_hypersurface == 2) bw_ana.calc_blastwave_yield_and_v2_fos2(pt_BW, m, T, rho0, rho2, RxOverRy, inv_yield_BW, v2_BW);
-                    if(id_bw_hypersurface == 3) bw_ana.calc_blastwave_yield_and_v2_fos3(pt_BW, m, T, rho0, rho2, RxOverRy, inv_yield_BW, v2_BW);
+                    if(!(fCheckBoxFeedDown->GetState() == kButtonUp)){
+                        TH1D *h_v2_fit = (TH1D*)v2_feed_hist[i_tgae];
+                        Double_t v2_total = h_v2_fit->Interpolate(pt_BW);
+                        v2_BW = v2_total;
+                    }
+
+                    if(!(fCheckBoxFeedDown->GetState() == kButtonDown) && id_bw_hypersurface == 1) bw_ana.calc_blastwave_yield_and_v2_fos1(pt_BW, m, T, rho0, rho2, RxOverRy, inv_yield_BW, v2_BW);
+                    if(!(fCheckBoxFeedDown->GetState() == kButtonDown) && id_bw_hypersurface == 2) bw_ana.calc_blastwave_yield_and_v2_fos2(pt_BW, m, T, rho0, rho2, RxOverRy, inv_yield_BW, v2_BW);
+                    if(!(fCheckBoxFeedDown->GetState() == kButtonDown) && id_bw_hypersurface == 3) bw_ana.calc_blastwave_yield_and_v2_fos3(pt_BW, m, T, rho0, rho2, RxOverRy, inv_yield_BW, v2_BW);
                     //blastwave_yield_and_v2(pt_BW, m, T, rho0, rho2, RxOverRy, inv_yield_BW, v2_BW);
 
                     tg_v2_BW_ana_pid_min[i_mass_v2] ->SetPoint(i_point_ana,pt_BW,v2_BW);
@@ -2224,9 +2283,15 @@ void TBlastWaveGUI::DoMinimize_ana()
                 // blast wave parameters
                 const double pt_BW = pt_data;         // in GeV
 
-                if(id_bw_hypersurface == 1) bw_ana.calc_blastwave_yield_and_v2_fos1(pt_BW, m, T, rho0, rho2, RxOverRy, inv_yield_BW, v2_BW); // invariant yield: (1/pT) (dN/dpT)
-                if(id_bw_hypersurface == 2) bw_ana.calc_blastwave_yield_and_v2_fos2(pt_BW, m, T, rho0, rho2, RxOverRy, inv_yield_BW, v2_BW); // invariant yield: (1/pT) (dN/dpT)
-                if(id_bw_hypersurface == 3) bw_ana.calc_blastwave_yield_and_v2_fos3(pt_BW, m, T, rho0, rho2, RxOverRy, inv_yield_BW, v2_BW); // invariant yield: (1/pT) (dN/dpT)
+                if(!(fCheckBoxFeedDown->GetState() == kButtonUp)){
+                    TH1D *h_dndpt_fit = (TH1D*)dndpt_feed_hist[i_tgae];
+                    Double_t dndpt_total = h_dndpt_fit->Interpolate(pt_BW);;
+                    inv_yield_BW = dndpt_total;
+                }
+
+                if(!(fCheckBoxFeedDown->GetState() == kButtonDown) && id_bw_hypersurface == 1) bw_ana.calc_blastwave_yield_and_v2_fos1(pt_BW, m, T, rho0, rho2, RxOverRy, inv_yield_BW, v2_BW); // invariant yield: (1/pT) (dN/dpT)
+                if(!(fCheckBoxFeedDown->GetState() == kButtonDown) && id_bw_hypersurface == 2) bw_ana.calc_blastwave_yield_and_v2_fos2(pt_BW, m, T, rho0, rho2, RxOverRy, inv_yield_BW, v2_BW); // invariant yield: (1/pT) (dN/dpT)
+                if(!(fCheckBoxFeedDown->GetState() == kButtonDown) && id_bw_hypersurface == 3) bw_ana.calc_blastwave_yield_and_v2_fos3(pt_BW, m, T, rho0, rho2, RxOverRy, inv_yield_BW, v2_BW); // invariant yield: (1/pT) (dN/dpT)
                 vec_data_BW[0].push_back(dNdpT_data);
                 vec_data_BW[1].push_back(inv_yield_BW*pt_BW);
                 vec_data_BW[2].push_back(dNdpT_err);
