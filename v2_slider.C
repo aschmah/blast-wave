@@ -332,6 +332,8 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
     min_max_pT_range_pid[1][20] = 3.6;
     min_max_pT_range_pid[0][21] = 0.3; // t
     min_max_pT_range_pid[1][21] = 3.6;
+    min_max_pT_range_pid[0][22] = 0.3; // Lambda_c
+    min_max_pT_range_pid[1][22] = 3.1;
     //--------------------------------------------------------------------
 
     tg_leg = new TGraph();
@@ -2297,11 +2299,11 @@ void TBlastWaveGUI::DoMinimize_ana()
                 if(!(fCheckBoxFeedDown->GetState() == kButtonDown) && id_bw_hypersurface == 2) bw_ana.calc_blastwave_yield_and_v2_fos2(pt_BW, m, T, rho0, rho2, RxOverRy, inv_yield_BW, v2_BW); // invariant yield: (1/pT) (dN/dpT)
                 if(!(fCheckBoxFeedDown->GetState() == kButtonDown) && id_bw_hypersurface == 3) bw_ana.calc_blastwave_yield_and_v2_fos3(pt_BW, m, T, rho0, rho2, RxOverRy, inv_yield_BW, v2_BW); // invariant yield: (1/pT) (dN/dpT)
                 vec_data_BW[0].push_back(dNdpT_data);
-                vec_data_BW[1].push_back(inv_yield_BW);
+                vec_data_BW[1].push_back(inv_yield_BW*pt_BW);
                 vec_data_BW[2].push_back(dNdpT_err);
                 vec_data_BW[3].push_back(pt_BW);
 
-                integral_ana += inv_yield_BW*bin_width;
+                integral_ana += inv_yield_BW*bin_width*pt_BW;
                 cout << "i_point = " << i_point << ", pt_BW = " << pt_BW << ", v2_BW = " << v2_BW << ", T = " << T <<", rho0 = " << rho0 <<", rho2 = " << rho2 <<", RxOverRy = " << RxOverRy <<", inv_yield_BW = " << inv_yield_BW << endl;
                 //double diff   = (dNdpT_data - inv_yield_BW)/dNdpT_err;
                 //double diff_yield = (inv_yield_BW - inv_yield_data)/yield_err;
