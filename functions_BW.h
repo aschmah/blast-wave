@@ -93,7 +93,7 @@ static TF1 *f_JetPtFunc          = NULL;
 static Double_t arr_quark_mass_meson[N_masses_all]         = {0.13957,0.13957,0.493677,0.493677,0.938272,0.938272,1.019460,1.32171, 1.32171, 1.67245,1.67245,1.115683,1.115683,0.497611,1.86962,3.096916,9.46030,1.875612,
 1.875612, 2.8094313, 2.8094313, 2.80945, 2.28646};
 static Double_t pT_fit_max[N_masses_all]                   = {1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0};
-static Int_t    arr_color_mass[N_masses_all]               = {kBlack,kGreen+2,kRed,kMagenta+1,kCyan+1,kOrange,kYellow+2,kAzure-2,kOrange+2,kGray, kRed+2,kGreen,kViolet+1,kMagenta-9,kCyan+2,kOrange+4,kYellow,kBlue+2,kRed-6,kGray+1, kBlack};
+static Int_t    arr_color_mass[N_masses_all]               = {kBlack,kGreen+2,kRed,kMagenta+1,kCyan+1,kOrange,kYellow+2,kAzure-2,kOrange+2,kGray, kRed+2,kGreen,kViolet+1,kMagenta-9,kCyan+2,kOrange+4,kYellow,kBlue+2,kRed-6,kGray+1, kBlack, kViolet+2};
 static const Double_t R_Pb = 5.4946; // fm
 static TH2D* h2D_density_Glauber;
 
@@ -1178,7 +1178,7 @@ void load_data(const char *dirname="./Out/", const char *ext=".root")
 
             error_type = sub_str;
 
-            Int_t index_pid[N_masses_all] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21};
+            Int_t index_pid[N_masses_all] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21, 22};
             for (Int_t i_masses =  0; i_masses < N_masses_all; i_masses++)
             {
                 if ( pid == label_full_pid_spectra[i_masses] ) vec_index_pid.push_back(index_pid[i_masses]);
