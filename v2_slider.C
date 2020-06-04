@@ -163,6 +163,7 @@ private:
     TH1D* h_dummy_dNdpT;
     TH1D* h_dummy_plot_data;
     TH1D* h_fit_params;
+    TH1D* h_fit_params_errors;
     TH1D* h_min_val_pT;
     TH1D* h_max_val_pT;
     vector<Double_t> vec_min_val_pT;
@@ -238,7 +239,7 @@ private:
     vector <TString> vec_tgae_id_dNdpt_fit;
 
     Int_t i_transient_frame[2][N_masses_all] = {0,0};
-    Double_t fit_params[4];
+    Double_t fit_params[4], fit_params_errors[4];
     TFile* RootFileFitParams;
     TString cent_upper, cent_lower;
     TString combo_energy;
@@ -492,6 +493,7 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
 
     // output
     h_fit_params = new TH1D("fit_params", "fit_params", 4, 1,10);
+    h_fit_params_errors = new TH1D("fit_params_errors", "fit_params_errors", 4, 1,10);
     h_min_val_pT = new TH1D("min_val_pT", "min_val_pT", 22,1,10);
     h_max_val_pT = new TH1D("max_val_pT", "max_val_pT", 22,1,10);
     //------------------------------------------------------------
@@ -2481,6 +2483,19 @@ void TBlastWaveGUI::DoMinimize_ana()
         }
     }
 
+    //-----------------------
+    for(Int_t i_parA = 0; i_parA < 4; i_parA++)
+    {
+        printf("%10s",par_names[i_parA].Data());
+        for(Int_t i_parB = 0; i_parB < 4; i_parB++)
+        {
+            Double_t corr_value =  result.Correlation(i_parA,i_parB);
+            printf("%10.5f",corr_value);
+            if(i_parB == 3) printf(" \n");
+            //printf("%s-%s: %4.7f \n",par_names[i_parA].Data(),par_names[i_parB].Data(),cov_value);
+        }
+    }
+    //-----------------------------
     //Plot_curves_ana(T_BW,Rho0_BW,Rho2_BW,RxOverRy_BW);
 
     //-------------------------------------------------------------
@@ -2489,6 +2504,12 @@ void TBlastWaveGUI::DoMinimize_ana()
     fit_params[1] = Rho0_BW;
     fit_params[2] = Rho2_BW;
     fit_params[3] = RxOverRy_BW;
+
+    fit_params_errors[0] = T_BW_err;
+    fit_params_errors[1] = Rho0_BW_err;
+    fit_params_errors[2] = Rho2_BW_err;
+    fit_params_errors[3] = RxOverRy_BW_err;
+
 
     Double_t min_val_pT, max_val_pT;
     for ( Int_t i_mass =0; i_mass < N_masses_all; i_mass++)
@@ -2506,7 +2527,7 @@ void TBlastWaveGUI::DoMinimize_ana()
         vec_min_val_pT.push_back(min_val_pT);
         vec_max_val_pT.push_back(max_val_pT);
     }
-
+    //-----------------------------------------------------------------
 
     Pixel_t green;
     gClient->GetColorByName("green", green);
@@ -4007,20 +4028,21 @@ void TBlastWaveGUI::WriteParams()
     for (Int_t i_params=0; i_params < 4; i_params++)
     {
         h_fit_params -> AddBinContent(i_params+1, fit_params[i_params]);
+        h_fit_params_errors -> AddBinContent(i_params+1, fit_params_errors[i_params]);
     }
 
-    Double_t temp =  h_fit_params -> GetBinContent(1);
-    Double_t rho =  h_fit_params -> GetBinContent(2);
-    Double_t rho_2 =  h_fit_params -> GetBinContent(3);
-    Double_t R =  h_fit_params -> GetBinContent(4);
+    Double_t temp =  h_fit_params_errors -> GetBinContent(1);
+    Double_t rho =  h_fit_params_errors -> GetBinContent(2);
+    Double_t rho_2 =  h_fit_params_errors -> GetBinContent(3);
+    Double_t R =  h_fit_params_errors -> GetBinContent(4);
     cout  <<"T: " <<temp  <<", rho0: " <<rho  << ", rho2: " << rho_2  <<", RxOverRy: " << R  <<endl;
-
+    /*
     Double_t min_pt_Pi = h_min_val_pT -> GetBinContent(1);
     Double_t min_pt_t = h_min_val_pT -> GetBinContent(22);
     Double_t max_pt_Pi = h_max_val_pT -> GetBinContent(1);
     Double_t max_pt_t = h_max_val_pT -> GetBinContent(22);
     cout  <<"min_pt_pi+: " << min_pt_Pi  <<", min_pt_t: " << min_pt_t  << ", max_pt_pi+: " << max_pt_Pi  <<", max_pt_t: " << max_pt_t  <<endl;
-
+    */
     TString output_file_name;
     //output_file_name.Clear();
     output_file_name = combo_energy.Data();
@@ -4050,6 +4072,7 @@ void TBlastWaveGUI::WriteParams()
     if ( RootFileFitParams->IsOpen() ) printf("File opened successfully\n");
     RootFileFitParams->cd();
     h_fit_params->Write("h_fit_params");
+    h_fit_params_errors->Write("h_fit_params_errors");
     h_min_val_pT->Write("h_min_val_pT");
     h_max_val_pT->Write("h_max_val_pT");
 
