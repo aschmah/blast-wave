@@ -17,17 +17,17 @@
 // 03/30/2020
 
 
-// Add combo box to select graph number (hep files)
+// Added combo box to select graph number (hep files)
 // 04/17/2020
 
-// Add function Multiply_pT. Multiply dNdpt with pt if checkbox dNdpt is clicked
+// Added function Multiply_pT. Multiply dNdpt with pt if checkbox dNdpt is clicked
 // 04/20/2020
 
-// Add check boxes mt. dNdmt, 1/mt*dNdmt
+// Added check boxes mt. dNdmt, 1/mt*dNdmt
 // 04/24/2020
 
 
-// Add Lambda_c
+// Added Lambda_c
 // 05/25/2020
 
 // Missing : plot dNdpt, dNdmT only for text files
@@ -1057,6 +1057,7 @@ Int_t MyMainFrame::DoFillGraph()
      //   printf("Test F \n");
         for(Int_t i_entry=0 ; i_entry < (Int_t)vec_fCombo.size(); i_entry++)
         {
+
             TString table_name;
             Int_t i_select_table = vec_table[i_entry]->GetNumber();   //Get number of selected table
             if(i_select_table == 0) return 0;
