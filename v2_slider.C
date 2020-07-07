@@ -2058,6 +2058,7 @@ void TBlastWaveGUI::DoMinimize_ana()
     const Int_t idHe3 =0;
     const Int_t id_t = 0;
     Int_t Partid[22] = {idPi,-idPi,idKaon,-idKaon,idProton,-idProton,idPhi,idXi,-idXi,idOmega,-idOmega,idLambda,-idLambda,idK0S,idD0,idJPsi,idUpsilon,0,0,0,0,0};
+    Int_t Parttest[1] = {idPi};
     Double_t Tch = 0.155;
     const Double_t mu_B = 0.;
     const Int_t index_mass_par = 0;
@@ -2066,11 +2067,22 @@ void TBlastWaveGUI::DoMinimize_ana()
     TPythia8 tp;
     feeddown fd;
     fd.read_decay_histograms("./decay_histograms/hadron_decays_scan_01.root");
-    fd.set_dndpt_and_v2_model(blastwave_dndpt_and_v2_boost);
-    fd.set_dndpt_norm(blastwave_dndpt_normalization_boost);
-    fd.set_maximum_mother_mass(1.3);
+    if(id_bw_hypersurface == 1)
+    {
+        fd.set_dndpt_and_v2_model(blastwave_dndpt_and_v2_fos1);
+        fd.set_dndpt_norm(blastwave_dndpt_normalization_fos1);
+    }
+
+    if(id_bw_hypersurface == 3)
+    {
+        fd.set_dndpt_and_v2_model(blastwave_dndpt_and_v2_boost);
+        fd.set_dndpt_norm(blastwave_dndpt_normalization_boost);
+    }
+
     fd.set_sm_model_parameters(Tch, mu_B);
+    fd.set_maximum_mother_mass(1.3);
     */
+
     //-------------------------------------------------
 
     // create and fill vectors with data for the fit
@@ -2141,11 +2153,11 @@ void TBlastWaveGUI::DoMinimize_ana()
         if(!(fCheckBoxFeedDown->GetState() == kButtonUp)){
             v2_feed_hist.clear();
             dndpt_feed_hist.clear();
-            for(Int_t i_tgae = 0; i_tgae < (Int_t) part_id_dndpt.size(); i_tgae++)
+            for(Int_t i_tgae = 0; i_tgae < 1; i_tgae++)
             {
                 Double_t model_pars[4] = {T, rho0, rho2, RxOverRy};
                 fd.set_bw_model_parameters(model_pars,4);
-                fd.calc_feeddown_hist(part_id_dndpt[i_tgae]);
+                fd.calc_feeddown_hist(Parttest[i_tgae]);
                 dndpt_feed_hist.push_back((TH1D*) fd.get_dndpt_total_hist()->Clone());
                 v2_feed_hist.push_back((TH1D*) fd.get_v2_total_hist()->Clone());
             }
@@ -2294,11 +2306,11 @@ void TBlastWaveGUI::DoMinimize_ana()
                 // blast wave parameters
                 const double pt_BW = pt_data;         // in GeV
 
-                /*
+               /*
                 if(!(fCheckBoxFeedDown->GetState() == kButtonUp)){
                     TH1D *h_dndpt_fit = (TH1D*)dndpt_feed_hist[i_tgae];
                     Double_t dndpt_total = h_dndpt_fit->Interpolate(pt_BW);;
-                    inv_yield_BW = dndpt_total;
+                    inv_yield_BW = dndpt_total/pt_BW;
                 }
                 */
                 if(!(fCheckBoxFeedDown->GetState() == kButtonDown) && id_bw_hypersurface == 1) bw_ana.calc_blastwave_yield_and_v2_fos1(pt_BW, m, T, rho0, rho2, RxOverRy, inv_yield_BW, v2_BW); // invariant yield: (1/pT) (dN/dpT)
