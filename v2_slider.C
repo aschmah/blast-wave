@@ -2059,14 +2059,17 @@ void TBlastWaveGUI::DoMinimize_ana()
     const Int_t id_t = 0;
     Int_t Partid[22] = {idPi,-idPi,idKaon,-idKaon,idProton,-idProton,idPhi,idXi,-idXi,idOmega,-idOmega,idLambda,-idLambda,idK0S,idD0,idJPsi,idUpsilon,0,0,0,0,0};
     Double_t Tch = 0.155;
+    const Double_t mu_B = 0.;
     const Int_t index_mass_par = 0;
     const Int_t index_spintype_par = 1;
     /*
     TPythia8 tp;
     feeddown fd;
     fd.read_decay_histograms("./decay_histograms/hadron_decays_scan_01.root");
-    fd.set_dndpt_and_v2_model(blastwave_dndpt_and_v2);
+    fd.set_dndpt_and_v2_model(blastwave_dndpt_and_v2_boost);
+    fd.set_dndpt_norm(blastwave_dndpt_normalization_boost);
     fd.set_maximum_mother_mass(1.3);
+    fd.set_sm_model_parameters(Tch, mu_B);
     //-------------------------------------------------
     */
     // create and fill vectors with data for the fit
@@ -2139,8 +2142,8 @@ void TBlastWaveGUI::DoMinimize_ana()
             dndpt_feed_hist.clear();
             for(Int_t i_tgae = 0; i_tgae < (Int_t) part_id_dndpt.size(); i_tgae++)
             {
-                Double_t model_pars[7] = {0., 0., T, rho0, rho2, RxOverRy, Tch};
-                fd.set_model_parameters(model_pars,7);
+                Double_t model_pars[4] = {T, rho0, rho2, RxOverRy};
+                fd.set_model_parameters(model_pars,4);
                 fd.calc_feeddown_hist(part_id_dndpt[i_tgae]);
                 dndpt_feed_hist.push_back((TH1D*) fd.get_dndpt_total_hist()->Clone());
                 v2_feed_hist.push_back((TH1D*) fd.get_v2_total_hist()->Clone());
@@ -2200,7 +2203,7 @@ void TBlastWaveGUI::DoMinimize_ana()
                     const double pt_BW = pt_data;         // in GeV
 
                     /*
-                    if(!(fCheckBoxFeedDown->GetState() == kButtonUp)){
+                     if(!(fCheckBoxFeedDown->GetState() == kButtonUp)){
                         TH1D *h_v2_fit = (TH1D*)v2_feed_hist[i_tgae];
                         Double_t v2_total = h_v2_fit->Interpolate(pt_BW);
                         v2_BW = v2_total;
