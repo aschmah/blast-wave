@@ -2070,8 +2070,9 @@ void TBlastWaveGUI::DoMinimize_ana()
     fd.set_dndpt_norm(blastwave_dndpt_normalization_boost);
     fd.set_maximum_mother_mass(1.3);
     fd.set_sm_model_parameters(Tch, mu_B);
-    //-------------------------------------------------
     */
+    //-------------------------------------------------
+
     // create and fill vectors with data for the fit
     vector <TGraphAsymmErrors*> tgae_v2_vs_pT_data;    // v2
     vector <TGraphAsymmErrors*> tgae_dN_dpT_data;      // dNdpt
@@ -2143,7 +2144,7 @@ void TBlastWaveGUI::DoMinimize_ana()
             for(Int_t i_tgae = 0; i_tgae < (Int_t) part_id_dndpt.size(); i_tgae++)
             {
                 Double_t model_pars[4] = {T, rho0, rho2, RxOverRy};
-                fd.set_model_parameters(model_pars,4);
+                fd.set_bw_model_parameters(model_pars,4);
                 fd.calc_feeddown_hist(part_id_dndpt[i_tgae]);
                 dndpt_feed_hist.push_back((TH1D*) fd.get_dndpt_total_hist()->Clone());
                 v2_feed_hist.push_back((TH1D*) fd.get_v2_total_hist()->Clone());
@@ -2203,7 +2204,7 @@ void TBlastWaveGUI::DoMinimize_ana()
                     const double pt_BW = pt_data;         // in GeV
 
                     /*
-                     if(!(fCheckBoxFeedDown->GetState() == kButtonUp)){
+                    if(!(fCheckBoxFeedDown->GetState() == kButtonUp)){
                         TH1D *h_v2_fit = (TH1D*)v2_feed_hist[i_tgae];
                         Double_t v2_total = h_v2_fit->Interpolate(pt_BW);
                         v2_BW = v2_total;
