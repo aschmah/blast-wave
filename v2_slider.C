@@ -2058,7 +2058,9 @@ void TBlastWaveGUI::DoMinimize_ana()
     const Int_t idHe3 =0;
     const Int_t id_t = 0;
     Int_t Partid[22] = {idPi,-idPi,idKaon,-idKaon,idProton,-idProton,idPhi,idXi,-idXi,idOmega,-idOmega,idLambda,-idLambda,idK0S,idD0,idJPsi,idUpsilon,0,0,0,0,0};
-    Int_t Parttest[1] = {idPi};
+    Int_t Parttest[4] = {idProton,idPi,idKaon,idLambda};
+    TH1D *Feeddown_v2[22];
+    TH1D *Feeddown_dndpt[22];
     Double_t Tch = 0.155;
     const Double_t mu_B = 0.;
     const Int_t index_mass_par = 0;
@@ -2090,8 +2092,6 @@ void TBlastWaveGUI::DoMinimize_ana()
     vector <TGraphAsymmErrors*> tgae_dN_dpT_data;      // dNdpt
     vector <Int_t> index_pid_v2_vs_pT_data;            // index of particles v2 (0-21)
     vector <Int_t> index_pid_dN_dpT_data;              // index of particles dNdpt (0-21)
-    vector <TH1D*> dndpt_feed_hist;                    // dNdpt feeddown histogram
-    vector <TH1D*> v2_feed_hist;                       // v2 feeddown histogram
     vector <Int_t> part_id;
     vector <Int_t> part_id_dndpt;
     vector <Int_t> part_id_v2;
@@ -2114,7 +2114,6 @@ void TBlastWaveGUI::DoMinimize_ana()
             {
                 tgae_v2_vs_pT_data.push_back((TGraphAsymmErrors*)vec_tgae[i_tgae_name]->Clone());
                 index_pid_v2_vs_pT_data.push_back(vec_index_pid[i_tgae_name]);
-                part_id_v2.push_back(Partid[index_pid]);
             }
         }
     }
@@ -2129,7 +2128,7 @@ void TBlastWaveGUI::DoMinimize_ana()
             {
                 tgae_dN_dpT_data.push_back((TGraphAsymmErrors*)vec_tgae[i_tgae_name]->Clone());
                 index_pid_dN_dpT_data.push_back(vec_index_pid[i_tgae_name]);
-                part_id_dndpt.push_back(Partid[index_pid]);
+                part_id_dndpt.push_back(Partid[vec_index_pid[i_tgae_name]]);
             }
         }
     }
@@ -2151,15 +2150,13 @@ void TBlastWaveGUI::DoMinimize_ana()
         /*
         //feeddown calculations
         if(!(fCheckBoxFeedDown->GetState() == kButtonUp)){
-            v2_feed_hist.clear();
-            dndpt_feed_hist.clear();
-            for(Int_t i_tgae = 0; i_tgae < 1; i_tgae++)
+            for(Int_t i_tgae = 0; i_tgae < part_id_dndpt.size(); i_tgae++)
             {
                 Double_t model_pars[4] = {T, rho0, rho2, RxOverRy};
                 fd.set_bw_model_parameters(model_pars,4);
-                fd.calc_feeddown_hist(Parttest[i_tgae]);
-                dndpt_feed_hist.push_back((TH1D*) fd.get_dndpt_total_hist()->Clone());
-                v2_feed_hist.push_back((TH1D*) fd.get_v2_total_hist()->Clone());
+                fd.calc_feeddown_hist(part_id_dndpt[i_tgae]);
+                Feeddown_dndpt[index_pid_dN_dpT_data[i_tgae]] = (TH1D*) fd.get_dndpt_total_hist()->Clone();
+                Feeddown_v2[index_pid_dN_dpT_data[i_tgae]] = (TH1D*) fd.get_v2_total_hist()->Clone();
             }
         }
         */
@@ -2217,7 +2214,7 @@ void TBlastWaveGUI::DoMinimize_ana()
 
                     /*
                     if(!(fCheckBoxFeedDown->GetState() == kButtonUp)){
-                        TH1D *h_v2_fit = (TH1D*)v2_feed_hist[i_tgae];
+                        TH1D *h_v2_fit = Feeddown_v2[index_pid_v2_vs_pT_data[i_tgae]];
                         Double_t v2_total = h_v2_fit->Interpolate(pt_BW);
                         v2_BW = v2_total;
                     }
@@ -2306,9 +2303,9 @@ void TBlastWaveGUI::DoMinimize_ana()
                 // blast wave parameters
                 const double pt_BW = pt_data;         // in GeV
 
-               /*
+                /*
                 if(!(fCheckBoxFeedDown->GetState() == kButtonUp)){
-                    TH1D *h_dndpt_fit = (TH1D*)dndpt_feed_hist[i_tgae];
+                    TH1D *h_dndpt_fit = (TH1D*) Feeddown_dndpt[index_pid_dN_dpT_data[i_tgae]];
                     Double_t dndpt_total = h_dndpt_fit->Interpolate(pt_BW);;
                     inv_yield_BW = dndpt_total/pt_BW;
                 }
