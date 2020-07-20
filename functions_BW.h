@@ -53,6 +53,7 @@
 #include "TMinuit.h"
 #include "Math/WrappedParamFunction.h"
 #include "Math/AdaptiveIntegratorMultiDim.h"
+#include "./feeddown/statistical_model/statistical_model.cpp"
 
 static TFile *inputfile_id;
 static TFile *inputfile_JPsi;
@@ -70,6 +71,8 @@ static vector<TString> arr_labels;
 static vector<Int_t>   arr_pid;
 static vector<TGraphAsymmErrors*> vec_graphs;
 static vector< vector<TGraphAsymmErrors*> > vec_tgae_pT_spectra;
+
+const Int_t n_terms = 1;
 
  // pi, K+/-, K0s, <K>, p, phi, Lambda, Xi, Omega
 static const Int_t N_v2_vs_pt_BW = 9;
@@ -92,6 +95,7 @@ static TF1 *f_FitBessel          = NULL;
 static TF1 *f_JetPtFunc          = NULL;
 static Double_t arr_quark_mass_meson[N_masses_all]         = {0.13957,0.13957,0.493677,0.493677,0.938272,0.938272,1.019460,1.32171, 1.32171, 1.67245,1.67245,1.115683,1.115683,0.497611,1.86962,3.096916,9.46030,1.875612,
 1.875612, 2.8094313, 2.8094313, 2.80945, 2.28646};
+static Int_t arr_quark_spin_meson[N_masses_all]         = {1,1,1,1,2,2,3,2,2,4,4,2,2,1,1,3,3,1,1,2,2,1,2};
 static Double_t pT_fit_max[N_masses_all]                   = {1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0};
 static Int_t    arr_color_mass[N_masses_all]               = {kBlack,kGreen+2,kRed,kMagenta+1,kCyan+1,kOrange,kYellow+2,kAzure-2,kOrange+2,kGray, kRed+2,kGreen,kViolet+1,kMagenta-9,kCyan+2,kOrange+4,kYellow,kBlue+2,kRed-6,kGray+1, kBlack, kViolet+2};
 static const Double_t R_Pb = 5.4946; // fm
@@ -331,28 +335,6 @@ void Init_Lorentz_Matrices(Double_t y_z, Double_t phis, Double_t y_tp)
 }
 //------------------------------------------------------------------------------------------------------------
 
-Double_t number_density_analytical(Double_t m, Double_t g, Double_t T, Double_t mu, Double_t sign, Int_t n_terms = 20) {
-
-    // caution: at the moment only for mu = 0!!!
-
-    // [0]: degenerary g
-    // [1]: sign, +1 for fermions, -1 for bosons
-    // [2]: chemical potential mu
-    // [3]: temperature T
-    // [4]: mass
-
-    Int_t s = -sign; // fermions have alternating sign in the sum
-
-    Double_t sum_k = 0;
-
-    // n_terms = 1: Boltzmann approximation 
-    for (Int_t k = 1; k < n_terms + 1; ++k) {
-        sum_k += TMath::Power(s, k + 1) / k * m * m * TMath::BesselK(2, k * m / T);
-    }
-
-    return g / (2. * TMath::Pi() * TMath::Pi()) * T * sum_k;
-}
-
 //------------------------------------------------------------------------------------------------------------
 //
 // Implementation of the blast wave v2 formula
@@ -383,7 +365,7 @@ class Tblastwave_yield_and_v2 {
         ROOT::Math::WrappedParamFunction<> w_v2_fos2_den;
         ROOT::Math::WrappedParamFunction<> w_v2_fos3_num;
         ROOT::Math::WrappedParamFunction<> w_v2_fos3_den;
-        ROOT::Math::WrappedParamFunction<> w_yield_norm;
+        ROOT::Math::WrappedParamFunction<> w_yield_norm_fos1;
         ROOT::Math::WrappedParamFunction<> w_v2_boost_num;
         ROOT::Math::WrappedParamFunction<> w_v2_boost_den;
         ROOT::Math::WrappedParamFunction<> w_yield_norm_boost;
@@ -392,19 +374,20 @@ class Tblastwave_yield_and_v2 {
 
       public:
         Tblastwave_yield_and_v2()
-            : w_v2_fos1_num(&Tblastwave_yield_and_v2::v2_fos1_numerator, 2, 7),
-              w_v2_fos1_den(&Tblastwave_yield_and_v2::v2_fos1_denominator, 2, 7),
-              w_v2_fos2_num(&Tblastwave_yield_and_v2::v2_fos2_numerator, 2, 7),
-              w_v2_fos2_den(&Tblastwave_yield_and_v2::v2_fos2_denominator, 2, 7),
-              w_v2_fos3_num(&Tblastwave_yield_and_v2::v2_fos3_numerator, 2, 7),
-              w_v2_fos3_den(&Tblastwave_yield_and_v2::v2_fos3_denominator, 2, 7),
-              w_yield_norm(&Tblastwave_yield_and_v2::yield_normalization_integrand_fos1, 3, 6),
-              w_v2_boost_num(&Tblastwave_yield_and_v2::v2_boost_numerator, 2, 7),
-              w_v2_boost_den(&Tblastwave_yield_and_v2::v2_boost_denominator, 2, 7),
-              w_yield_norm_boost(&Tblastwave_yield_and_v2::yield_normalization_integrand_boost, 3, 6) {}
+            : w_v2_fos1_num(&Tblastwave_yield_and_v2::v2_fos1_numerator, 2, 9),
+              w_v2_fos1_den(&Tblastwave_yield_and_v2::v2_fos1_denominator, 2, 9),
+              w_v2_fos2_num(&Tblastwave_yield_and_v2::v2_fos2_numerator, 2, 9),
+              w_v2_fos2_den(&Tblastwave_yield_and_v2::v2_fos2_denominator, 2, 9),
+              w_v2_fos3_num(&Tblastwave_yield_and_v2::v2_fos3_numerator, 2, 9),
+              w_v2_fos3_den(&Tblastwave_yield_and_v2::v2_fos3_denominator, 2, 9),
+              w_yield_norm_fos1(&Tblastwave_yield_and_v2::yield_normalization_integrand_fos1, 3, 8),
+              w_v2_boost_num(&Tblastwave_yield_and_v2::v2_boost_numerator, 2, 9),
+              w_v2_boost_den(&Tblastwave_yield_and_v2::v2_boost_denominator, 2, 9),
+              w_yield_norm_boost(&Tblastwave_yield_and_v2::yield_normalization_integrand_boost, 3, 8) {}
 
-        void calc_blastwave_yield_and_v2_fos1(const double &pt, const double &m, const double &T, const double &rho0,
-                                    const double &rho2, const double &RxOverRy, double &inv_yield, double &v2);
+        void calc_blastwave_yield_and_v2_fos1(const double &pt, const double &m, const int spinType, const double &T,
+                                          const double &rho0, const double &rho2, const double &RxOverRy,
+                                          const int n_terms, double &inv_yield, double &v2);
 
         void calc_blastwave_yield_and_v2_fos2(const double &pt, const double &m, const double &T, const double &rho0,
                                               const double &rho2, const double &RxOverRy, double &inv_yield, double &v2);
@@ -412,14 +395,17 @@ class Tblastwave_yield_and_v2 {
         void calc_blastwave_yield_and_v2_fos3(const double &pt, const double &m, const double &T, const double &rho0,
                                     const double &rho2, const double &RxOverRy, double &inv_yield, double &v2);
 
-        double calc_blastwave_yield_normalization_fos1(const double &m, const double &T, const double &rho0,
-                                          const double &rho2, const double &RxOverRy);
+        double calc_blastwave_pt_integrated_yield_fos1(const double &m, const int spinType, const double &T,
+                                                   const double &rho0, const double &rho2, const double &RxOverRy,
+                                                   const int n_terms);
 
-        void calc_blastwave_yield_and_v2_boost(const double &pt, const double &m, const double &T, const double &rho0,
-                                           const double &rho2, const double &RxOverRy, double &inv_yield, double &v2);
+        void calc_blastwave_yield_and_v2_boost(const double &pt, const double &m, const int spinType, const double &T,
+                                           const double &rho0, const double &rho2, const double &RxOverRy,
+                                           const int n_terms, double &inv_yield, double &v2);
 
-        double calc_blastwave_yield_normalization_boost(const double &m, const double &T, const double &rho0,
-                                                    const double &rho2, const double &RxOverRy);
+        double calc_blastwave_pt_integrated_yield_boost(const double &m, const int spinType, const double &T,
+                                                    const double &rho0, const double &rho2, const double &RxOverRy,
+                                                    const int n_terms);
 
         ClassDef(Tblastwave_yield_and_v2, 1)
 };
@@ -433,13 +419,15 @@ double Tblastwave_yield_and_v2::v2_fos1_numerator(const double *x, const double 
     double PhiHat = x[1];
 
     // parameters
-    double pt = p[0];
+    double pt = p[0];    
     double m = p[1];
-    double T = p[2];
-    double rho0 = p[3];
-    double rho2 = p[4];
-    double RxOverRy = p[5];
-    double A = p[6]; // arbitrary factor, can be adjusted to improve numerical stability
+    int spinType = p[2];
+    double T = p[3];
+    double rho0 = p[4];
+    double rho2 = p[5];
+    double RxOverRy = p[6];
+    double A = p[7]; // arbitrary factor, can be adjusted to improve numerical stability
+    int kmax = p[8];
 
     double PhiB = TMath::ATan(RxOverRy * TMath::Tan(PhiHat)) +
                   TMath::Pi() * TMath::Floor((PhiHat + TMath::Pi() / 2.) / TMath::Pi()); // boost angle
@@ -448,7 +436,15 @@ double Tblastwave_yield_and_v2::v2_fos1_numerator(const double *x, const double 
     double xip = pt * TMath::SinH(rho) / T;
     double xim = mt * TMath::CosH(rho) / T;
 
-    return A * rHat * TMath::BesselI(2, xip) * TMath::BesselK(1, xim) * TMath::Cos(2 * PhiB);
+    double sum = 0;
+    for (int k = 1; k <= kmax; ++k) {
+        int sign = 1;
+        if (k % 2 == 0 && spinType % 2 == 0) 
+            sign = -1; // fermions have alternating sign
+        sum += A * sign * rHat * TMath::BesselI(2, k * xip) * TMath::BesselK(1, k * xim) * TMath::Cos(2 * PhiB);
+    }
+
+    return sum;
 }
 // denominator of the blastwave v2 formula
 double Tblastwave_yield_and_v2::v2_fos1_denominator(const double *x, const double *p) {
@@ -460,11 +456,13 @@ double Tblastwave_yield_and_v2::v2_fos1_denominator(const double *x, const doubl
     // parameters
     double pt = p[0];
     double m = p[1];
-    double T = p[2];
-    double rho0 = p[3];
-    double rho2 = p[4];
-    double RxOverRy = p[5];
-    double A = p[6]; // arbitrary factor, can be adjusted to improve numerical stability
+    int spinType = p[2];
+    double T = p[3];
+    double rho0 = p[4];
+    double rho2 = p[5];
+    double RxOverRy = p[6];
+    double A = p[7]; // arbitrary factor, can be adjusted to improve numerical stability
+    int kmax = p[8];
 
     double PhiB = TMath::ATan(RxOverRy * TMath::Tan(PhiHat)) +
                   TMath::Pi() * TMath::Floor((PhiHat + TMath::Pi() / 2.) / TMath::Pi()); // boost angle
@@ -473,43 +471,56 @@ double Tblastwave_yield_and_v2::v2_fos1_denominator(const double *x, const doubl
     double xip = pt * TMath::SinH(rho) / T;
     double xim = mt * TMath::CosH(rho) / T;
 
-    return A * rHat * TMath::BesselI(0, xip) * TMath::BesselK(1, xim);
+    double sum = 0;
+
+    for (int k = 1; k <= kmax; ++k) {
+        int sign = 1;
+        if (k % 2 == 0 && spinType % 2 == 0)
+            sign = -1;
+        sum += A * sign * rHat * TMath::BesselI(0, k * xip) * TMath::BesselK(1, k * xim);
+    }
+
+    return sum;
 }
 
 double Tblastwave_yield_and_v2::yield_normalization_integrand_fos1(const double *x, const double *p) {
 
-	// variables
-	// x[0]: rHat
-	// x[1]: PhiHat
-	// x[2]: pt
+    // variables
+    // x[0]: rHat
+    // x[1]: PhiHat
+    // x[2]: pt
 
-	// p[0]: m
-	// p[1]: T
-	// p[2]: rho0
-	// p[3]: rho2
-	// p[4]: RxOverRy
-	// p[5]: A (arbitrary normalization)
+    // p[0]: m
+    // p[1]: spinType
+    // p[2]: T
+    // p[3]: rho0
+    // p[4]: rho2
+    // p[5]: RxOverRy
+    // p[6]: A (arbitrary normalization)
+	// p[7]: number of terms
 
     // adjusted parameter list for calling v2_fos1_denominator
     double xd[2] = {x[0], x[1]};
-    double pd[7] = {x[2], p[0], p[1], p[2], p[3], p[4], p[5]};
+    double pd[9] = {x[2], p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7]};
 
     double m = p[0];
     double pt = x[2];
     double mt = TMath::Sqrt(m * m + pt * pt);
 
     // invariant yield = mt * v2_fos1_denominator(xd, pd), dn/dpT = 2 pi pt invariant yield
-	return 2. * TMath::Pi() * pt * mt * v2_fos1_denominator(xd, pd);    
-
+    return 2. * TMath::Pi() * pt * mt * v2_fos1_denominator(xd, pd);
 }
 
-double Tblastwave_yield_and_v2::calc_blastwave_yield_normalization_fos1(const double &m, const double &T,
-                                                              const double &rho0, const double &rho2,
-                                                              const double &RxOverRy) {
-	// blast wave parameters:
+double Tblastwave_yield_and_v2::calc_blastwave_pt_integrated_yield_fos1(const double &m, const int spinType,
+                                                                       const double &T, const double &rho0,
+                                                                       const double &rho2, const double &RxOverRy,
+                                                                       const int n_terms) {
+    // blast wave parameters:
     // the last number (par[6]) is an arbitrary normalization which we will adjust
     // in order to have a good numerical stability for different masses and pt
-    double pars[6] = {m, T, rho0, rho2, RxOverRy, 1.};
+    double d_spinType = spinType;
+    double d_n_terms = n_terms;
+    double pars[8] = {m, d_spinType, T, rho0, rho2, RxOverRy, 1., d_n_terms};
 
     // determine scale factor which ensures good numerical stability
     const double xsf[3] = {1., 0., 1.};
@@ -517,43 +528,46 @@ double Tblastwave_yield_and_v2::calc_blastwave_yield_normalization_fos1(const do
     pars[5] = 1. / sf;
 
     // set parameters
-    w_yield_norm.SetParameters(pars);
+    w_yield_norm_fos1.SetParameters(pars);
 
     // define integrator
     ROOT::Math::AdaptiveIntegratorMultiDim ig;
     ig.SetRelTolerance(1e-6);
 
-	// integration range
-    double xmin[3] = {0., 0., 0.}; // rhat_min, PhitHat_min, pt_min
-    double xmax[3] = {1., 2. * TMath::Pi(), 15.}; // // rhat_max, PhitHat_max, pt_max  
+    // integration range
+    double xmin[3] = {0., 0., 0.};                // rhat_min, PhitHat_min, pt_min
+    double xmax[3] = {1., 2. * TMath::Pi(), 15.}; // // rhat_max, PhitHat_max, pt_max
 
     // integrate
-    ig.SetFunction(w_yield_norm);
+    ig.SetFunction(w_yield_norm_fos1);
     double norm = ig.Integral(xmin, xmax);
 
     return sf * norm;
 }
 
-void Tblastwave_yield_and_v2::calc_blastwave_yield_and_v2_fos1(const double &pt, const double &m, const double &T,
-                                                              const double &rho0, const double &rho2,
-                                                              const double &RxOverRy, double &inv_yield, double &v2) {
+void Tblastwave_yield_and_v2::calc_blastwave_yield_and_v2_fos1(const double &pt, const double &m, const int spinType,
+                                                              const double &T, const double &rho0, const double &rho2,
+                                                              const double &RxOverRy, const int n_terms,
+                                                              double &inv_yield, double &v2) {
 
     // blast wave parameters:
     // the last number (par[6]) is an arbitrary normalization which we will adjust
     // in order to have a good numerical stability for different masses and pt
-    double pars[7] = {pt, m, T, rho0, rho2, RxOverRy, 1.};
+    double d_spinType = spinType;
+    double d_n_terms = n_terms;
+    double pars[9] = {pt, m, d_spinType, T, rho0, rho2, RxOverRy, 1., d_n_terms};
 
     // determine scale factor which ensures good numerical stability
     const double xsf[2] = {1., 0.};
     double sf = v2_fos1_denominator(xsf, pars);
-    pars[6] = 1. / sf;
+    pars[7] = 1. / sf;
 
     // set parameters
     w_v2_fos1_num.SetParameters(pars);
     w_v2_fos1_den.SetParameters(pars);
 
     // define integrator
-    // ROOT::Math::AdaptiveIntegratorMultiDim ig;
+    ROOT::Math::AdaptiveIntegratorMultiDim ig;
     ig.SetRelTolerance(1e-6);
 
     // integration range
@@ -588,11 +602,13 @@ double Tblastwave_yield_and_v2::v2_boost_numerator(const double *x, const double
     // parameters
     double pt = p[0];
     double m = p[1];
-    double T = p[2];
-    double rho0 = p[3];
-    double rho2 = p[4];
-    double RxOverRy = p[5];
-    double A = p[6]; // arbitrary factor, can be adjusted to improve numerical stability
+    int spinType = p[2];
+    double T = p[3];
+    double rho0 = p[4];
+    double rho2 = p[5];
+    double RxOverRy = p[6];
+    double A = p[7]; // arbitrary factor, can be adjusted to improve numerical stability
+    int kmax = p[8]; // number of terms, 1 = Boltzmann approximation
 
     double PhiB = TMath::Pi() * TMath::Floor((PhiHat + TMath::Pi() / 2.) / TMath::Pi()) +
                   TMath::ATan(RxOverRy * TMath::Tan(PhiHat)); // boost angle
@@ -601,9 +617,19 @@ double Tblastwave_yield_and_v2::v2_boost_numerator(const double *x, const double
     double xip = pt * TMath::SinH(rho) / T;
     double xim = mt * TMath::CosH(rho) / T;
 
-    return A * rHat * TMath::Cos(2 * PhiB) *
-           (TMath::BesselI(2, xip) * (2 * T * TMath::BesselK(0, xim) + mt * TMath::BesselK(1, xim) * TMath::CosH(rho)) -
-            pt * TMath::BesselI(1, xip) * TMath::BesselK(0, xim) * TMath::SinH(rho));
+    double sum = 0;
+
+    for (int k = 1; k <= kmax; ++k) {
+        int sign = 1;
+        if (k % 2 == 0 && spinType % 2 == 0)
+            sign = -1;
+        sum += A * sign * rHat * TMath::Cos(2 * PhiB) *
+               (TMath::BesselI(2, k * xip) *
+                    (2 * T * TMath::BesselK(0, k * xim) + mt * TMath::BesselK(1, k * xim) * TMath::CosH(rho)) -
+                pt * TMath::BesselI(1, k * xip) * TMath::BesselK(0, k * xim) * TMath::SinH(rho));
+    }
+
+    return sum;
 }
 
 // denominator of the boost blastwave v2 formula
@@ -616,11 +642,14 @@ double Tblastwave_yield_and_v2::v2_boost_denominator(const double *x, const doub
     // parameters
     double pt = p[0];
     double m = p[1];
-    double T = p[2];
-    double rho0 = p[3];
-    double rho2 = p[4];
-    double RxOverRy = p[5];
-    double A = p[6]; // arbitrary factor, can be adjusted to improve numerical stability
+    int spinType = p[2];
+    double T = p[3];
+    double rho0 = p[4];
+    double rho2 = p[5];
+    double RxOverRy = p[6];
+    double A = p[7]; // arbitrary factor, can be adjusted to improve numerical stability
+    int kmax = p[8]; // number of terms, 1 = Boltzmann approximation
+
     double PhiB = TMath::Pi() * TMath::Floor((PhiHat + TMath::Pi() / 2.) / TMath::Pi()) +
                   TMath::ATan(RxOverRy * TMath::Tan(PhiHat)); // boost angle
     double rho = rHat * (rho0 + rho2 * TMath::Cos(2 * PhiB)); // transverse rapidity
@@ -628,9 +657,18 @@ double Tblastwave_yield_and_v2::v2_boost_denominator(const double *x, const doub
     double xip = pt * TMath::SinH(rho) / T;
     double xim = mt * TMath::CosH(rho) / T;
 
-    return A * rHat *
-           (mt * TMath::BesselI(0, xip) * TMath::BesselK(1, xim) * TMath::CosH(rho) -
-            pt * TMath::BesselI(1, xip) * TMath::BesselK(0, xim) * TMath::SinH(rho));
+    double sum = 0;
+
+    for (int k = 1; k <= kmax; ++k) {
+        int sign = 1;
+        if (k % 2 == 0 && spinType % 2 == 0)
+            sign = -1;
+        sum += A * sign * rHat *
+               (mt * TMath::BesselI(0, k * xip) * TMath::BesselK(1, k * xim) * TMath::CosH(rho) -
+                pt * TMath::BesselI(1, k * xip) * TMath::BesselK(0, k * xim) * TMath::SinH(rho));
+    }
+
+    return sum;
 }
 
 double Tblastwave_yield_and_v2::yield_normalization_integrand_boost(const double *x, const double *p) {
@@ -642,14 +680,16 @@ double Tblastwave_yield_and_v2::yield_normalization_integrand_boost(const double
 
     // p[0]: m
     // p[1]: T
-    // p[2]: rho0
-    // p[3]: rho2
-    // p[4]: RxOverRy
-    // p[5]: A (arbitrary normalization)
+    // p[2]: spinType
+    // p[3]: rho0
+    // p[4]: rho2
+    // p[5]: RxOverRy
+    // p[6]: A (arbitrary normalization)
+	// p[7]: number of terms in the series
 
     // adjusted parameter list for calling v2_boost_denominator
     double xd[2] = {x[0], x[1]};
-    double pd[7] = {x[2], p[0], p[1], p[2], p[3], p[4], p[5]};
+    double pd[9] = {x[2], p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7]};
 
     double m = p[0];
     double pt = x[2];
@@ -658,18 +698,21 @@ double Tblastwave_yield_and_v2::yield_normalization_integrand_boost(const double
     return 2. * TMath::Pi() * pt * v2_boost_denominator(xd, pd);
 }
 
-double Tblastwave_yield_and_v2::calc_blastwave_yield_normalization_boost(const double &m, const double &T,
-                                                                        const double &rho0, const double &rho2,
-                                                                        const double &RxOverRy) {
+double Tblastwave_yield_and_v2::calc_blastwave_pt_integrated_yield_boost(const double &m, const int spinType,
+                                                                        const double &T, const double &rho0,
+                                                                        const double &rho2, const double &RxOverRy,
+                                                                        const int n_terms) {
     // blast wave parameters:
     // the last number (par[6]) is an arbitrary normalization which we will adjust
     // in order to have a good numerical stability for different masses and pt
-    double pars[6] = {m, T, rho0, rho2, RxOverRy, 1.};
+    double d_spinType = spinType;
+    double d_n_terms = n_terms;
+    double pars[8] = {m, d_spinType, T, rho0, rho2, RxOverRy, 1., d_n_terms};
 
     // determine scale factor which ensures good numerical stability
     const double xsf[3] = {1., 0., 1.};
     double sf = yield_normalization_integrand_boost(xsf, pars);
-    pars[5] = 1. / sf;
+    pars[6] = 1. / sf;
 
     // set parameters
     w_yield_norm_boost.SetParameters(pars);
@@ -689,23 +732,25 @@ double Tblastwave_yield_and_v2::calc_blastwave_yield_normalization_boost(const d
     return sf * norm;
 }
 
-void Tblastwave_yield_and_v2::calc_blastwave_yield_and_v2_boost(const double &pt, const double &m, const double &T,
-                                                               const double &rho0, const double &rho2,
-                                                               const double &RxOverRy, double &inv_yield, double &v2) {
+void Tblastwave_yield_and_v2::calc_blastwave_yield_and_v2_boost(const double &pt, const double &m, const int spinType,
+                                                               const double &T, const double &rho0, const double &rho2,
+                                                               const double &RxOverRy, const int n_terms,
+                                                               double &inv_yield, double &v2) {
 
     // blast wave parameters:
     // the last number (par[6]) is an arbitrary normalization which we will adjust
     // in order to have a good numerical stability for different masses and pt
-    double pars[7] = {pt, m, T, rho0, rho2, RxOverRy, 1.};
+    double d_spinType = spinType;
+    double d_n_terms = n_terms;
+    double pars[9] = {pt, m, d_spinType, T, rho0, rho2, RxOverRy, 1., d_n_terms};
 
     // determine scale factor which ensures good numerical stability
     const double xsf[2] = {1., 0.};
     double sf = v2_boost_denominator(xsf, pars);
-    // cout << "debugging: sf = " << sf << endl;
-    // double tmp = v2_boost_numerator(xsf, pars);
+        // double tmp = v2_boost_numerator(xsf, pars);
     // cout << "debugging: tmp = " << tmp << endl;
-    pars[6] = 1. / sf;
-
+    pars[7] = 1. / sf;
+    
     // set parameters
     w_v2_boost_num.SetParameters(pars);
     w_v2_boost_den.SetParameters(pars);
@@ -1030,39 +1075,53 @@ double v2_denominator(const double *x, const double *p) {
 }
 //------------------------------------------------------------------------------------------------------------
 
-void blastwave_dndpt_and_v2_fos1(Double_t *x, Double_t *p, Double_t& dndpt, Double_t& v2) {
+void blastwave_dndpt_and_v2_fos1(Double_t *x, Double_t *p, Double_t &dndpt, Double_t &v2) {
 
     Tblastwave_yield_and_v2 bw;
 
     Double_t pt = x[0];
 
     Double_t m = p[0];
-    Double_t Tkin = p[1];
-    Double_t rho0 = p[2]; // surface velocity
-    Double_t rho2 = p[3];
-    Double_t RxOverRy = p[4];
+    Int_t spinType = p[1];
+    Double_t Tkin = p[2];
+    Double_t rho0 = p[3]; // surface velocity
+    Double_t rho2 = p[4];
+    Double_t RxOverRy = p[5];
+    Int_t n_terms = p[6];
 
     Double_t inv_yield_bw = 0;
     Double_t v2_bw = 0;
-    bw.calc_blastwave_yield_and_v2_fos1(pt, m, Tkin, rho0, rho2, RxOverRy, inv_yield_bw, v2_bw);
+    bw.calc_blastwave_yield_and_v2_fos1(pt, m, spinType, Tkin, rho0, rho2, RxOverRy, n_terms, inv_yield_bw, v2_bw);
 
     // return values: dn/dpT and v2
     v2 = v2_bw;
     dndpt = 2. * TMath::Pi() * pt * inv_yield_bw;
-
 }
 
-double blastwave_dndpt_normalization_fos1(Double_t *p) {
+double blastwave_dndpt_unity_normalization_fos1(Double_t *p) {
 
     Tblastwave_yield_and_v2 bw;
 
     Double_t m = p[0];
-    Double_t Tkin = p[1];
-    Double_t rho0 = p[2]; // surface velocity
-    Double_t rho2 = p[3];
-    Double_t RxOverRy = p[4];
- 
- 	return bw.calc_blastwave_yield_normalization_fos1(m, Tkin, rho0, rho2, RxOverRy);
+    Int_t spinType = p[1];
+    Double_t Tkin = p[2];
+    Double_t rho0 = p[3]; // surface velocity
+    Double_t rho2 = p[4];
+    Double_t RxOverRy = p[5];
+    Int_t n_terms = p[6];
+
+    return 1. / bw.calc_blastwave_pt_integrated_yield_fos1(m, spinType, Tkin, rho0, rho2, RxOverRy, n_terms);
+}
+
+double blastwave_dndpt_stat_model_normalization_fos1(Double_t *p) {
+
+    Double_t m = p[0];
+    Int_t spinType = p[1];
+    Double_t Tch = p[7];
+    Double_t mu = p[8];
+    Double_t stat_model_norm = number_density(m, spinType, Tch, mu);
+
+    return stat_model_norm * blastwave_dndpt_unity_normalization_fos1(p);
 }
 
 void blastwave_dndpt_and_v2_boost(Double_t *x, Double_t *p, Double_t &dndpt, Double_t &v2) {
@@ -1072,31 +1131,46 @@ void blastwave_dndpt_and_v2_boost(Double_t *x, Double_t *p, Double_t &dndpt, Dou
     Double_t pt = x[0];
 
     Double_t m = p[0];
-    Double_t Tkin = p[1];
-    Double_t rho0 = p[2]; // surface velocity
-    Double_t rho2 = p[3];
-    Double_t RxOverRy = p[4];
+    Int_t spinType = p[1];
+    Double_t Tkin = p[2];
+    Double_t rho0 = p[3]; // surface velocity
+    Double_t rho2 = p[4];
+    Double_t RxOverRy = p[5];
+    Int_t n_terms = p[6];
 
     Double_t inv_yield_bw = 0;
     Double_t v2_bw = 0;
-    bw.calc_blastwave_yield_and_v2_boost(pt, m, Tkin, rho0, rho2, RxOverRy, inv_yield_bw, v2_bw);
+    bw.calc_blastwave_yield_and_v2_boost(pt, m, spinType, Tkin, rho0, rho2, RxOverRy, n_terms, inv_yield_bw, v2_bw);
 
     // return values: dn/dpT and v2
     v2 = v2_bw;
     dndpt = 2. * TMath::Pi() * pt * inv_yield_bw;
 }
 
-double blastwave_dndpt_normalization_boost(Double_t *p) {
+double blastwave_dndpt_unity_normalization_boost(Double_t *p) {
 
     Tblastwave_yield_and_v2 bw;
 
     Double_t m = p[0];
-    Double_t Tkin = p[1];
-    Double_t rho0 = p[2]; // surface velocity
-    Double_t rho2 = p[3];
-    Double_t RxOverRy = p[4];
+    Int_t spinType = p[1];
+    Double_t Tkin = p[2];
+    Double_t rho0 = p[3]; // surface velocity
+    Double_t rho2 = p[4];
+    Double_t RxOverRy = p[5];
+    Int_t n_terms = p[6];
 
-    return bw.calc_blastwave_yield_normalization_boost(m, Tkin, rho0, rho2, RxOverRy);
+    return 1. / bw.calc_blastwave_pt_integrated_yield_boost(m, spinType, Tkin, rho0, rho2, RxOverRy, n_terms);
+}
+
+double blastwave_dndpt_stat_model_normalization_boost(Double_t *p) {
+
+    Double_t m = p[0];
+    Int_t spinType = p[1];
+    Double_t Tch = p[7];
+    Double_t mu = p[8];
+    Double_t stat_model_norm = number_density(m, spinType, Tch, mu);
+
+    return stat_model_norm * blastwave_dndpt_unity_normalization_boost(p);
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -3445,20 +3519,23 @@ void plot_spectra()
 
 //------------------------------------------------------------------------------------------------------------
 // By far too slow
+
 Double_t yield_blastwave(Double_t* x_val, Double_t* par)
 {
     Int_t id_bw_hypersurface = (Int_t)par[0];
     Double_t m         = par[1];
     Double_t T         = par[2];
-    Double_t rho0      = par[3];
-    Double_t rho2      = par[4];
-    Double_t RxOverRy  = par[5];
-    Double_t scale_fac = par[6]; // fit parameter
+    Double_t spinType  = par[3];
+    Double_t rho0      = par[4];
+    Double_t rho2      = par[5];
+    Double_t RxOverRy  = par[6];
+    Double_t n_terms   = par[7];
+    Double_t scale_fac = par[8]; // fit parameter
     Double_t pt_BW     = x_val[0];
 
     Double_t inv_yield_BW, v2_BW;
     Tblastwave_yield_and_v2 bw_ana;
-    if(id_bw_hypersurface == 1) bw_ana.calc_blastwave_yield_and_v2_fos1(pt_BW, m, T, rho0, rho2, RxOverRy, inv_yield_BW, v2_BW);
+    if(id_bw_hypersurface == 1) bw_ana.calc_blastwave_yield_and_v2_fos1(pt_BW, m, 1, T, rho0, rho2, RxOverRy, 1,inv_yield_BW, v2_BW);
     if(id_bw_hypersurface == 2) bw_ana.calc_blastwave_yield_and_v2_fos2(pt_BW, m, T, rho0, rho2, RxOverRy, inv_yield_BW, v2_BW);
     if(id_bw_hypersurface == 3) bw_ana.calc_blastwave_yield_and_v2_fos3(pt_BW, m, T, rho0, rho2, RxOverRy, inv_yield_BW, v2_BW);
 
