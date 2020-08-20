@@ -2090,6 +2090,15 @@ void TBlastWaveGUI::DoMinimize_ana()
     // create and fill vectors with data for the fit
     vector <TGraphAsymmErrors*> tgae_v2_vs_pT_data;    // v2
     vector <TGraphAsymmErrors*> tgae_dN_dpT_data;      // dNdpt
+
+    vector <TString> tgae_v2_vs_pT_data_name;    // v2
+    vector <TString> tgae_dN_dpT_data_name;      // dNdpt
+
+    vector <TString> tgae_v2_vs_pT_data_syst_name;    // v2
+    vector <TString> tgae_dN_dpT_data_syst_name;      // dNdpt
+    vector <TGraphAsymmErrors*> tgae_v2_vs_pT_data_syst;    // v2 data     syst error
+    vector <TGraphAsymmErrors*> tgae_dN_dpT_data_syst;      // dNdpt data  syst error
+
     vector <Int_t> index_pid_v2_vs_pT_data;            // index of particles v2 (0-21)
     vector <Int_t> index_pid_dN_dpT_data;              // index of particles dNdpt (0-21)
     vector <Int_t> part_id;
@@ -2103,6 +2112,9 @@ void TBlastWaveGUI::DoMinimize_ana()
     tgae_v2_vs_pT_data.clear();
     tgae_dN_dpT_data.clear();
 
+
+    /*
+    //Only statistical error
 
     for (Int_t i_tgae_name = 0; i_tgae_name < (Int_t) vec_tgae_name_full.size(); i_tgae_name++)
     {
@@ -2131,7 +2143,118 @@ void TBlastWaveGUI::DoMinimize_ana()
                 part_id_dndpt.push_back(Partid[vec_index_pid[i_tgae_name]]);
             }
         }
+        }
+    */
+
+    // statistical + systematic error
+    for (Int_t i_tgae_name = 0; i_tgae_name < (Int_t) vec_tgae_name_full.size(); i_tgae_name++)
+    {
+        Int_t index_pid = vec_index_pid[i_tgae_name];
+        if (!fCheckBox_pid[index_pid]->IsDown()) continue;  // only the particles with clicked PID fit v2 check boxes are considered
+        for (Int_t i_tgae_id = 0; i_tgae_id < (Int_t) vec_tgae_id_v2_fit.size(); i_tgae_id++)
+        {
+            if ( vec_tgae_id_v2_fit[i_tgae_id] == vec_tgae_name_full[i_tgae_name] && vec_error_type[i_tgae_name] =="stat")
+            {
+                tgae_v2_vs_pT_data.push_back((TGraphAsymmErrors*)vec_tgae[i_tgae_name]->Clone());
+                tgae_v2_vs_pT_data_name.push_back(vec_tgae_name_full[i_tgae_name].Copy());
+                index_pid_v2_vs_pT_data.push_back(vec_index_pid[i_tgae_name]);
+                part_id_v2.push_back(Partid[index_pid]);
+            }
+            if ( vec_tgae_id_v2_fit[i_tgae_id] == vec_tgae_name_full[i_tgae_name] && vec_error_type[i_tgae_name] =="syst")
+            {
+                tgae_v2_vs_pT_data_syst.push_back((TGraphAsymmErrors*)vec_tgae[i_tgae_name]->Clone());
+                tgae_v2_vs_pT_data_syst_name.push_back(vec_tgae_name_full[i_tgae_name].Copy());
+            }
+        }
     }
+
+    for (Int_t i_tgae_name = 0; i_tgae_name < (Int_t) vec_tgae_name_full.size(); i_tgae_name++)
+    {
+        Int_t index_pid = vec_index_pid[i_tgae_name];
+        if (!fCheckBox_pid_fit_dNdpt[index_pid]->IsDown()) continue;  // only the particles with clicked PID fit dNdpt check boxes are considered
+        for (Int_t i_tgae_id = 0; i_tgae_id < (Int_t) vec_tgae_id_dNdpt_fit.size(); i_tgae_id++)
+        {
+            if ( vec_tgae_id_dNdpt_fit[i_tgae_id] == vec_tgae_name_full[i_tgae_name] && vec_error_type[i_tgae_name] =="stat")
+            {
+                tgae_dN_dpT_data.push_back((TGraphAsymmErrors*)vec_tgae[i_tgae_name]->Clone());
+                tgae_dN_dpT_data_name.push_back(vec_tgae_name_full[i_tgae_name].Copy());
+                index_pid_dN_dpT_data.push_back(vec_index_pid[i_tgae_name]);
+                part_id_dndpt.push_back(Partid[index_pid]);
+            }
+            if ( vec_tgae_id_dNdpt_fit[i_tgae_id] == vec_tgae_name_full[i_tgae_name] && vec_error_type[i_tgae_name] =="syst")
+            {
+                tgae_dN_dpT_data_syst.push_back((TGraphAsymmErrors*)vec_tgae[i_tgae_name]->Clone());
+                tgae_dN_dpT_data_syst_name.push_back(vec_tgae_name_full[i_tgae_name].Copy());
+                
+            }
+        }
+    }
+
+
+
+
+    for (Int_t index_stat = 0; index_stat < (Int_t) tgae_v2_vs_pT_data.size(); index_stat++)
+    {
+        for (Int_t index_syst = 0; index_syst < (Int_t) tgae_v2_vs_pT_data_syst.size(); index_syst++)
+        {
+            if (tgae_v2_vs_pT_data_name[index_stat] == tgae_v2_vs_pT_data_syst_name[index_syst])
+            {
+                for (Int_t index_points =0; index_points<tgae_v2_vs_pT_data[index_stat]->GetN(); index_points++)
+                {
+                    Double_t err_Y_high_stat,err_Y_low_stat,err_Y_high_syst,err_Y_low_syst;
+                    err_Y_high_stat = fabs(tgae_v2_vs_pT_data[index_stat] ->GetErrorYhigh(index_points));
+                    err_Y_low_stat  = fabs(tgae_v2_vs_pT_data[index_stat] ->GetErrorYlow(index_points));
+                    cout << "err_Y_high_stat: " << err_Y_high_stat<< ", err_Y_low_stat: " << err_Y_low_stat << endl;
+                    err_Y_high_syst = fabs(tgae_v2_vs_pT_data_syst[index_syst] ->GetErrorYhigh(index_points));
+                    err_Y_low_syst  = fabs(tgae_v2_vs_pT_data_syst[index_syst] ->GetErrorYlow(index_points));
+
+                    cout << "err_Y_high_syst: " << err_Y_high_syst<< ", err_Y_low_syst: " << err_Y_low_syst << endl;
+                    tgae_v2_vs_pT_data[index_stat]->SetPointEYhigh(index_points,TMath::Sqrt(err_Y_high_stat*err_Y_high_stat+err_Y_high_syst*err_Y_high_syst));
+                    tgae_v2_vs_pT_data[index_stat]->SetPointEYlow(index_points,TMath::Sqrt(err_Y_low_stat*err_Y_low_stat+err_Y_low_syst*err_Y_low_syst));
+                    err_Y_high_stat = fabs(tgae_v2_vs_pT_data[index_stat] ->GetErrorYhigh(index_points));
+                    err_Y_low_stat  = fabs(tgae_v2_vs_pT_data[index_stat] ->GetErrorYlow(index_points));
+
+                    cout << "err_Y_high_added: " << err_Y_high_stat<< ", err_Y_low_added: " << err_Y_low_stat << endl;
+                }
+            }
+
+        }
+    }
+
+    for (Int_t index_stat = 0; index_stat < (Int_t) tgae_dN_dpT_data.size(); index_stat++)
+    {
+        for (Int_t index_syst = 0; index_syst < (Int_t) tgae_dN_dpT_data_syst.size(); index_syst++)
+        {
+            if (tgae_dN_dpT_data_name[index_stat] == tgae_dN_dpT_data_syst_name[index_syst])
+            {
+                for (Int_t index_points =0; index_points<tgae_dN_dpT_data[index_stat]->GetN(); index_points++)
+                {
+                    Double_t err_Y_high_stat,err_Y_low_stat,err_Y_high_syst,err_Y_low_syst;
+                    err_Y_high_stat = fabs(tgae_dN_dpT_data[index_stat] ->GetErrorYhigh(index_points));
+                    err_Y_low_stat  = fabs(tgae_dN_dpT_data[index_stat] ->GetErrorYlow(index_points));
+
+                    cout << "err_Y_high_stat: " << err_Y_high_stat<< ", err_Y_low_stat: " << err_Y_low_stat << endl;
+
+                    err_Y_high_syst = fabs(tgae_dN_dpT_data_syst[index_syst] ->GetErrorYhigh(index_points));
+                    err_Y_low_syst  = fabs(tgae_dN_dpT_data_syst[index_syst] ->GetErrorYlow(index_points));
+
+                    cout << "err_Y_high_syst: " << err_Y_high_syst<< ", err_Y_low_syst: " << err_Y_low_syst << endl;
+
+                    tgae_dN_dpT_data[index_stat]->SetPointEYhigh(index_points,TMath::Sqrt(err_Y_high_stat*err_Y_high_stat+err_Y_high_syst*err_Y_high_syst));
+                    tgae_dN_dpT_data[index_stat]->SetPointEYlow(index_points,TMath::Sqrt(err_Y_low_stat*err_Y_low_stat+err_Y_low_syst*err_Y_low_syst));
+
+
+                    err_Y_high_stat = fabs(tgae_dN_dpT_data[index_stat] ->GetErrorYhigh(index_points));
+                    err_Y_low_stat  = fabs(tgae_dN_dpT_data[index_stat] ->GetErrorYlow(index_points));
+
+                    cout << "err_Y_high_added: " << err_Y_high_stat<< ", err_Y_low_added: " << err_Y_low_stat << endl;
+                }
+            }
+
+        }
+    }
+
+
     //--------------------------------------------------
 
 
