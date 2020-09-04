@@ -2343,7 +2343,7 @@ void TBlastWaveGUI::DoMinimize_ana()
                         v2_BW = v2_total;
                     }
 
-                    if(!(fCheckBoxFeedDown->GetState() == kButtonDown) && id_bw_hypersurface == 1) bw_ana.calc_blastwave_yield_and_v2_fos1(pt_BW, m, T, spinType, rho0, rho2, RxOverRy, n_terms, inv_yield_BW, v2_BW);
+                    if(!(fCheckBoxFeedDown->GetState() == kButtonDown) && id_bw_hypersurface == 1) bw_ana.calc_blastwave_yield_and_v2_fos1(pt_BW, m, spinType, T, rho0, rho2, RxOverRy, n_terms, inv_yield_BW, v2_BW);
                     if(!(fCheckBoxFeedDown->GetState() == kButtonDown) && id_bw_hypersurface == 2) bw_ana.calc_blastwave_yield_and_v2_fos2(pt_BW, m, T, rho0, rho2, RxOverRy, inv_yield_BW, v2_BW);
                     if(!(fCheckBoxFeedDown->GetState() == kButtonDown) && id_bw_hypersurface == 3) bw_ana.calc_blastwave_yield_and_v2_fos3(pt_BW, m, T, rho0, rho2, RxOverRy, inv_yield_BW, v2_BW);
                     //blastwave_yield_and_v2(pt_BW, m, T, rho0, rho2, RxOverRy, inv_yield_BW, v2_BW);
@@ -2435,7 +2435,7 @@ void TBlastWaveGUI::DoMinimize_ana()
                     inv_yield_BW = dndpt_total/pt_BW;
                 }
 
-                if(!(fCheckBoxFeedDown->GetState() == kButtonDown) && id_bw_hypersurface == 1) bw_ana.calc_blastwave_yield_and_v2_fos1(pt_BW, m, T, spinType, rho0, rho2, RxOverRy, n_terms, inv_yield_BW, v2_BW); // invariant yield: (1/pT) (dN/dpT)
+                if(!(fCheckBoxFeedDown->GetState() == kButtonDown) && id_bw_hypersurface == 1) bw_ana.calc_blastwave_yield_and_v2_fos1(pt_BW, m, spinType, T, rho0, rho2, RxOverRy, n_terms, inv_yield_BW, v2_BW); // invariant yield: (1/pT) (dN/dpT)
                 if(!(fCheckBoxFeedDown->GetState() == kButtonDown) && id_bw_hypersurface == 2) bw_ana.calc_blastwave_yield_and_v2_fos2(pt_BW, m, T, rho0, rho2, RxOverRy, inv_yield_BW, v2_BW); // invariant yield: (1/pT) (dN/dpT)
                 if(!(fCheckBoxFeedDown->GetState() == kButtonDown) && id_bw_hypersurface == 3) bw_ana.calc_blastwave_yield_and_v2_fos3(pt_BW, m, T, rho0, rho2, RxOverRy, inv_yield_BW, v2_BW); // invariant yield: (1/pT) (dN/dpT)
                 vec_data_BW[0].push_back(dNdpT_data);
