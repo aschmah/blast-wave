@@ -986,7 +986,7 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
     fGroupFrames[2]->AddFrame(fCheckBoxFeedDown, new TGLayoutHints(kLHintsCenterX,5,5,6,4));
 
     //Add energy drop down
-    TString ComboEnergyLabel[10] = {"7.7    GeV","11.5  GeV","14.5  GeV","19.6  GeV","27.0  GeV","39.0  GeV","62.4  GeV","200   GeV", "2760.0 GeV", "5020.0 GeV"};
+    TString ComboEnergyLabel[10] = {"7.7    GeV","11.5  GeV","14.5  GeV","19.6  GeV","27  GeV","39  GeV","62.4  GeV","200   GeV", "2760 GeV", "5020 GeV"};
     ComboEnergy = new TGComboBox(hframeD2b,200);
     for(Int_t i = 0; i < 10; ++i)
     {
@@ -997,9 +997,9 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
     ComboEnergy->Select(0);
     //-------------
     //Add centrality drop down
-    TString ComboCentralityLabel[18] = {"0-5  %", "0-10 %", "0-20 %","0-30 %","0-80 %", "5-10 %","10-20 %", "20-30 %","10-40 %","20-40 %", "30-40 %", "40-50 %", "40-60 %","40-80 %", "50-60 %", "60-70 %","60-80 %", "70-80 %"};
+    TString ComboCentralityLabel[19] = {"0-5  %", "0-10 %", "0-20 %","0-30 %","0-80 %", "5-10 %","10-20 %", "20-30 %","10-40 %","20-40 %", "30-40 %", "30-80 %",  "40-50 %", "40-60 %","40-80 %", "50-60 %", "60-70 %","60-80 %", "70-80 %"};
     ComboCentrality = new TGComboBox(hframeD2b,200);
-    for(Int_t index_cent = 0; index_cent < 18; index_cent++)
+    for(Int_t index_cent = 0; index_cent < 19; index_cent++)
     {
         ComboCentrality->AddEntry(ComboCentralityLabel[index_cent], index_cent);
     }
@@ -1133,8 +1133,8 @@ void TBlastWaveGUI::DoSetTextButton()
     Int_t i_select_centrality = ComboCentrality->GetSelected();
     TString ComboEnergyLabel[10]           = {"7.7","11.5","14.5","19.6","27","39","62.4","200", "2760", "5020"};
     TString ComboEnergyLabel_float[10]     = {"7.7","11.5","14.5","19.6","27.0", "39.0","62.4", "200.0", "2760.0", "5020.0"};
-    TString ComboCentralityLabel_upper[18] = {"5","10","20","30","80","10","20", "30","40","40", "40", "50", "60","80", "60", "70","80", "80"};
-    TString ComboCentralityLabel_lower[18] = {"0", "0", "0", "0", "0", "5","10", "20","10","20", "30", "40", "40","40", "50", "60","60", "70"};
+    TString ComboCentralityLabel_upper[19] = {"5","10","20","30","80","10","20", "30","40","40", "40", "80", "50", "60","80", "60", "70","80", "80"};
+    TString ComboCentralityLabel_lower[19] = {"0", "0", "0", "0", "0", "5","10", "20","10","20", "30", "30", "40", "40","40", "50", "60","60", "70"};
 
     ULong_t green;
     gClient->GetColorByName("green", green);
@@ -1223,26 +1223,41 @@ void TBlastWaveGUI::DoFillTgaeID()
     vec_tgae_id_v2_fit.clear();
     vec_tgae_id_dNdpt_fit.clear();
     TString tgae_id;
+    TString tgae_id_float_energy;
 
     for (Int_t i_particle= 0; i_particle< N_masses_all; i_particle++)
     {
         if (fCheckBox_pid_plot[i_particle]->IsDown())
         {
-            tgae_id = "v2_PID_";
-            tgae_id += label_full_pid_spectra[i_particle].Data();
-            tgae_id += "_E_";
-            tgae_id += sub_str_Energy;
-            tgae_id += "_C_";
-            tgae_id += cent_lower.Data();
-            tgae_id += "_";
-            tgae_id += cent_upper.Data();
+            tgae_id               = "v2_PID_";
+            tgae_id_float_energy  = "v2_PID_";
+            tgae_id              += label_full_pid_spectra[i_particle].Data();
+            tgae_id_float_energy += label_full_pid_spectra[i_particle].Data();
+            tgae_id              += "_E_";
+            tgae_id_float_energy += "_E_";
+            tgae_id              += sub_str_Energy;
+            tgae_id_float_energy += sub_str_Energy;
+            if (sub_str_Energy=="200" || sub_str_Energy == "27" || sub_str_Energy == "39" || sub_str_Energy == "5020" || sub_str_Energy == "2760")  tgae_id_float_energy += ".0";
+            tgae_id              += "_C_";
+            tgae_id_float_energy += "_C_";
+            tgae_id              += cent_lower.Data();
+            tgae_id_float_energy += cent_lower.Data();
+            tgae_id              += "_";
+            tgae_id_float_energy += "_";
+            tgae_id              += cent_upper.Data();
+            tgae_id_float_energy += cent_upper.Data();
 
             cout << tgae_id << endl;
+            cout << tgae_id_float_energy << endl;
             vec_tgae_id_v2.push_back(tgae_id.Copy());  // v2 plot
+            if (sub_str_Energy=="200" || sub_str_Energy == "27" || sub_str_Energy == "39"|| sub_str_Energy == "5020"|| sub_str_Energy == "2760") vec_tgae_id_v2.push_back(tgae_id_float_energy.Copy());
             tgae_id.Clear();
+            tgae_id_float_energy.Clear();
+
         }
         if (fCheckBox_pid[i_particle]->IsDown())
         {
+            /*
             tgae_id = "v2_PID_";
             tgae_id += label_full_pid_spectra[i_particle].Data();
             tgae_id += "_E_";
@@ -1251,14 +1266,36 @@ void TBlastWaveGUI::DoFillTgaeID()
             tgae_id += cent_lower.Data();
             tgae_id += "_";
             tgae_id += cent_upper.Data();
+            */
+            tgae_id               = "v2_PID_";
+            tgae_id_float_energy  = "v2_PID_";
+            tgae_id              += label_full_pid_spectra[i_particle].Data();
+            tgae_id_float_energy += label_full_pid_spectra[i_particle].Data();
+            tgae_id              += "_E_";
+            tgae_id_float_energy += "_E_";
+            tgae_id              += sub_str_Energy;
+            tgae_id_float_energy += sub_str_Energy;
+            if (sub_str_Energy=="200" || sub_str_Energy == "27" || sub_str_Energy == "39" || sub_str_Energy == "5020" || sub_str_Energy == "2760")  tgae_id_float_energy += ".0";
+            tgae_id              += "_C_";
+            tgae_id_float_energy += "_C_";
+            tgae_id              += cent_lower.Data();
+            tgae_id_float_energy += cent_lower.Data();
+            tgae_id              += "_";
+            tgae_id_float_energy += "_";
+            tgae_id              += cent_upper.Data();
+            tgae_id_float_energy += cent_upper.Data();
 
+            cout << tgae_id_float_energy << endl;
             cout << tgae_id << endl;
             vec_tgae_id_v2_fit.push_back(tgae_id.Copy());   // v2 fit
+            if (sub_str_Energy=="200" || sub_str_Energy == "27" || sub_str_Energy == "39"|| sub_str_Energy == "5020"|| sub_str_Energy == "2760") vec_tgae_id_v2_fit.push_back(tgae_id_float_energy.Copy());
             tgae_id.Clear();
+            tgae_id_float_energy.Clear();
         }
 
         if (fCheckBox_pid_plot_dNdpt[i_particle]->IsDown())
         {
+            /*
             tgae_id = "dNdpt_PID_";
             tgae_id += label_full_pid_spectra[i_particle].Data();
             tgae_id += "_E_";
@@ -1270,9 +1307,36 @@ void TBlastWaveGUI::DoFillTgaeID()
             cout << tgae_id << endl;
             vec_tgae_id_dNdpt.push_back(tgae_id.Copy());   // dNdpt plot
             tgae_id.Clear();
+            */
+            tgae_id               = "dNdpt_PID_";
+            tgae_id_float_energy  = "dNdpt_PID_";
+            tgae_id              += label_full_pid_spectra[i_particle].Data();
+            tgae_id_float_energy += label_full_pid_spectra[i_particle].Data();
+            tgae_id              += "_E_";
+            tgae_id_float_energy += "_E_";
+            tgae_id              += sub_str_Energy;
+            tgae_id_float_energy += sub_str_Energy;
+            if (sub_str_Energy=="200" || sub_str_Energy == "27" || sub_str_Energy == "39"|| sub_str_Energy == "5020"|| sub_str_Energy == "2760")  tgae_id_float_energy += ".0";
+            tgae_id              += "_C_";
+            tgae_id_float_energy += "_C_";
+            tgae_id              += cent_lower.Data();
+            tgae_id_float_energy += cent_lower.Data();
+            tgae_id              += "_";
+            tgae_id_float_energy += "_";
+            tgae_id              += cent_upper.Data();
+            tgae_id_float_energy += cent_upper.Data();
+
+            cout << tgae_id << endl;
+            cout << tgae_id_float_energy << endl;
+            vec_tgae_id_dNdpt.push_back(tgae_id.Copy());
+            if (sub_str_Energy=="200" || sub_str_Energy == "27" || sub_str_Energy == "39"|| sub_str_Energy == "5020"|| sub_str_Energy == "2760") vec_tgae_id_dNdpt.push_back(tgae_id_float_energy.Copy());
+            tgae_id.Clear();
+            tgae_id_float_energy.Clear();
+
         }
         if (fCheckBox_pid_fit_dNdpt[i_particle]->IsDown())
         {
+            /*
             tgae_id = "dNdpt_PID_";
             tgae_id += label_full_pid_spectra[i_particle].Data();
             tgae_id += "_E_";
@@ -1284,6 +1348,32 @@ void TBlastWaveGUI::DoFillTgaeID()
             cout << tgae_id << endl;
             vec_tgae_id_dNdpt_fit.push_back(tgae_id.Copy());   // dNdpt fit
             tgae_id.Clear();
+            */
+            tgae_id               = "dNdpt_PID_";
+            tgae_id_float_energy  = "dNdpt_PID_";
+            tgae_id              += label_full_pid_spectra[i_particle].Data();
+            tgae_id_float_energy += label_full_pid_spectra[i_particle].Data();
+            tgae_id              += "_E_";
+            tgae_id_float_energy += "_E_";
+            tgae_id              += sub_str_Energy;
+            tgae_id_float_energy += sub_str_Energy;
+            if (sub_str_Energy=="200" || sub_str_Energy == "27" || sub_str_Energy == "39"|| sub_str_Energy == "5020"|| sub_str_Energy == "2760")  tgae_id_float_energy += ".0";
+            tgae_id              += "_C_";
+            tgae_id_float_energy += "_C_";
+            tgae_id              += cent_lower.Data();
+            tgae_id_float_energy += cent_lower.Data();
+            tgae_id              += "_";
+            tgae_id_float_energy += "_";
+            tgae_id              += cent_upper.Data();
+            tgae_id_float_energy += cent_upper.Data();
+
+            cout << tgae_id << endl;
+            cout << tgae_id_float_energy << endl;
+            vec_tgae_id_dNdpt_fit.push_back(tgae_id.Copy());
+            if (sub_str_Energy=="200" || sub_str_Energy == "27" || sub_str_Energy == "39"|| sub_str_Energy == "5020"|| sub_str_Energy == "2760") vec_tgae_id_dNdpt_fit.push_back(tgae_id_float_energy.Copy());
+            tgae_id.Clear();
+            tgae_id_float_energy.Clear();
+
         }
     }
 
