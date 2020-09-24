@@ -166,8 +166,12 @@ private:
     TH1D* h_fit_params_errors;
     TH1D* h_min_val_pT;
     TH1D* h_max_val_pT;
+    TH1D* h_cov_matrix;
+    TH1D* h_corr_matrix;
     vector<Double_t> vec_min_val_pT;
     vector<Double_t> vec_max_val_pT;
+    vector<Double_t> vec_cov_matrix;
+    vector<Double_t> vec_corr_matrix;
     TLegend* leg_v2_vs_pT_A = NULL;
     TLegend* leg_v2_vs_pT_B = NULL;
     TLegend* leg_dNdpT_vs_pT = NULL;
@@ -496,6 +500,8 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
     h_fit_params_errors = new TH1D("fit_params_errors", "fit_params_errors", 4, 1,10);
     h_min_val_pT = new TH1D("min_val_pT", "min_val_pT", 22,1,10);
     h_max_val_pT = new TH1D("max_val_pT", "max_val_pT", 22,1,10);
+    h_cov_matrix = new TH1D("cov_matrix", "cov_matrix", 22,1,10);
+    h_corr_matrix = new TH1D("corr_matrix", "corr_matrix", 22,1,10);
     //------------------------------------------------------------
 
 
@@ -2294,17 +2300,17 @@ void TBlastWaveGUI::DoMinimize_ana()
                     Double_t err_Y_high_stat,err_Y_low_stat,err_Y_high_syst,err_Y_low_syst;
                     err_Y_high_stat = fabs(tgae_v2_vs_pT_data[index_stat] ->GetErrorYhigh(index_points));
                     err_Y_low_stat  = fabs(tgae_v2_vs_pT_data[index_stat] ->GetErrorYlow(index_points));
-                    cout << "err_Y_high_stat: " << err_Y_high_stat<< ", err_Y_low_stat: " << err_Y_low_stat << endl;
+                    //cout << "err_Y_high_stat: " << err_Y_high_stat<< ", err_Y_low_stat: " << err_Y_low_stat << endl;
                     err_Y_high_syst = fabs(tgae_v2_vs_pT_data_syst[index_syst] ->GetErrorYhigh(index_points));
                     err_Y_low_syst  = fabs(tgae_v2_vs_pT_data_syst[index_syst] ->GetErrorYlow(index_points));
 
-                    cout << "err_Y_high_syst: " << err_Y_high_syst<< ", err_Y_low_syst: " << err_Y_low_syst << endl;
+                    //cout << "err_Y_high_syst: " << err_Y_high_syst<< ", err_Y_low_syst: " << err_Y_low_syst << endl;
                     tgae_v2_vs_pT_data[index_stat]->SetPointEYhigh(index_points,TMath::Sqrt(err_Y_high_stat*err_Y_high_stat+err_Y_high_syst*err_Y_high_syst));
                     tgae_v2_vs_pT_data[index_stat]->SetPointEYlow(index_points,TMath::Sqrt(err_Y_low_stat*err_Y_low_stat+err_Y_low_syst*err_Y_low_syst));
                     err_Y_high_stat = fabs(tgae_v2_vs_pT_data[index_stat] ->GetErrorYhigh(index_points));
                     err_Y_low_stat  = fabs(tgae_v2_vs_pT_data[index_stat] ->GetErrorYlow(index_points));
 
-                    cout << "err_Y_high_added: " << err_Y_high_stat<< ", err_Y_low_added: " << err_Y_low_stat << endl;
+                    //cout << "err_Y_high_added: " << err_Y_high_stat<< ", err_Y_low_added: " << err_Y_low_stat << endl;
                 }
             }
 
@@ -2323,12 +2329,12 @@ void TBlastWaveGUI::DoMinimize_ana()
                     err_Y_high_stat = fabs(tgae_dN_dpT_data[index_stat] ->GetErrorYhigh(index_points));
                     err_Y_low_stat  = fabs(tgae_dN_dpT_data[index_stat] ->GetErrorYlow(index_points));
 
-                    cout << "err_Y_high_stat: " << err_Y_high_stat<< ", err_Y_low_stat: " << err_Y_low_stat << endl;
+                    //cout << "err_Y_high_stat: " << err_Y_high_stat<< ", err_Y_low_stat: " << err_Y_low_stat << endl;
 
                     err_Y_high_syst = fabs(tgae_dN_dpT_data_syst[index_syst] ->GetErrorYhigh(index_points));
                     err_Y_low_syst  = fabs(tgae_dN_dpT_data_syst[index_syst] ->GetErrorYlow(index_points));
 
-                    cout << "err_Y_high_syst: " << err_Y_high_syst<< ", err_Y_low_syst: " << err_Y_low_syst << endl;
+                    //cout << "err_Y_high_syst: " << err_Y_high_syst<< ", err_Y_low_syst: " << err_Y_low_syst << endl;
 
                     tgae_dN_dpT_data[index_stat]->SetPointEYhigh(index_points,TMath::Sqrt(err_Y_high_stat*err_Y_high_stat+err_Y_high_syst*err_Y_high_syst));
                     tgae_dN_dpT_data[index_stat]->SetPointEYlow(index_points,TMath::Sqrt(err_Y_low_stat*err_Y_low_stat+err_Y_low_syst*err_Y_low_syst));
@@ -2337,7 +2343,7 @@ void TBlastWaveGUI::DoMinimize_ana()
                     err_Y_high_stat = fabs(tgae_dN_dpT_data[index_stat] ->GetErrorYhigh(index_points));
                     err_Y_low_stat  = fabs(tgae_dN_dpT_data[index_stat] ->GetErrorYlow(index_points));
 
-                    cout << "err_Y_high_added: " << err_Y_high_stat<< ", err_Y_low_added: " << err_Y_low_stat << endl;
+                    //cout << "err_Y_high_added: " << err_Y_high_stat<< ", err_Y_low_added: " << err_Y_low_stat << endl;
                 }
             }
 
@@ -2392,7 +2398,7 @@ void TBlastWaveGUI::DoMinimize_ana()
                 max_val_pT_v2 = arr_NEntry_limits_A[1][i_mass_v2]->GetNumberEntry()->GetNumber();
             }
 
-            cout << "min_val_pT_v2: " << min_val_pT_v2 << "max_val_pT_v2: " << max_val_pT_v2  <<endl;
+            //cout << "min_val_pT_v2: " << min_val_pT_v2 << "max_val_pT_v2: " << max_val_pT_v2  <<endl;
             individual_chi2_ana[i_mass_v2][0]   = 0.0; // v2
             N_individual_chi2_ana[i_mass_v2][0] = 0.0; // v2
 
@@ -2414,7 +2420,7 @@ void TBlastWaveGUI::DoMinimize_ana()
 
                 tgae_v2_vs_pT_data[i_tgae]->GetPoint(i_point,pt_data,v2_data);   // data
                 double v2_err = tgae_v2_vs_pT_data[i_tgae]->GetErrorYhigh(i_point);
-                cout << "i_point = " << i_point << ", pt_data = " << pt_data << ", v2_data = " << v2_data << " +/- " << v2_err << endl;
+                //cout << "i_point = " << i_point << ", pt_data = " << pt_data << ", v2_data = " << v2_data << " +/- " << v2_err << endl;
 
                 if(pt_data > max_val_pT_v2) break;
 
@@ -2440,7 +2446,7 @@ void TBlastWaveGUI::DoMinimize_ana()
 
                     tg_v2_BW_ana_pid_min[i_mass_v2] ->SetPoint(i_point_ana,pt_BW,v2_BW);
 
-                    cout << "i_point = " << i_point <<  ", pt_BW = " << pt_BW << ", v2_BW = " << v2_BW<< ", chi2 = " << chi2 << ", T = " << T << ", rho0 = " << rho0 <<", rho2 = " << rho2 << ", RxOverRy = " << RxOverRy << endl;
+                    //cout << "i_point = " << i_point <<  ", pt_BW = " << pt_BW << ", v2_BW = " << v2_BW<< ", chi2 = " << chi2 << ", T = " << T << ", rho0 = " << rho0 <<", rho2 = " << rho2 << ", RxOverRy = " << RxOverRy << endl;
                     double diff   = (v2_data - v2_BW)/v2_err;
                     //double diff_yield = (inv_yield_BW - inv_yield_data)/yield_err;
                     chi2 += diff*diff;
@@ -2476,7 +2482,7 @@ void TBlastWaveGUI::DoMinimize_ana()
                 min_val_pT = arr_NEntry_limits_A[0][i_mass]->GetNumberEntry()->GetNumber(); // number entries for particles 11-21
                 max_val_pT = arr_NEntry_limits_A[1][i_mass]->GetNumberEntry()->GetNumber();
             }
-            cout << "min_val_pT: " << min_val_pT<< "max_val_pT: " << max_val_pT  <<endl;
+            //cout << "min_val_pT: " << min_val_pT<< "max_val_pT: " << max_val_pT  <<endl;
 
 
             individual_chi2_ana[i_mass][1]   = 0.0; // dN/dpT
@@ -2510,7 +2516,7 @@ void TBlastWaveGUI::DoMinimize_ana()
                 Double_t x_err_high_data = fabs(tgae_dN_dpT_data[i_tgae] ->GetErrorXhigh(i_point));
                 Double_t bin_width = x_err_low_data + x_err_high_data;
 
-                cout << "i_point = " << i_point << ", pt_data = " << pt_data << ", dNdpt_data = " << dNdpT_data << " +/- " << dNdpT_err << endl;
+                //cout << "i_point = " << i_point << ", pt_data = " << pt_data << ", dNdpt_data = " << dNdpT_data << " +/- " << dNdpT_err << endl;
 
                 double v2_BW = 0;
                 double inv_yield_BW = 0;
@@ -2534,7 +2540,7 @@ void TBlastWaveGUI::DoMinimize_ana()
                 vec_data_BW[3].push_back(pt_BW);
 
                 integral_ana += inv_yield_BW*bin_width*pt_BW;
-                cout << "i_point = " << i_point << ", pt_BW = " << pt_BW << ", v2_BW = " << v2_BW << ", T = " << T <<", rho0 = " << rho0 <<", rho2 = " << rho2 <<", RxOverRy = " << RxOverRy <<", inv_yield_BW = " << inv_yield_BW << endl;
+               // cout << "i_point = " << i_point << ", pt_BW = " << pt_BW << ", v2_BW = " << v2_BW << ", T = " << T <<", rho0 = " << rho0 <<", rho2 = " << rho2 <<", RxOverRy = " << RxOverRy <<", inv_yield_BW = " << inv_yield_BW << endl;
                 //double diff   = (dNdpT_data - inv_yield_BW)/dNdpT_err;
                 //double diff_yield = (inv_yield_BW - inv_yield_data)/yield_err;
                 //chi2 += diff*diff;
@@ -2706,6 +2712,9 @@ void TBlastWaveGUI::DoMinimize_ana()
         {
             Double_t cov_value =  result.CovMatrix(i_parA,i_parB);
             printf("%10.5f",cov_value/(fitpar_err[i_parA]*fitpar_err[i_parB]));
+            Double_t Cov_value = cov_value/(fitpar_err[i_parA]*fitpar_err[i_parB]);
+            vec_cov_matrix.push_back(Cov_value);
+
             if(i_parB == 3) printf(" \n");
             //printf("%s-%s: %4.7f \n",par_names[i_parA].Data(),par_names[i_parB].Data(),cov_value);
         }
@@ -2720,6 +2729,7 @@ void TBlastWaveGUI::DoMinimize_ana()
             Double_t corr_value =  result.Correlation(i_parA,i_parB);
             printf("%10.5f",corr_value);
             if(i_parB == 3) printf(" \n");
+            vec_corr_matrix.push_back(corr_value);
             //printf("%s-%s: %4.7f \n",par_names[i_parA].Data(),par_names[i_parB].Data(),cov_value);
         }
     }
@@ -4258,19 +4268,60 @@ void TBlastWaveGUI::WriteParams()
         h_fit_params -> AddBinContent(i_params+1, fit_params[i_params]);
         h_fit_params_errors -> AddBinContent(i_params+1, fit_params_errors[i_params]);
     }
-
+    /*
     Double_t temp =  h_fit_params_errors -> GetBinContent(1);
     Double_t rho =  h_fit_params_errors -> GetBinContent(2);
     Double_t rho_2 =  h_fit_params_errors -> GetBinContent(3);
     Double_t R =  h_fit_params_errors -> GetBinContent(4);
     cout  <<"T: " <<temp  <<", rho0: " <<rho  << ", rho2: " << rho_2  <<", RxOverRy: " << R  <<endl;
-    /*
-    Double_t min_pt_Pi = h_min_val_pT -> GetBinContent(1);
-    Double_t min_pt_t = h_min_val_pT -> GetBinContent(22);
-    Double_t max_pt_Pi = h_max_val_pT -> GetBinContent(1);
-    Double_t max_pt_t = h_max_val_pT -> GetBinContent(22);
-    cout  <<"min_pt_pi+: " << min_pt_Pi  <<", min_pt_t: " << min_pt_t  << ", max_pt_pi+: " << max_pt_Pi  <<", max_pt_t: " << max_pt_t  <<endl;
     */
+    for (Int_t i_cov_matrix = 0 ; i_cov_matrix < 16; i_cov_matrix++)
+    {
+        h_cov_matrix -> AddBinContent(i_cov_matrix+1, vec_cov_matrix[i_cov_matrix]);
+        h_corr_matrix -> AddBinContent(i_cov_matrix+1, vec_corr_matrix[i_cov_matrix]);
+    }
+
+    Double_t a11 =  h_cov_matrix -> GetBinContent(1);
+    Double_t a12 =  h_cov_matrix -> GetBinContent(2);
+    Double_t a13 = h_cov_matrix -> GetBinContent(3);
+    Double_t a14 =  h_cov_matrix -> GetBinContent(4);
+    Double_t a21 =  h_cov_matrix -> GetBinContent(5);
+    Double_t a22 =  h_cov_matrix -> GetBinContent(6);
+    Double_t a23 =  h_cov_matrix -> GetBinContent(7);
+    Double_t a24 = h_cov_matrix -> GetBinContent(8);
+    Double_t a31 =  h_cov_matrix -> GetBinContent(9);
+    Double_t a32 =  h_cov_matrix -> GetBinContent(10);
+    Double_t a33 =  h_cov_matrix -> GetBinContent(11);
+    Double_t a34 =  h_cov_matrix -> GetBinContent(12);
+    Double_t a41 =  h_cov_matrix -> GetBinContent(13);
+    Double_t a42 =  h_cov_matrix -> GetBinContent(14);
+    Double_t a43 = h_cov_matrix -> GetBinContent(15);
+    Double_t a44 =  h_cov_matrix -> GetBinContent(16);
+
+    cout  <<"a11: " << a11  <<", a12: " << a12  << ", a13: " << a13  <<", a14: " << a14 <<", a21: " << a21 <<", a22: " << a22 <<", a23: " << a23 <<", a24: " << a24 <<", a31: " << a31 <<", a32: " << a32 <<", a33: " << a33 <<", a34: " << a34 <<", a41: " << a41 <<", a42: " << a42 <<", a43: " << a43 <<", a44: " << a44  <<endl;
+
+
+
+    Double_t a11_corr = h_corr_matrix -> GetBinContent(1);
+    Double_t a12_corr = h_corr_matrix -> GetBinContent(2);
+    Double_t a13_corr = h_corr_matrix -> GetBinContent(3);
+    Double_t a14_corr = h_corr_matrix -> GetBinContent(4);
+    Double_t a21_corr = h_corr_matrix -> GetBinContent(5);
+    Double_t a22_corr = h_corr_matrix -> GetBinContent(6);
+    Double_t a23_corr = h_corr_matrix -> GetBinContent(7);
+    Double_t a24_corr = h_corr_matrix -> GetBinContent(8);
+    Double_t a31_corr = h_corr_matrix -> GetBinContent(9);
+    Double_t a32_corr = h_corr_matrix -> GetBinContent(10);
+    Double_t a33_corr = h_corr_matrix -> GetBinContent(11);
+    Double_t a34_corr = h_corr_matrix -> GetBinContent(12);
+    Double_t a41_corr = h_corr_matrix -> GetBinContent(13);
+    Double_t a42_corr = h_corr_matrix -> GetBinContent(14);
+    Double_t a43_corr = h_corr_matrix -> GetBinContent(15);
+    Double_t a44_corr = h_corr_matrix -> GetBinContent(16);
+
+    cout  <<"a11_corr: " << a11_corr  <<", a12_corr: " << a12_corr  << ", a13_corr: " << a13_corr  <<", a14_corr: " << a14_corr <<", a21_corr: " << a21_corr <<", a22_corr: " << a22_corr <<", a23_corr: " << a23_corr <<", a24_corr: " << a24_corr <<", a31_corr: " << a31_corr <<", a32_corr: " << a32_corr <<", a33_corr: " << a33_corr <<", a34_corr: " << a34_corr <<", a41_corr: " << a41_corr <<", a42_corr: " << a42_corr <<", a43_corr: " << a43_corr <<", a44_corr: " << a44_corr  <<endl;
+
+
     TString output_file_name;
     //output_file_name.Clear();
     output_file_name = combo_energy.Data();
@@ -4303,7 +4354,8 @@ void TBlastWaveGUI::WriteParams()
     h_fit_params_errors->Write("h_fit_params_errors");
     h_min_val_pT->Write("h_min_val_pT");
     h_max_val_pT->Write("h_max_val_pT");
-
+    h_cov_matrix->Write("h_cov_matrix");
+    h_corr_matrix->Write("h_corr_matrix");
 
 }
 //______________________________________________________________________________
