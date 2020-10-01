@@ -2712,8 +2712,8 @@ void TBlastWaveGUI::DoMinimize_ana()
         {
             Double_t cov_value =  result.CovMatrix(i_parA,i_parB);
             printf("%10.5f",cov_value/(fitpar_err[i_parA]*fitpar_err[i_parB]));
-            Double_t Cov_value = cov_value/(fitpar_err[i_parA]*fitpar_err[i_parB]);
-            vec_cov_matrix.push_back(Cov_value);
+            //Double_t Cov_value = cov_value/(fitpar_err[i_parA]*fitpar_err[i_parB]);
+            vec_cov_matrix.push_back(cov_value);
 
             if(i_parB == 3) printf(" \n");
             //printf("%s-%s: %4.7f \n",par_names[i_parA].Data(),par_names[i_parB].Data(),cov_value);
