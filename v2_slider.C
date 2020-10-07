@@ -2589,6 +2589,7 @@ void TBlastWaveGUI::DoMinimize_ana()
         printf("N_calls_BW_ana: %d \n",N_calls_BW_ana);
         //printf("fraction total: %4.2f%%, fraction added: %4.2f%% \n",fraction_total*100.0,fraction_use*100.0);
 
+        /*
         // v2 fit plot
         c_1X1_v2->GetCanvas()->cd();
         HistName = "#chi_{Ana}^{2}/ndf = ";
@@ -2644,6 +2645,7 @@ void TBlastWaveGUI::DoMinimize_ana()
                 else best_individual_chi2_per_point_ana[i_mass][1] = -1.0;
             }
         }
+        */
 
         return chi2;
     };
