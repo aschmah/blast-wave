@@ -410,12 +410,12 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
     TString vec_label[5] = {"T (GeV)","rho0","rhoa","Rx","fboost"};
 
 
-    init_data();
-    init_pT_spectra_data();
+    //init_data();
+    //init_pT_spectra_data();
     load_data();
 
     //make_5_60_spectra();
-    Init_v2_Mathematica();
+    //Init_v2_Mathematica();
 
     /*
     inputfiles[0] = TFile::Open("./Data/merge_out_v2_boost.root");
@@ -509,6 +509,7 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
     //------------------------------------------------------------
     // Create an embedded canvas and add to the main frame, centered in x and y
     // and with 30 pixel margins all around
+    printf("Create embedded canvas \n");
     fCanvas = new TRootEmbeddedCanvas("Canvas", this, 800, 700);
     fLcan = new TGLayoutHints(kLHintsExpandX | kLHintsExpandY, 10, 10, 10, 10);
     AddFrame(fCanvas, fLcan);
@@ -537,6 +538,8 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
     //Int_t start_pos_slider[5] = {4,4,2,6,0}; // overall OK
     //Int_t start_pos_slider[5] = {4,7,3,6,0}; // very good for v2 only
     Int_t start_pos_slider[5] = {3,5,3,7,0}; // overall quite good
+
+    printf("Create slider canvas \n");
 
     // Add a frame for the sliders
     FrameA = new TGMainFrame(gClient->GetRoot(), 400, 100);
@@ -588,6 +591,7 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
     FrameB ->MapWindow();
     FrameB->Resize(1300,700);
 
+    printf("Create another canvas \n");
 
     // Create an embedded canvas and add to the main frame, centered in x and y
     // and with 30 pixel margins all around
@@ -1919,6 +1923,7 @@ void TBlastWaveGUI::DoSlider()
     }
 
 
+    /*
     //-------------------------------------
     fCanvas ->GetCanvas() ->cd();
     h_dummy ->Draw();
@@ -2056,7 +2061,7 @@ void TBlastWaveGUI::DoSlider()
     fCanvasB->GetCanvas()->Modified();
     fCanvasB->GetCanvas()->Update();
     //-------------------------------------
-
+    */
 }
 
 //______________________________________________________________________________
