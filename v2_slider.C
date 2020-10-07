@@ -294,23 +294,23 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
 
     //--------------------------------------------------------------------
     min_max_pT_range_pid[0][0] = 0.4; // pi
-    min_max_pT_range_pid[1][0] = 1.0;
+    min_max_pT_range_pid[1][0] = 1.1;
     min_max_pT_range_pid[0][1] = 0.4; // pi
-    min_max_pT_range_pid[1][1] = 1.0;
+    min_max_pT_range_pid[1][1] = 1.1;
     min_max_pT_range_pid[0][2] = 0.15; // K
     min_max_pT_range_pid[1][2]  = 1.5;
     min_max_pT_range_pid[0][3] = 0.15; // K
     min_max_pT_range_pid[1][3] = 1.5;
     min_max_pT_range_pid[0][4] = 0.22; // p
-    min_max_pT_range_pid[1][4] = 1.8;
+    min_max_pT_range_pid[1][4] = 1.9;
     min_max_pT_range_pid[0][5] = 0.22; // p
-    min_max_pT_range_pid[1][5] = 1.8;
+    min_max_pT_range_pid[1][5] = 1.9;
     min_max_pT_range_pid[0][6] = 0.5; // phi
-    min_max_pT_range_pid[1][6] = 1.8;
+    min_max_pT_range_pid[1][6] = 1.9;
     min_max_pT_range_pid[0][7] = 0.3; // Xi
-    min_max_pT_range_pid[1][7] = 2.0;
+    min_max_pT_range_pid[1][7] = 2.2;
     min_max_pT_range_pid[0][8] = 0.3; // Xi
-    min_max_pT_range_pid[1][8] = 2.0;
+    min_max_pT_range_pid[1][8] = 2.2;
     min_max_pT_range_pid[0][9] = 1.1; // Omega
     min_max_pT_range_pid[1][9] = 2.6;
     min_max_pT_range_pid[0][10] = 1.1; // Omega
@@ -322,15 +322,15 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
     min_max_pT_range_pid[0][13] = 0.3; // K0S
     min_max_pT_range_pid[1][13] = 1.5;
     min_max_pT_range_pid[0][14] = 0.92; // D0
-    min_max_pT_range_pid[1][14] = 3.6;
+    min_max_pT_range_pid[1][14] = 2.7;
     min_max_pT_range_pid[0][15] = 0.22; // J/Psi
-    min_max_pT_range_pid[1][15] = 4.0;
+    min_max_pT_range_pid[1][15] = 3.9;
     min_max_pT_range_pid[0][16] = 0.1; // Upsilon
-    min_max_pT_range_pid[1][16] = 10.0;
+    min_max_pT_range_pid[1][16] = 9.8;
     min_max_pT_range_pid[0][17] = 0.5; // d
-    min_max_pT_range_pid[1][17] = 2.6;
+    min_max_pT_range_pid[1][17] = 2.7;
     min_max_pT_range_pid[0][18] = 0.5; // d
-    min_max_pT_range_pid[1][18] = 2.6;
+    min_max_pT_range_pid[1][18] = 2.7;
     min_max_pT_range_pid[0][19] = 0.3; // He3
     min_max_pT_range_pid[1][19] = 3.6;
     min_max_pT_range_pid[0][20] = 0.3; // He3
@@ -967,7 +967,7 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
     //--------------
 
 
-
+    /*
     //--------------
     TString arr_label_params_ana[4] = {"SET T","SET rho0","SET rhoa","SET Rx"};
     //hframeD5a  = new TGHorizontalFrame(FrameD,200,100);
@@ -986,15 +986,10 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
     }
     FrameD ->AddFrame(fGroupFrames[3], new TGLayoutHints(kLHintsCenterX,2,2,2,2));
     //--------------
-
+    */
 
 
     //--------------
-    // Add feed down check box
-    fCheckBoxFeedDown = new TGCheckButton(fGroupFrames[2], "Include Feed-Down");
-    fCheckBoxFeedDown->SetState(kButtonDown);
-    fGroupFrames[2]->AddFrame(fCheckBoxFeedDown, new TGLayoutHints(kLHintsCenterX,5,5,6,4));
-
     //Add energy drop down
     TString ComboEnergyLabel[10] = {"7.7    GeV","11.5  GeV","14.5  GeV","19.6  GeV","27  GeV","39  GeV","62.4  GeV","200   GeV", "2760 GeV", "5020 GeV"};
     ComboEnergy = new TGComboBox(hframeD2b,200);
@@ -1024,12 +1019,21 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
     Set_energy_centrality->Resize(100,20);
     Set_energy_centrality->Connect("Clicked()", "TBlastWaveGUI", this, "DoSetTextButton()");
     //-------------
-
+    /*
+    // Add feed down check box
+    fCheckBoxFeedDown = new TGCheckButton(fGroupFrames[2], "Include Feed-Down");
+    fCheckBoxFeedDown->SetState(kButtonDown);
+    fGroupFrames[2]->AddFrame(fCheckBoxFeedDown, new TGLayoutHints(kLHintsCenterX,5,5,6,4));
+    */
+    // Add feed down check box
+    fCheckBoxFeedDown = new TGCheckButton(hframeD2b, "Include Feed-Down");
+    fCheckBoxFeedDown->SetState(kButtonDown);
+    hframeD2b->AddFrame(fCheckBoxFeedDown, new TGLayoutHints(kLHintsCenterX,5,5,6,4));
 
     FrameD ->MapSubwindows();
     FrameD ->MapWindow();
-    FrameD ->Resize(1050,900); // size of frame
-    FrameD ->Move(1250,850); // position of frame
+    FrameD ->Resize(1050,800); // size of frame
+    FrameD ->Move(1250,950); // position of frame
 
 
 
@@ -2649,6 +2653,8 @@ void TBlastWaveGUI::DoMinimize_ana()
     ROOT::Math::Functor fcn(chi2Function,4);
     ROOT::Fit::Fitter fitter;
     // ROOT::Math::MinimizerOptions::SetDefaultPrintLevel(1);
+
+    TFitter::SetPrecision(0.1);
 
     double pStart[4] = {0.14,0.925,0.05,0.9};
     fitter.SetFCN(fcn, pStart);
