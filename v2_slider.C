@@ -98,6 +98,7 @@ private:
     TGLabel*       LabelD4b;
     TGTransientFrame* frame_TGTransient;
     TGTransientFrame* frame_TGTransientB;
+    TGTransientFrame  *frame_TGTransient_startparameter;
     TGTextButton      *Button_take_params_MC_to_ana;
     TGTextButton      *Button_take_params_Set_to_ana;
     TGComboBox        *fCombo, *ComboEnergy, *ComboCentrality;
@@ -123,7 +124,9 @@ private:
     TGNumberEntry*     arr_NEntry_limits_A[2][N_masses_all];
     TGNumberEntry*     NEntry_set_limits;;
     TGNumberEntry*     arr_NEntry_ana_params[4];
+    TGNumberEntry*     arr_NEntry_start_params[4];
     TGLabel*           arr_Label_NEntry_ana_params[4];
+    TGLabel*           arr_Label_NEntry_start_params[4];
     TGLayoutHints* arr_fL1[2];
     Double_t min_max_pT_range_pid[2][N_masses_all];
     TGraph* tg_v2_BW_ana_pid[N_masses];
@@ -1030,12 +1033,12 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
     fCheckBoxFeedDown->SetState(kButtonDown);
     hframeD2b->AddFrame(fCheckBoxFeedDown, new TGLayoutHints(kLHintsCenterX,5,5,6,4));
 
+
     FrameD ->MapSubwindows();
     FrameD ->MapWindow();
     FrameD ->Resize(1050,800); // size of frame
-    FrameD ->Move(1250,950); // position of frame
-
-
+    //FrameD ->Move(1250,950); // position of frame
+    FrameD ->Move(1250,150); // position of frame
 
     //--------------
     printf("Add limits widget \n");
@@ -1110,14 +1113,48 @@ TBlastWaveGUI::TBlastWaveGUI() : TGMainFrame(gClient->GetRoot(), 100, 100)
     frame_TGTransient->CenterOnParent();
     frame_TGTransient->SetWindowName("pT limits");
     frame_TGTransient->MapWindow();
-    frame_TGTransient->Move(270,650); // position of frame
-    //--------------
-
-
+    //frame_TGTransient->Move(670,650); // position of frame
+    frame_TGTransient->Move(670,150); // position of frame
     //------------------------------------------------------------
 
 
+    //------------------------------------------------------------
+    frame_TGTransient_startparameter =  new TGTransientFrame(gClient->GetRoot(), FrameD, 60, 20, kHorizontalFrame);
+    FrameD ->AddFrame(frame_TGTransient_startparameter, LHintsD4a);
+    //FrameD ->AddFrame(frame_TGTransient_startparameter);
 
+    TString arr_label_params_start[4] = {"SET T","SET rho0","SET rho2","SET Rx/Ry"};
+    Double_t start_params[4] = {0.14,0.925,0.05,0.9};
+    //hframeD5a  = new TGHorizontalFrame(FrameD,200,100);
+    fGroupFrames[3] = new TGGroupFrame(frame_TGTransient_startparameter, new TGString("SET parameters"),kHorizontalFrame|kRaisedFrame);
+    for(Int_t i_param = 0; i_param < 4; i_param++)
+    {
+        hVframeD5a[i_param] = new TGVerticalFrame(fGroupFrames[3], 200,200);
+        //arr_NEntry_start_params[i_param] = new TGNumberEntry(hVframeD5a[i_param], 0.0, 12,(TGNumberFormat::EStyle) 2);
+        arr_NEntry_start_params[i_param] = new TGNumberEntry(hVframeD5a[i_param], start_params[i_param], 12,(TGNumberFormat::EStyle) 2);
+        arr_NEntry_start_params[i_param] ->SetNumStyle( TGNumberFormat::kNESRealTwo); // https://root.cern.ch/doc/master/classTGNumberFormat.html#a8a0f81aac8ac12d0461aef554c6271ad
+        hVframeD5a[i_param]->AddFrame(arr_NEntry_start_params[i_param], new TGLayoutHints(kLHintsCenterX,2,2,2,2));
+
+        TString label_entry = arr_label_params_start[i_param];
+        arr_Label_NEntry_start_params[i_param] = new TGLabel(hVframeD5a[i_param], label_entry.Data(), myGC(), myfont->GetFontStruct());
+        hVframeD5a[i_param]->AddFrame(arr_Label_NEntry_start_params[i_param], new TGLayoutHints(kLHintsCenterX,2,2,2,2));
+        fGroupFrames[3]->AddFrame(hVframeD5a[i_param], new TGLayoutHints(kLHintsCenterX,2,2,2,2));
+    }
+    frame_TGTransient_startparameter ->AddFrame(fGroupFrames[3], new TGLayoutHints(kLHintsCenterX,2,2,2,2));
+
+
+    frame_TGTransient_startparameter->MapSubwindows();
+    frame_TGTransient_startparameter->Resize();
+    frame_TGTransient_startparameter->CenterOnParent();
+    frame_TGTransient_startparameter->SetWindowName("start parameters");
+    frame_TGTransient_startparameter->MapWindow();
+    frame_TGTransient_startparameter->Move(0,0); // position of frame
+
+
+
+
+
+    
     //------------------------------------------------------------
     DoSlider();
     //------------------------------------------------------------
@@ -2147,6 +2184,14 @@ void TBlastWaveGUI::DoMinimize_ana()
     Button_minimize_ana->ChangeBackground(yellow);
     Button_take_params_MC_to_ana->ChangeBackground(yellow);
 
+    // Start Parameters
+    Double_t T_start        = arr_NEntry_start_params[0]->GetNumberEntry()->GetNumber();
+    Double_t rho0_start     = arr_NEntry_start_params[1]->GetNumberEntry()->GetNumber();
+    Double_t rho2_start     = arr_NEntry_start_params[2]->GetNumberEntry()->GetNumber();
+    Double_t RxOverRy_start = arr_NEntry_start_params[3]->GetNumberEntry()->GetNumber();
+
+    cout<< "start parameters: "<< "T_start="<<T_start<< ", rho0_start="<<rho0_start<<", rho2_start="<<rho2_start<<", RxOverRy_start="<<RxOverRy_start<<endl;
+
     //Particle Id list
     const Int_t idPi = 211;
     const Int_t idKaon = 321;
@@ -2654,9 +2699,14 @@ void TBlastWaveGUI::DoMinimize_ana()
     ROOT::Fit::Fitter fitter;
     // ROOT::Math::MinimizerOptions::SetDefaultPrintLevel(1);
 
-    TFitter::SetPrecision(0.1);
+    TFitter::SetPrecision(1);
 
-    double pStart[4] = {0.14,0.925,0.05,0.9};
+    //double pStart[4] = {0.14,0.925,0.05,0.9};
+    double pStart[4] = {T_start, rho0_start, rho2_start, RxOverRy_start};
+
+    //double pStart[4] = {0.11,0.75,0.04,0.9};   // K-, pbar, phi, xibar, lambdabar    19.6
+    //double pStart[4] = {0.14,0.63,0.05,0.84};  //test
+
     fitter.SetFCN(fcn, pStart);
 
     fitter.Config().ParSettings(0).SetName("T"); // set parameters name
